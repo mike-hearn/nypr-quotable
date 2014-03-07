@@ -14919,11 +14919,9 @@ $(document).ready(function($) {
     $font_slider.change(function() {
         var quote_font_size = $(this).val() + 'px';
         var attrib_font_size = ($(this).val() * 0.5) + 'px';
-        var source_font_size = ($(this).val() * 0.39) + 'px';
 
         $(".editable-quote").css('font-size',quote_font_size);
         $(".editable-attrib").css('font-size',attrib_font_size);
-        $(".editable-source").css('font-size',source_font_size);
     });
 
 
@@ -14951,20 +14949,16 @@ $(document).ready(function($) {
 
     });
 
-    // Attribution
-    $source.on('keyup keydown change', function() {
-        var v = $(this).val();
-        $('.editable-source > p').text(v);
-    });
-
+    //Save button functionality
     $('.save-button').hover(function () {
         html2canvas($('.quote-sizing-box'), {
             logging: true,
             onrendered: function(canvas) {
                 var img = canvas.toDataURL("image/png");
+                var filename = $("#select_brand").val() + '-' + $('.editable-quote').text().trim().replace(/[^A-z]/g, "").toLowerCase().substring(0,15);
                 $('.save-button').attr({
                     href: img,
-                    download: "download.png"
+                    download: filename + '.png'
                 });
             }
         });
