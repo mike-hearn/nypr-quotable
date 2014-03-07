@@ -1,0 +1,18 @@
+{
+  "name": "nypr-quotable",
+  "version": "0.0.1",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components"
+  ],
+  "dependencies": {},
+  "private": true,
+  "devDependencies": {
+    "jquery": "~2.1.0",
+    "html2canvas": "~0.4.1",
+    "medium-editor": "~1.6.0",
+    "normalize-css": "~3.0.0",
+    "bootstrap-sass": "~3.0.2"
+  }
+}
