@@ -64,6 +64,8 @@ $(document).ready(function($) {
     $('.save-button').hover(function () {
         html2canvas($('.quote-sizing-box'), {
             logging: true,
+            background: undefined,
+            allowTaint: true,
             onrendered: function(canvas) {
                 var img = canvas.toDataURL("image/png");
                 var filename = $("#select_brand").val() + '-' + $('.editable-quote').text().trim().replace(/[^A-z]/g, "").toLowerCase().substring(0,15);
@@ -113,5 +115,27 @@ $(document).ready(function($) {
     //Initial Settings
     var height = $(window).height();
     $('body').height(height + 1);
+
+
+    function readImage(input) {
+        if ( input.files && input.files[0] ) {
+            var FR= new FileReader();
+            FR.onload = function(e) {
+                 $('.quote-sizing-box').css({
+                    'background': 'url(' + e.target.result + ') no-repeat center center fixed',
+                    'background-attachment' : 'initial',
+                    '-webkit-background-size' : 'cover',
+                    '-moz-background-size' : 'cover',
+                    '-o-background-size' : 'cover',
+                    'background-size' : 'cover'
+                });
+            };
+            FR.readAsDataURL( input.files[0] );
+        }
+    }
+
+    $("#asd").change(function(){
+        readImage( this );
+});
 
 });
