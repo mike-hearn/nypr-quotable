@@ -7,6 +7,7 @@ $(document).ready(function($) {
 
     // Cache selectors
     var $quotation_toggle = $('.settings-quotations .btn'),
+        $size_toggle = $('.settings-size .btn'),
         $font_slider = $('#fontslider'),
         $source = $('#source');
 
@@ -41,6 +42,21 @@ $(document).ready(function($) {
         };
 
         toggleQuotes($(this).find('input').val());
+
+    });
+
+    // Size toggle
+    $size_toggle.click(function() {
+
+        var value = $(this).find('input').val();
+
+        if (value == "twitter") {
+            $('.quote-sizing-box').css('padding-bottom','73.2142857%');
+            console.log(value);
+        }
+        else if (value == "facebook") {
+            $('.quote-sizing-box').css('padding-bottom','100%');
+        }
 
     });
 
