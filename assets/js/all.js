@@ -15018,7 +15018,7 @@ $(document).ready(function($) {
         var value = $(this).find('input').val();
 
         if (value == "twitter") {
-            $('.quote-sizing-box').css('padding-bottom','73.2142857%');
+            $('.quote-sizing-box').css('padding-bottom','50%');
             console.log(value);
         }
         else if (value == "facebook") {
