@@ -77,19 +77,9 @@ $(document).ready(function($) {
         });
     });
 
-    $('#select_brand').change(function() {
-        var theme = $('#select_theme').val();
-        var logo = $('#select_brand').val();
-        $('.quote-logo').attr({
-            'src': 'assets/img/logos/' + logo + '-' + theme + '.png'
-        });
-
-    });
-
-    $('#select_theme').change(function() {
+    $('#select_theme, #select_brand').change(function() {
         //.quote-sizing-box
-        function changeTheme(background_color, text_color) {
-            var theme = $('#select_theme').val();
+        function changeTheme(background_color, text_color, image_theme_suffix) {
             var logo = $('#select_brand').val();
 
             $('.quote-sizing-box').css({
@@ -98,17 +88,35 @@ $(document).ready(function($) {
             });
 
             $('.quote-logo').attr({
-                'src': 'assets/img/logos/' + logo + '-' + theme + '.png'
+                'src': 'assets/img/logos/' + logo + '-' + image_theme_suffix + '.png'
             });
         }
 
         themeTable = {
-            white : function(){ changeTheme('#fff', '#333'); },
-            gray : function(){ changeTheme('#444', '#fff'); },
-            black : function(){ changeTheme('#000', '#fff'); },
+            white : function(){ changeTheme('#fff', '#333', 'white'); },
+            gray : function(){ changeTheme('#444', '#fff', 'gray'); },
+            black : function(){ changeTheme('#000', '#fff', 'black'); },
+            brand : function(){
+                var brand = $("#select_brand").val();
+                if (brand === "wnyc") {
+                    changeTheme('#cc0033','#fff','brand');
+                }
+                else if (brand === "wqxr") {
+                    changeTheme('#00aeef','#fff','brand');
+                }
+                else if (brand === "radiolab") {
+                    changeTheme('#d9602d','#fff','brand');
+                }
+                else if (brand === "onthemedia") {
+                    changeTheme('#ec5a24','#fff','brand');
+                }
+                else {
+                    changeTheme('#fff','#333', 'white');
+                }
+            }
         };
 
-        var value = $(this).val();
+        var value = $('#select_theme').val();
         themeTable[value]();
     });
 
