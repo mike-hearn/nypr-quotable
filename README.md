@@ -1,4 +1,4 @@
-# NYPR Quotable
+# WVPB Quotable
 
 This tool is based upon [NPR Quotable][1].
 
