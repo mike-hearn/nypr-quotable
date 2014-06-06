@@ -45,7 +45,7 @@ module.exports = function(grunt) {
 
         watch: {
             options: {
-                livereload: 35730,
+                livereload: true,
             },
             scripts: {
                 files: ['assets/js/*.js'],

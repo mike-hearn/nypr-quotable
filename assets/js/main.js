@@ -6,10 +6,11 @@ $(document).ready(function($) {
     });
 
     // Cache selectors
-    var $quotation_toggle = $('.settings-quotations .btn'),
-        $size_toggle = $('.settings-size .btn'),
+    var $size_toggle = $('.settings-size .btn'),
+        $alignment_toggle = $('.settings-alignment .btn'),
         $font_slider = $('#fontslider'),
-        $source = $('#source');
+        $source = $('#source'),
+        $select_font = $('#select_font');
 
     // Font control
     $font_slider.change(function() {
@@ -21,29 +22,7 @@ $(document).ready(function($) {
     });
 
 
-    // Quotations toggle code
-    $quotation_toggle.click(function() {
-
-        var toggleQuotes = function (val) {
-            switch(val) {
-                case 'on':
-                    $('.quote-open, .quote-close').remove();
-                    $('.editable-quote p')
-                        .first()
-                        .prepend('<span class="quote-open" contenteditable=false>&#8220;</span>');
-                    $('.editable-quote p')
-                        .last()
-                        .append('<span class="quote-close" contenteditable=false>&#8221;</span>');
-                    break;
-                case 'off':
-                    $('.quote-open, .quote-close').remove();
-                    break;
-            }
-        };
-
-        toggleQuotes($(this).find('input').val());
-
-    });
+    // Todo: force added quotes to be fancy curved ones
 
     // Size toggle
     $size_toggle.click(function() {
@@ -52,13 +31,57 @@ $(document).ready(function($) {
 
         if (value == "twitter") {
             $('.quote-sizing-box').css('padding-bottom','50%');
-            console.log(value);
         }
         else if (value == "facebook") {
             $('.quote-sizing-box').css('padding-bottom','100%');
         }
 
     });
+
+    // Change font upon selection change
+    $select_font.on('change', function() {
+        var font_value = $(this).val();
+
+        var changeFont = function(fontName) {
+            $('.editable').css('font-family',fontName);
+        };
+
+        switch (font_value) {
+            case 'gotham':
+                changeFont('Gotham-Web');
+                console.log('goth');
+                break;
+            case 'din':
+                changeFont('DIN');
+                console.log('gothasodij');
+                break;
+            case 'helvetica':
+                changeFont('Helneue');
+                break;
+        }
+
+    });
+
+    // Alignment buttons action
+    $alignment_toggle.click(function() {
+
+        console.log("It's all happening!!!!");
+
+        var value = $(this).find('input').val();
+        console.log(value);
+
+        if (value == "left") {
+            $('.editable > p').css('text-align','left');
+        }
+        else if (value == "center") {
+            $('.editable > p').css('text-align','center');
+        }
+        else if (value == "right") {
+            $('.editable > p').css('text-align','right');
+        }
+
+    });
+
 
     //Save button functionality
     $('.save-button').hover(function () {
@@ -142,7 +165,7 @@ $(document).ready(function($) {
         }
     }
 
-    $("#asd").change(function(){
+    $("#fileupload").change(function(){
         readImage( this );
 });
 
