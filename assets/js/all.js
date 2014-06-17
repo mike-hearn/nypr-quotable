@@ -15612,9 +15612,29 @@ if (typeof module === 'object') {
 
 $(document).ready(function($) {
 
+    function updateCanvas() {
+        html2canvas($('.quote-sizing-box'), {
+            logging: true,
+            background: undefined,
+            allowTaint: true,
+            onrendered: function(canvas) {
+                var img = canvas.toDataURL("image/png");
+                var filename = $("#select_brand").val() + '-' + $('.editable-quote').text().trim().replace(/[^A-z]/g, "").toLowerCase().substring(0, 15);
+                $('.save-button')
+                    .attr({
+                        href: img,
+                        download: filename + '.png',
+                        disabled: false
+                    })
+                    .text('Save Image');
+            }
+        });
+    }
+
     var editable = new MediumEditor('.editable', {
         buttons: ['bold', 'italic', 'underline'],
-        placeholder: ''
+        placeholder: '',
+        disableDoubleReturn: true
     });
 
     // Cache selectors
@@ -15687,22 +15707,17 @@ $(document).ready(function($) {
     });
 
 
-    //Save button functionality
+    //Create new canvas for image saving
     $('.save-button').hover(function() {
-        html2canvas($('.quote-sizing-box'), {
-            logging: true,
-            background: undefined,
-            allowTaint: true,
-            onrendered: function(canvas) {
-                var img = canvas.toDataURL("image/png");
-                var filename = $("#select_brand").val() + '-' + $('.editable-quote').text().trim().replace(/[^A-z]/g, "").toLowerCase().substring(0, 15);
-                $('.save-button').attr({
-                    href: img,
-                    download: filename + '.png'
-                });
-            }
-        });
+        $('.save-button')
+            .text("Please wait...")
+            .attr('disabled', 'true');
+        updateCanvas();
     });
+
+    //$('.setting, #fileupload').on('change', function() {
+    //    updateCanvas();
+    //});
 
     $('#select_theme, #select_brand').change(function() {
         //.quote-sizing-box
@@ -15749,23 +15764,13 @@ $(document).ready(function($) {
         themeTable[value]();
     });
 
-    //Replace first and last quotes with fancy quotes
-    $('.editable-quote').on('focusout', function() {
-        console.log("It happened.");
-
-        var new_text = $('.p-quote')
-            .text()
-            .replace(/^"/g, "“")
-            .replace(/"$/g, "”");
-        $('.p-quote').text(new_text);
-    });
-
     //Initial Settings
     var height = $(window).height();
     $('body').height(height + 1);
 
 
     function readImage(input) {
+        var backgroundColor = $('.quote-sizing-box').css('background-color');
         if (input.files && input.files[0]) {
             var FR = new FileReader();
             FR.onload = function(e) {
@@ -15779,11 +15784,23 @@ $(document).ready(function($) {
                 });
             };
             FR.readAsDataURL(input.files[0]);
+            $('.settings-image-upload')
+                .append('<button class="btn btn-xs btn-danger" id="remove_image">Remove Image</button>')
+                .click(function() {
+                    console.log("asodif");
+                    $("#fileupload").val("");
+                    $('.quote-sizing-box').css({
+                        'background-image': 'none',
+                        'background-color': backgroundColor
+                    });
+                    $("#remove_image").remove();
+                });
         }
     }
 
     $("#fileupload").change(function() {
         readImage(this);
     });
+
 
 });
