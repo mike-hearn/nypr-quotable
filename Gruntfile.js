@@ -11,7 +11,7 @@ module.exports = function(grunt) {
                     'bower_components/html2canvas/build/html2canvas.js',
                     'bower_components/medium-editor/dist/js/medium-editor.js',
                     'assets/js/plugins.js',
-                    'assets/js/main.js'
+                    'assets/js/main.js',
                 ],
                 dest: 'assets/js/all.js',
             },

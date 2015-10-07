@@ -1,5 +1,5 @@
 /*!
- * jQuery JavaScript Library v2.1.1
+ * jQuery JavaScript Library v2.1.4
  * http://jquery.com/
  *
  * Includes Sizzle.js
@@ -9,19 +9,19 @@
  * Released under the MIT license
  * http://jquery.org/license
  *
- * Date: 2014-05-01T17:11Z
+ * Date: 2015-04-28T16:01Z
  */
 
 (function( global, factory ) {
 
 	if ( typeof module === "object" && typeof module.exports === "object" ) {
-		// For CommonJS and CommonJS-like environments where a proper window is present,
-		// execute the factory and get jQuery
-		// For environments that do not inherently posses a window with a document
-		// (such as Node.js), expose a jQuery-making factory as module.exports
-		// This accentuates the need for the creation of a real window
+		// For CommonJS and CommonJS-like environments where a proper `window`
+		// is present, execute the factory and get jQuery.
+		// For environments that do not have a `window` with a `document`
+		// (such as Node.js), expose a factory as module.exports.
+		// This accentuates the need for the creation of a real `window`.
 		// e.g. var jQuery = require("jquery")(window);
-		// See ticket #14549 for more info
+		// See ticket #14549 for more info.
 		module.exports = global.document ?
 			factory( global, true ) :
 			function( w ) {
@@ -37,10 +37,10 @@
 // Pass this if window is not defined yet
 }(typeof window !== "undefined" ? window : this, function( window, noGlobal ) {
 
-// Can't do this because several apps including ASP.NET trace
+// Support: Firefox 18+
+// Can't be in strict mode, several libs including ASP.NET trace
 // the stack via arguments.caller.callee and Firefox dies if
 // you try to trace through "use strict" call chains. (#13335)
-// Support: Firefox 18+
 //
 
 var arr = [];
@@ -67,7 +67,7 @@ var
 	// Use the correct document accordingly with window argument (sandbox)
 	document = window.document,
 
-	version = "2.1.1",
+	version = "2.1.4",
 
 	// Define a local copy of jQuery
 	jQuery = function( selector, context ) {
@@ -185,7 +185,7 @@ jQuery.extend = jQuery.fn.extend = function() {
 	if ( typeof target === "boolean" ) {
 		deep = target;
 
-		// skip the boolean and the target
+		// Skip the boolean and the target
 		target = arguments[ i ] || {};
 		i++;
 	}
@@ -195,7 +195,7 @@ jQuery.extend = jQuery.fn.extend = function() {
 		target = {};
 	}
 
-	// extend jQuery itself if only one argument is passed
+	// Extend jQuery itself if only one argument is passed
 	if ( i === length ) {
 		target = this;
 		i--;
@@ -252,9 +252,6 @@ jQuery.extend({
 
 	noop: function() {},
 
-	// See test/unit/core.js for details concerning isFunction.
-	// Since version 1.3, DOM methods and functions like alert
-	// aren't supported. They return false on IE (#2968).
 	isFunction: function( obj ) {
 		return jQuery.type(obj) === "function";
 	},
@@ -269,7 +266,8 @@ jQuery.extend({
 		// parseFloat NaNs numeric-cast false positives (null|true|false|"")
 		// ...but misinterprets leading-number strings, particularly hex literals ("0x...")
 		// subtraction forces infinities to NaN
-		return !jQuery.isArray( obj ) && obj - parseFloat( obj ) >= 0;
+		// adding 1 corrects loss of precision from parseFloat (#15100)
+		return !jQuery.isArray( obj ) && (obj - parseFloat( obj ) + 1) >= 0;
 	},
 
 	isPlainObject: function( obj ) {
@@ -303,7 +301,7 @@ jQuery.extend({
 		if ( obj == null ) {
 			return obj + "";
 		}
-		// Support: Android < 4.0, iOS < 6 (functionish RegExp)
+		// Support: Android<4.0, iOS<6 (functionish RegExp)
 		return typeof obj === "object" || typeof obj === "function" ?
 			class2type[ toString.call(obj) ] || "object" :
 			typeof obj;
@@ -333,6 +331,7 @@ jQuery.extend({
 	},
 
 	// Convert dashed to camelCase; used by the css and data modules
+	// Support: IE9-11+
 	// Microsoft forgot to hump their vendor prefix (#9572)
 	camelCase: function( string ) {
 		return string.replace( rmsPrefix, "ms-" ).replace( rdashAlpha, fcamelCase );
@@ -532,7 +531,12 @@ jQuery.each("Boolean Number String Function Array Date RegExp Object Error".spli
 });
 
 function isArraylike( obj ) {
-	var length = obj.length,
+
+	// Support: iOS 8.2 (not reproducible in simulator)
+	// `in` check used to prevent JIT error (gh-2145)
+	// hasOwn isn't used here due to false negatives
+	// regarding Nodelist length in IE
+	var length = "length" in obj && obj.length,
 		type = jQuery.type( obj );
 
 	if ( type === "function" || jQuery.isWindow( obj ) ) {
@@ -548,14 +552,14 @@ function isArraylike( obj ) {
 }
 var Sizzle =
 /*!
- * Sizzle CSS Selector Engine v1.10.19
+ * Sizzle CSS Selector Engine v2.2.0-pre
  * http://sizzlejs.com/
  *
- * Copyright 2013 jQuery Foundation, Inc. and other contributors
+ * Copyright 2008, 2014 jQuery Foundation, Inc. and other contributors
  * Released under the MIT license
  * http://jquery.org/license
  *
- * Date: 2014-04-18
+ * Date: 2014-12-16
  */
 (function( window ) {
 
@@ -582,7 +586,7 @@ var i,
 	contains,
 
 	// Instance-specific data
-	expando = "sizzle" + -(new Date()),
+	expando = "sizzle" + 1 * new Date(),
 	preferredDoc = window.document,
 	dirruns = 0,
 	done = 0,
@@ -597,7 +601,6 @@ var i,
 	},
 
 	// General-purpose constants
-	strundefined = typeof undefined,
 	MAX_NEGATIVE = 1 << 31,
 
 	// Instance methods
@@ -607,12 +610,13 @@ var i,
 	push_native = arr.push,
 	push = arr.push,
 	slice = arr.slice,
-	// Use a stripped-down indexOf if we can't use a native one
-	indexOf = arr.indexOf || function( elem ) {
+	// Use a stripped-down indexOf as it's faster than native
+	// http://jsperf.com/thor-indexof-vs-for/5
+	indexOf = function( list, elem ) {
 		var i = 0,
-			len = this.length;
+			len = list.length;
 		for ( ; i < len; i++ ) {
-			if ( this[i] === elem ) {
+			if ( list[i] === elem ) {
 				return i;
 			}
 		}
@@ -652,6 +656,7 @@ var i,
 		")\\)|)",
 
 	// Leading and non-escaped trailing whitespace, capturing some non-whitespace characters preceding the latter
+	rwhitespace = new RegExp( whitespace + "+", "g" ),
 	rtrim = new RegExp( "^" + whitespace + "+|((?:^|[^\\\\])(?:\\\\.)*)" + whitespace + "+$", "g" ),
 
 	rcomma = new RegExp( "^" + whitespace + "*," + whitespace + "*" ),
@@ -703,6 +708,14 @@ var i,
 				String.fromCharCode( high + 0x10000 ) :
 				// Supplemental Plane codepoint (surrogate pair)
 				String.fromCharCode( high >> 10 | 0xD800, high & 0x3FF | 0xDC00 );
+	},
+
+	// Used for iframes
+	// See setDocument()
+	// Removing the function wrapper causes a "Permission Denied"
+	// error in IE
+	unloadHandler = function() {
+		setDocument();
 	};
 
 // Optimize for push.apply( _, NodeList )
@@ -745,19 +758,18 @@ function Sizzle( selector, context, results, seed ) {
 
 	context = context || document;
 	results = results || [];
+	nodeType = context.nodeType;
 
-	if ( !selector || typeof selector !== "string" ) {
+	if ( typeof selector !== "string" || !selector ||
+		nodeType !== 1 && nodeType !== 9 && nodeType !== 11 ) {
+
 		return results;
 	}
 
-	if ( (nodeType = context.nodeType) !== 1 && nodeType !== 9 ) {
-		return [];
-	}
+	if ( !seed && documentIsHTML ) {
 
-	if ( documentIsHTML && !seed ) {
-
-		// Shortcuts
-		if ( (match = rquickExpr.exec( selector )) ) {
+		// Try to shortcut find operations when possible (e.g., not under DocumentFragment)
+		if ( nodeType !== 11 && (match = rquickExpr.exec( selector )) ) {
 			// Speed-up: Sizzle("#ID")
 			if ( (m = match[1]) ) {
 				if ( nodeType === 9 ) {
@@ -789,7 +801,7 @@ function Sizzle( selector, context, results, seed ) {
 				return results;
 
 			// Speed-up: Sizzle(".CLASS")
-			} else if ( (m = match[3]) && support.getElementsByClassName && context.getElementsByClassName ) {
+			} else if ( (m = match[3]) && support.getElementsByClassName ) {
 				push.apply( results, context.getElementsByClassName( m ) );
 				return results;
 			}
@@ -799,7 +811,7 @@ function Sizzle( selector, context, results, seed ) {
 		if ( support.qsa && (!rbuggyQSA || !rbuggyQSA.test( selector )) ) {
 			nid = old = expando;
 			newContext = context;
-			newSelector = nodeType === 9 && selector;
+			newSelector = nodeType !== 1 && selector;
 
 			// qSA works strangely on Element-rooted queries
 			// We can work around this by specifying an extra ID on the root
@@ -986,7 +998,7 @@ function createPositionalPseudo( fn ) {
  * @returns {Element|Object|Boolean} The input node if acceptable, otherwise a falsy value
  */
 function testContext( context ) {
-	return context && typeof context.getElementsByTagName !== strundefined && context;
+	return context && typeof context.getElementsByTagName !== "undefined" && context;
 }
 
 // Expose support vars for convenience
@@ -1010,9 +1022,8 @@ isXML = Sizzle.isXML = function( elem ) {
  * @returns {Object} Returns the current document
  */
 setDocument = Sizzle.setDocument = function( node ) {
-	var hasCompare,
-		doc = node ? node.ownerDocument || node : preferredDoc,
-		parent = doc.defaultView;
+	var hasCompare, parent,
+		doc = node ? node.ownerDocument || node : preferredDoc;
 
 	// If no document and documentElement is available, return
 	if ( doc === document || doc.nodeType !== 9 || !doc.documentElement ) {
@@ -1022,9 +1033,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 	// Set our document
 	document = doc;
 	docElem = doc.documentElement;
-
-	// Support tests
-	documentIsHTML = !isXML( doc );
+	parent = doc.defaultView;
 
 	// Support: IE>8
 	// If iframe document is assigned to "document" variable and if iframe has been reloaded,
@@ -1033,21 +1042,22 @@ setDocument = Sizzle.setDocument = function( node ) {
 	if ( parent && parent !== parent.top ) {
 		// IE11 does not have attachEvent, so all must suffer
 		if ( parent.addEventListener ) {
-			parent.addEventListener( "unload", function() {
-				setDocument();
-			}, false );
+			parent.addEventListener( "unload", unloadHandler, false );
 		} else if ( parent.attachEvent ) {
-			parent.attachEvent( "onunload", function() {
-				setDocument();
-			});
+			parent.attachEvent( "onunload", unloadHandler );
 		}
 	}
+
+	/* Support tests
+	---------------------------------------------------------------------- */
+	documentIsHTML = !isXML( doc );
 
 	/* Attributes
 	---------------------------------------------------------------------- */
 
 	// Support: IE<8
-	// Verify that getAttribute really returns attributes and not properties (excepting IE8 booleans)
+	// Verify that getAttribute really returns attributes and not properties
+	// (excepting IE8 booleans)
 	support.attributes = assert(function( div ) {
 		div.className = "i";
 		return !div.getAttribute("className");
@@ -1062,17 +1072,8 @@ setDocument = Sizzle.setDocument = function( node ) {
 		return !div.getElementsByTagName("*").length;
 	});
 
-	// Check if getElementsByClassName can be trusted
-	support.getElementsByClassName = rnative.test( doc.getElementsByClassName ) && assert(function( div ) {
-		div.innerHTML = "<div class='a'></div><div class='a i'></div>";
-
-		// Support: Safari<4
-		// Catch class over-caching
-		div.firstChild.className = "i";
-		// Support: Opera<10
-		// Catch gEBCN failure to find non-leading classes
-		return div.getElementsByClassName("i").length === 2;
-	});
+	// Support: IE<9
+	support.getElementsByClassName = rnative.test( doc.getElementsByClassName );
 
 	// Support: IE<10
 	// Check if getElementById returns elements by name
@@ -1086,7 +1087,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 	// ID find and filter
 	if ( support.getById ) {
 		Expr.find["ID"] = function( id, context ) {
-			if ( typeof context.getElementById !== strundefined && documentIsHTML ) {
+			if ( typeof context.getElementById !== "undefined" && documentIsHTML ) {
 				var m = context.getElementById( id );
 				// Check parentNode to catch when Blackberry 4.6 returns
 				// nodes that are no longer in the document #6963
@@ -1107,7 +1108,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 		Expr.filter["ID"] =  function( id ) {
 			var attrId = id.replace( runescape, funescape );
 			return function( elem ) {
-				var node = typeof elem.getAttributeNode !== strundefined && elem.getAttributeNode("id");
+				var node = typeof elem.getAttributeNode !== "undefined" && elem.getAttributeNode("id");
 				return node && node.value === attrId;
 			};
 		};
@@ -1116,14 +1117,20 @@ setDocument = Sizzle.setDocument = function( node ) {
 	// Tag
 	Expr.find["TAG"] = support.getElementsByTagName ?
 		function( tag, context ) {
-			if ( typeof context.getElementsByTagName !== strundefined ) {
+			if ( typeof context.getElementsByTagName !== "undefined" ) {
 				return context.getElementsByTagName( tag );
+
+			// DocumentFragment nodes don't have gEBTN
+			} else if ( support.qsa ) {
+				return context.querySelectorAll( tag );
 			}
 		} :
+
 		function( tag, context ) {
 			var elem,
 				tmp = [],
 				i = 0,
+				// By happy coincidence, a (broken) gEBTN appears on DocumentFragment nodes too
 				results = context.getElementsByTagName( tag );
 
 			// Filter out possible comments
@@ -1141,7 +1148,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 
 	// Class
 	Expr.find["CLASS"] = support.getElementsByClassName && function( className, context ) {
-		if ( typeof context.getElementsByClassName !== strundefined && documentIsHTML ) {
+		if ( documentIsHTML ) {
 			return context.getElementsByClassName( className );
 		}
 	};
@@ -1170,13 +1177,15 @@ setDocument = Sizzle.setDocument = function( node ) {
 			// setting a boolean content attribute,
 			// since its presence should be enough
 			// http://bugs.jquery.com/ticket/12359
-			div.innerHTML = "<select msallowclip=''><option selected=''></option></select>";
+			docElem.appendChild( div ).innerHTML = "<a id='" + expando + "'></a>" +
+				"<select id='" + expando + "-\f]' msallowcapture=''>" +
+				"<option selected=''></option></select>";
 
 			// Support: IE8, Opera 11-12.16
 			// Nothing should be selected when empty strings follow ^= or $= or *=
 			// The test attribute must be unknown in Opera but "safe" for WinRT
 			// http://msdn.microsoft.com/en-us/library/ie/hh465388.aspx#attribute_section
-			if ( div.querySelectorAll("[msallowclip^='']").length ) {
+			if ( div.querySelectorAll("[msallowcapture^='']").length ) {
 				rbuggyQSA.push( "[*^$]=" + whitespace + "*(?:''|\"\")" );
 			}
 
@@ -1186,11 +1195,23 @@ setDocument = Sizzle.setDocument = function( node ) {
 				rbuggyQSA.push( "\\[" + whitespace + "*(?:value|" + booleans + ")" );
 			}
 
+			// Support: Chrome<29, Android<4.2+, Safari<7.0+, iOS<7.0+, PhantomJS<1.9.7+
+			if ( !div.querySelectorAll( "[id~=" + expando + "-]" ).length ) {
+				rbuggyQSA.push("~=");
+			}
+
 			// Webkit/Opera - :checked should return selected option elements
 			// http://www.w3.org/TR/2011/REC-css3-selectors-20110929/#checked
 			// IE8 throws error here and will not see later tests
 			if ( !div.querySelectorAll(":checked").length ) {
 				rbuggyQSA.push(":checked");
+			}
+
+			// Support: Safari 8+, iOS 8+
+			// https://bugs.webkit.org/show_bug.cgi?id=136851
+			// In-page `selector#id sibing-combinator selector` fails
+			if ( !div.querySelectorAll( "a#" + expando + "+*" ).length ) {
+				rbuggyQSA.push(".#.+[+~]");
 			}
 		});
 
@@ -1308,7 +1329,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 
 			// Maintain original order
 			return sortInput ?
-				( indexOf.call( sortInput, a ) - indexOf.call( sortInput, b ) ) :
+				( indexOf( sortInput, a ) - indexOf( sortInput, b ) ) :
 				0;
 		}
 
@@ -1335,7 +1356,7 @@ setDocument = Sizzle.setDocument = function( node ) {
 				aup ? -1 :
 				bup ? 1 :
 				sortInput ?
-				( indexOf.call( sortInput, a ) - indexOf.call( sortInput, b ) ) :
+				( indexOf( sortInput, a ) - indexOf( sortInput, b ) ) :
 				0;
 
 		// If the nodes are siblings, we can do a quick check
@@ -1398,7 +1419,7 @@ Sizzle.matchesSelector = function( elem, expr ) {
 					elem.document && elem.document.nodeType !== 11 ) {
 				return ret;
 			}
-		} catch(e) {}
+		} catch (e) {}
 	}
 
 	return Sizzle( expr, document, null, [ elem ] ).length > 0;
@@ -1617,7 +1638,7 @@ Expr = Sizzle.selectors = {
 			return pattern ||
 				(pattern = new RegExp( "(^|" + whitespace + ")" + className + "(" + whitespace + "|$)" )) &&
 				classCache( className, function( elem ) {
-					return pattern.test( typeof elem.className === "string" && elem.className || typeof elem.getAttribute !== strundefined && elem.getAttribute("class") || "" );
+					return pattern.test( typeof elem.className === "string" && elem.className || typeof elem.getAttribute !== "undefined" && elem.getAttribute("class") || "" );
 				});
 		},
 
@@ -1639,7 +1660,7 @@ Expr = Sizzle.selectors = {
 					operator === "^=" ? check && result.indexOf( check ) === 0 :
 					operator === "*=" ? check && result.indexOf( check ) > -1 :
 					operator === "$=" ? check && result.slice( -check.length ) === check :
-					operator === "~=" ? ( " " + result + " " ).indexOf( check ) > -1 :
+					operator === "~=" ? ( " " + result.replace( rwhitespace, " " ) + " " ).indexOf( check ) > -1 :
 					operator === "|=" ? result === check || result.slice( 0, check.length + 1 ) === check + "-" :
 					false;
 			};
@@ -1759,7 +1780,7 @@ Expr = Sizzle.selectors = {
 							matched = fn( seed, argument ),
 							i = matched.length;
 						while ( i-- ) {
-							idx = indexOf.call( seed, matched[i] );
+							idx = indexOf( seed, matched[i] );
 							seed[ idx ] = !( matches[ idx ] = matched[i] );
 						}
 					}) :
@@ -1798,6 +1819,8 @@ Expr = Sizzle.selectors = {
 				function( elem, context, xml ) {
 					input[0] = elem;
 					matcher( input, null, xml, results );
+					// Don't keep the element (issue #299)
+					input[0] = null;
 					return !results.pop();
 				};
 		}),
@@ -1809,6 +1832,7 @@ Expr = Sizzle.selectors = {
 		}),
 
 		"contains": markFunction(function( text ) {
+			text = text.replace( runescape, funescape );
 			return function( elem ) {
 				return ( elem.textContent || elem.innerText || getText( elem ) ).indexOf( text ) > -1;
 			};
@@ -2230,7 +2254,7 @@ function setMatcher( preFilter, selector, matcher, postFilter, postFinder, postS
 				i = matcherOut.length;
 				while ( i-- ) {
 					if ( (elem = matcherOut[i]) &&
-						(temp = postFinder ? indexOf.call( seed, elem ) : preMap[i]) > -1 ) {
+						(temp = postFinder ? indexOf( seed, elem ) : preMap[i]) > -1 ) {
 
 						seed[temp] = !(results[temp] = elem);
 					}
@@ -2265,13 +2289,16 @@ function matcherFromTokens( tokens ) {
 			return elem === checkContext;
 		}, implicitRelative, true ),
 		matchAnyContext = addCombinator( function( elem ) {
-			return indexOf.call( checkContext, elem ) > -1;
+			return indexOf( checkContext, elem ) > -1;
 		}, implicitRelative, true ),
 		matchers = [ function( elem, context, xml ) {
-			return ( !leadingRelative && ( xml || context !== outermostContext ) ) || (
+			var ret = ( !leadingRelative && ( xml || context !== outermostContext ) ) || (
 				(checkContext = context).nodeType ?
 					matchContext( elem, context, xml ) :
 					matchAnyContext( elem, context, xml ) );
+			// Avoid hanging onto element (issue #299)
+			checkContext = null;
+			return ret;
 		} ];
 
 	for ( ; i < len; i++ ) {
@@ -2521,7 +2548,7 @@ select = Sizzle.select = function( selector, context, results, seed ) {
 // Sort stability
 support.sortStable = expando.split("").sort( sortOrder ).join("") === expando;
 
-// Support: Chrome<14
+// Support: Chrome 14-35+
 // Always assume duplicates if they aren't passed to the comparison function
 support.detectDuplicates = !!hasDuplicate;
 
@@ -2730,7 +2757,7 @@ var rootjQuery,
 				if ( match[1] ) {
 					context = context instanceof jQuery ? context[0] : context;
 
-					// scripts is true for back-compat
+					// Option to run scripts is true for back-compat
 					// Intentionally let the error be thrown if parseHTML is not present
 					jQuery.merge( this, jQuery.parseHTML(
 						match[1],
@@ -2758,8 +2785,8 @@ var rootjQuery,
 				} else {
 					elem = document.getElementById( match[2] );
 
-					// Check parentNode to catch when Blackberry 4.6 returns
-					// nodes that are no longer in the document #6963
+					// Support: Blackberry 4.6
+					// gEBID returns nodes no longer in the document (#6963)
 					if ( elem && elem.parentNode ) {
 						// Inject the element directly into the jQuery object
 						this.length = 1;
@@ -2812,7 +2839,7 @@ rootjQuery = jQuery( document );
 
 
 var rparentsprev = /^(?:parents|prev(?:Until|All))/,
-	// methods guaranteed to produce a unique set when starting from a unique set
+	// Methods guaranteed to produce a unique set when starting from a unique set
 	guaranteedUnique = {
 		children: true,
 		contents: true,
@@ -2892,8 +2919,7 @@ jQuery.fn.extend({
 		return this.pushStack( matched.length > 1 ? jQuery.unique( matched ) : matched );
 	},
 
-	// Determine the position of an element within
-	// the matched set of elements
+	// Determine the position of an element within the set
 	index: function( elem ) {
 
 		// No argument, return index in parent
@@ -2901,7 +2927,7 @@ jQuery.fn.extend({
 			return ( this[ 0 ] && this[ 0 ].parentNode ) ? this.first().prevAll().length : -1;
 		}
 
-		// index in selector
+		// Index in selector
 		if ( typeof elem === "string" ) {
 			return indexOf.call( jQuery( elem ), this[ 0 ] );
 		}
@@ -3317,7 +3343,7 @@ jQuery.extend({
 
 			progressValues, progressContexts, resolveContexts;
 
-		// add listeners to Deferred subordinates; treat others as resolved
+		// Add listeners to Deferred subordinates; treat others as resolved
 		if ( length > 1 ) {
 			progressValues = new Array( length );
 			progressContexts = new Array( length );
@@ -3334,7 +3360,7 @@ jQuery.extend({
 			}
 		}
 
-		// if we're not waiting on anything, resolve the master
+		// If we're not waiting on anything, resolve the master
 		if ( !remaining ) {
 			deferred.resolveWith( resolveContexts, resolveValues );
 		}
@@ -3413,7 +3439,7 @@ jQuery.ready.promise = function( obj ) {
 		readyList = jQuery.Deferred();
 
 		// Catch cases where $(document).ready() is called after the browser event has already occurred.
-		// we once tried to use readyState "interactive" here, but it caused issues like the one
+		// We once tried to use readyState "interactive" here, but it caused issues like the one
 		// discovered by ChrisS here: http://bugs.jquery.com/ticket/12282#comment:15
 		if ( document.readyState === "complete" ) {
 			// Handle it asynchronously to allow scripts the opportunity to delay ready
@@ -3507,7 +3533,7 @@ jQuery.acceptData = function( owner ) {
 
 
 function Data() {
-	// Support: Android < 4,
+	// Support: Android<4,
 	// Old WebKit does not have Object.preventExtensions/freeze method,
 	// return new empty object instead with no [[set]] accessor
 	Object.defineProperty( this.cache = {}, 0, {
@@ -3516,7 +3542,7 @@ function Data() {
 		}
 	});
 
-	this.expando = jQuery.expando + Math.random();
+	this.expando = jQuery.expando + Data.uid++;
 }
 
 Data.uid = 1;
@@ -3544,7 +3570,7 @@ Data.prototype = {
 				descriptor[ this.expando ] = { value: unlock };
 				Object.defineProperties( owner, descriptor );
 
-			// Support: Android < 4
+			// Support: Android<4
 			// Fallback to a less secure definition
 			} catch ( e ) {
 				descriptor[ this.expando ] = unlock;
@@ -3684,17 +3710,16 @@ var data_user = new Data();
 
 
 
-/*
-	Implementation Summary
+//	Implementation Summary
+//
+//	1. Enforce API surface and semantic compatibility with 1.9.x branch
+//	2. Improve the module's maintainability by reducing the storage
+//		paths to a single mechanism.
+//	3. Use the same single mechanism to support "private" and "user" data.
+//	4. _Never_ expose "private" data to user code (TODO: Drop _data, _removeData)
+//	5. Avoid exposing implementation details on user objects (eg. expando properties)
+//	6. Provide a clear path for implementation upgrade to WeakMap in 2014
 
-	1. Enforce API surface and semantic compatibility with 1.9.x branch
-	2. Improve the module's maintainability by reducing the storage
-		paths to a single mechanism.
-	3. Use the same single mechanism to support "private" and "user" data.
-	4. _Never_ expose "private" data to user code (TODO: Drop _data, _removeData)
-	5. Avoid exposing implementation details on user objects (eg. expando properties)
-	6. Provide a clear path for implementation upgrade to WeakMap in 2014
-*/
 var rbrace = /^(?:\{[\w\W]*\}|\[[\w\W]*\])$/,
 	rmultiDash = /([A-Z])/g;
 
@@ -3899,7 +3924,7 @@ jQuery.extend({
 				queue.unshift( "inprogress" );
 			}
 
-			// clear up the last queue stop function
+			// Clear up the last queue stop function
 			delete hooks.stop;
 			fn.call( elem, next, hooks );
 		}
@@ -3909,7 +3934,7 @@ jQuery.extend({
 		}
 	},
 
-	// not intended for public consumption - generates a queueHooks object, or returns the current one
+	// Not public - generate a queueHooks object, or return the current one
 	_queueHooks: function( elem, type ) {
 		var key = type + "queueHooks";
 		return data_priv.get( elem, key ) || data_priv.access( elem, key, {
@@ -3939,7 +3964,7 @@ jQuery.fn.extend({
 			this.each(function() {
 				var queue = jQuery.queue( this, type, data );
 
-				// ensure a hooks for this queue
+				// Ensure a hooks for this queue
 				jQuery._queueHooks( this, type );
 
 				if ( type === "fx" && queue[0] !== "inprogress" ) {
@@ -4006,21 +4031,22 @@ var rcheckableType = (/^(?:checkbox|radio)$/i);
 		div = fragment.appendChild( document.createElement( "div" ) ),
 		input = document.createElement( "input" );
 
-	// #11217 - WebKit loses check when the name is after the checked attribute
+	// Support: Safari<=5.1
+	// Check state lost if the name is set (#11217)
 	// Support: Windows Web Apps (WWA)
-	// `name` and `type` need .setAttribute for WWA
+	// `name` and `type` must use .setAttribute for WWA (#14901)
 	input.setAttribute( "type", "radio" );
 	input.setAttribute( "checked", "checked" );
 	input.setAttribute( "name", "t" );
 
 	div.appendChild( input );
 
-	// Support: Safari 5.1, iOS 5.1, Android 4.x, Android 2.3
-	// old WebKit doesn't clone checked state correctly in fragments
+	// Support: Safari<=5.1, Android<4.2
+	// Older WebKit doesn't clone checked state correctly in fragments
 	support.checkClone = div.cloneNode( true ).cloneNode( true ).lastChild.checked;
 
+	// Support: IE<=11+
 	// Make sure textarea (and checkbox) defaultValue is properly cloned
-	// Support: IE9-IE11+
 	div.innerHTML = "<textarea>x</textarea>";
 	support.noCloneChecked = !!div.cloneNode( true ).lastChild.defaultValue;
 })();
@@ -4398,8 +4424,8 @@ jQuery.event = {
 			j = 0;
 			while ( (handleObj = matched.handlers[ j++ ]) && !event.isImmediatePropagationStopped() ) {
 
-				// Triggered event must either 1) have no namespace, or
-				// 2) have namespace(s) a subset or equal to those in the bound event (both can have no namespace).
+				// Triggered event must either 1) have no namespace, or 2) have namespace(s)
+				// a subset or equal to those in the bound event (both can have no namespace).
 				if ( !event.namespace_re || event.namespace_re.test( handleObj.namespace ) ) {
 
 					event.handleObj = handleObj;
@@ -4549,7 +4575,7 @@ jQuery.event = {
 			event.target = document;
 		}
 
-		// Support: Safari 6.0+, Chrome < 28
+		// Support: Safari 6.0+, Chrome<28
 		// Target should not be a text node (#504, #13143)
 		if ( event.target.nodeType === 3 ) {
 			event.target = event.target.parentNode;
@@ -4654,7 +4680,7 @@ jQuery.Event = function( src, props ) {
 		// by a handler lower down the tree; reflect the correct value.
 		this.isDefaultPrevented = src.defaultPrevented ||
 				src.defaultPrevented === undefined &&
-				// Support: Android < 4.0
+				// Support: Android<4.0
 				src.returnValue === false ?
 			returnTrue :
 			returnFalse;
@@ -4744,8 +4770,8 @@ jQuery.each({
 	};
 });
 
-// Create "bubbling" focus and blur events
 // Support: Firefox, Chrome, Safari
+// Create "bubbling" focus and blur events
 if ( !support.focusinBubbles ) {
 	jQuery.each({ focus: "focusin", blur: "focusout" }, function( orig, fix ) {
 
@@ -4898,7 +4924,7 @@ var
 	// We have to close these tags to support XHTML (#13200)
 	wrapMap = {
 
-		// Support: IE 9
+		// Support: IE9
 		option: [ 1, "<select multiple='multiple'>", "</select>" ],
 
 		thead: [ 1, "<table>", "</table>" ],
@@ -4909,7 +4935,7 @@ var
 		_default: [ 0, "", "" ]
 	};
 
-// Support: IE 9
+// Support: IE9
 wrapMap.optgroup = wrapMap.option;
 
 wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.thead;
@@ -4999,7 +5025,7 @@ function getAll( context, tag ) {
 		ret;
 }
 
-// Support: IE >= 9
+// Fix IE bugs, see support tests
 function fixInput( src, dest ) {
 	var nodeName = dest.nodeName.toLowerCase();
 
@@ -5019,8 +5045,7 @@ jQuery.extend({
 			clone = elem.cloneNode( true ),
 			inPage = jQuery.contains( elem.ownerDocument, elem );
 
-		// Support: IE >= 9
-		// Fix Cloning issues
+		// Fix IE cloning issues
 		if ( !support.noCloneChecked && ( elem.nodeType === 1 || elem.nodeType === 11 ) &&
 				!jQuery.isXMLDoc( elem ) ) {
 
@@ -5071,8 +5096,8 @@ jQuery.extend({
 
 				// Add nodes directly
 				if ( jQuery.type( elem ) === "object" ) {
-					// Support: QtWebKit
-					// jQuery.merge because push.apply(_, arraylike) throws
+					// Support: QtWebKit, PhantomJS
+					// push.apply(_, arraylike) throws on ancient WebKit
 					jQuery.merge( nodes, elem.nodeType ? [ elem ] : elem );
 
 				// Convert non-html into a text node
@@ -5094,15 +5119,14 @@ jQuery.extend({
 						tmp = tmp.lastChild;
 					}
 
-					// Support: QtWebKit
-					// jQuery.merge because push.apply(_, arraylike) throws
+					// Support: QtWebKit, PhantomJS
+					// push.apply(_, arraylike) throws on ancient WebKit
 					jQuery.merge( nodes, tmp.childNodes );
 
 					// Remember the top-level container
 					tmp = fragment.firstChild;
 
-					// Fixes #12346
-					// Support: Webkit, IE
+					// Ensure the created nodes are orphaned (#12392)
 					tmp.textContent = "";
 				}
 			}
@@ -5464,7 +5488,7 @@ function actualDisplay( name, doc ) {
 		// getDefaultComputedStyle might be reliably used only on attached element
 		display = window.getDefaultComputedStyle && ( style = window.getDefaultComputedStyle( elem[ 0 ] ) ) ?
 
-			// Use of this method is a temporary fix (more like optmization) until something better comes along,
+			// Use of this method is a temporary fix (more like optimization) until something better comes along,
 			// since it was removed from specification and supported only in FF
 			style.display : jQuery.css( elem[ 0 ], "display" );
 
@@ -5514,7 +5538,14 @@ var rmargin = (/^margin/);
 var rnumnonpx = new RegExp( "^(" + pnum + ")(?!px)[a-z%]+$", "i" );
 
 var getStyles = function( elem ) {
-		return elem.ownerDocument.defaultView.getComputedStyle( elem, null );
+		// Support: IE<=11+, Firefox<=30+ (#15098, #14150)
+		// IE throws on elements created in popups
+		// FF meanwhile throws on frame elements through "defaultView.getComputedStyle"
+		if ( elem.ownerDocument.defaultView.opener ) {
+			return elem.ownerDocument.defaultView.getComputedStyle( elem, null );
+		}
+
+		return window.getComputedStyle( elem, null );
 	};
 
 
@@ -5526,7 +5557,7 @@ function curCSS( elem, name, computed ) {
 	computed = computed || getStyles( elem );
 
 	// Support: IE9
-	// getPropertyValue is only needed for .css('filter') in IE9, see #12537
+	// getPropertyValue is only needed for .css('filter') (#12537)
 	if ( computed ) {
 		ret = computed.getPropertyValue( name ) || computed[ name ];
 	}
@@ -5572,15 +5603,13 @@ function addGetHookIf( conditionFn, hookFn ) {
 	return {
 		get: function() {
 			if ( conditionFn() ) {
-				// Hook not needed (or it's not possible to use it due to missing dependency),
-				// remove it.
-				// Since there are no other hooks for marginRight, remove the whole object.
+				// Hook not needed (or it's not possible to use it due
+				// to missing dependency), remove it.
 				delete this.get;
 				return;
 			}
 
 			// Hook needed; redefine it so that the support test is not executed again.
-
 			return (this.get = hookFn).apply( this, arguments );
 		}
 	};
@@ -5597,6 +5626,8 @@ function addGetHookIf( conditionFn, hookFn ) {
 		return;
 	}
 
+	// Support: IE9-11+
+	// Style of cloned element affects source element cloned (#8908)
 	div.style.backgroundClip = "content-box";
 	div.cloneNode( true ).style.backgroundClip = "";
 	support.clearCloneStyle = div.style.backgroundClip === "content-box";
@@ -5629,6 +5660,7 @@ function addGetHookIf( conditionFn, hookFn ) {
 	if ( window.getComputedStyle ) {
 		jQuery.extend( support, {
 			pixelPosition: function() {
+
 				// This test is executed only once but we still do memoizing
 				// since we can use the boxSizingReliable pre-computing.
 				// No need to check if the test was already performed, though.
@@ -5642,6 +5674,7 @@ function addGetHookIf( conditionFn, hookFn ) {
 				return boxSizingReliableVal;
 			},
 			reliableMarginRight: function() {
+
 				// Support: Android 2.3
 				// Check if div with explicit width and no margin-right incorrectly
 				// gets computed margin-right based on width of container. (#3333)
@@ -5663,6 +5696,7 @@ function addGetHookIf( conditionFn, hookFn ) {
 				ret = !parseFloat( window.getComputedStyle( marginDiv, null ).marginRight );
 
 				docElem.removeChild( container );
+				div.removeChild( marginDiv );
 
 				return ret;
 			}
@@ -5694,8 +5728,8 @@ jQuery.swap = function( elem, options, callback, args ) {
 
 
 var
-	// swappable if display is none or starts with table except "table", "table-cell", or "table-caption"
-	// see here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
+	// Swappable if display is none or starts with table except "table", "table-cell", or "table-caption"
+	// See here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
 	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
 	rnumsplit = new RegExp( "^(" + pnum + ")(.*)$", "i" ),
 	rrelNum = new RegExp( "^([+-])=(" + pnum + ")", "i" ),
@@ -5708,15 +5742,15 @@ var
 
 	cssPrefixes = [ "Webkit", "O", "Moz", "ms" ];
 
-// return a css property mapped to a potentially vendor prefixed property
+// Return a css property mapped to a potentially vendor prefixed property
 function vendorPropName( style, name ) {
 
-	// shortcut for names that are not vendor prefixed
+	// Shortcut for names that are not vendor prefixed
 	if ( name in style ) {
 		return name;
 	}
 
-	// check for vendor prefixed names
+	// Check for vendor prefixed names
 	var capName = name[0].toUpperCase() + name.slice(1),
 		origName = name,
 		i = cssPrefixes.length;
@@ -5749,7 +5783,7 @@ function augmentWidthOrHeight( elem, name, extra, isBorderBox, styles ) {
 		val = 0;
 
 	for ( ; i < 4; i += 2 ) {
-		// both box models exclude margin, so add it if we want it
+		// Both box models exclude margin, so add it if we want it
 		if ( extra === "margin" ) {
 			val += jQuery.css( elem, extra + cssExpand[ i ], true, styles );
 		}
@@ -5760,15 +5794,15 @@ function augmentWidthOrHeight( elem, name, extra, isBorderBox, styles ) {
 				val -= jQuery.css( elem, "padding" + cssExpand[ i ], true, styles );
 			}
 
-			// at this point, extra isn't border nor margin, so remove border
+			// At this point, extra isn't border nor margin, so remove border
 			if ( extra !== "margin" ) {
 				val -= jQuery.css( elem, "border" + cssExpand[ i ] + "Width", true, styles );
 			}
 		} else {
-			// at this point, extra isn't content, so add padding
+			// At this point, extra isn't content, so add padding
 			val += jQuery.css( elem, "padding" + cssExpand[ i ], true, styles );
 
-			// at this point, extra isn't content nor padding, so add border
+			// At this point, extra isn't content nor padding, so add border
 			if ( extra !== "padding" ) {
 				val += jQuery.css( elem, "border" + cssExpand[ i ] + "Width", true, styles );
 			}
@@ -5786,7 +5820,7 @@ function getWidthOrHeight( elem, name, extra ) {
 		styles = getStyles( elem ),
 		isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box";
 
-	// some non-html elements return undefined for offsetWidth, so check for null/undefined
+	// Some non-html elements return undefined for offsetWidth, so check for null/undefined
 	// svg - https://bugzilla.mozilla.org/show_bug.cgi?id=649285
 	// MathML - https://bugzilla.mozilla.org/show_bug.cgi?id=491668
 	if ( val <= 0 || val == null ) {
@@ -5801,7 +5835,7 @@ function getWidthOrHeight( elem, name, extra ) {
 			return val;
 		}
 
-		// we need the check for style in case a browser which returns unreliable values
+		// Check for style in case a browser which returns unreliable values
 		// for getComputedStyle silently falls back to the reliable elem.style
 		valueIsBorderBox = isBorderBox &&
 			( support.boxSizingReliable() || val === elem.style[ name ] );
@@ -5810,7 +5844,7 @@ function getWidthOrHeight( elem, name, extra ) {
 		val = parseFloat( val ) || 0;
 	}
 
-	// use the active box-sizing model to add/subtract irrelevant styles
+	// Use the active box-sizing model to add/subtract irrelevant styles
 	return ( val +
 		augmentWidthOrHeight(
 			elem,
@@ -5874,12 +5908,14 @@ function showHide( elements, show ) {
 }
 
 jQuery.extend({
+
 	// Add in style property hooks for overriding the default
 	// behavior of getting and setting a style property
 	cssHooks: {
 		opacity: {
 			get: function( elem, computed ) {
 				if ( computed ) {
+
 					// We should always get a number back from opacity
 					var ret = curCSS( elem, "opacity" );
 					return ret === "" ? "1" : ret;
@@ -5907,12 +5943,12 @@ jQuery.extend({
 	// Add in properties whose names you wish to fix before
 	// setting or getting the value
 	cssProps: {
-		// normalize float css property
 		"float": "cssFloat"
 	},
 
 	// Get and set the style property on a DOM Node
 	style: function( elem, name, value, extra ) {
+
 		// Don't set styles on text and comment nodes
 		if ( !elem || elem.nodeType === 3 || elem.nodeType === 8 || !elem.style ) {
 			return;
@@ -5925,33 +5961,32 @@ jQuery.extend({
 
 		name = jQuery.cssProps[ origName ] || ( jQuery.cssProps[ origName ] = vendorPropName( style, origName ) );
 
-		// gets hook for the prefixed version
-		// followed by the unprefixed version
+		// Gets hook for the prefixed version, then unprefixed version
 		hooks = jQuery.cssHooks[ name ] || jQuery.cssHooks[ origName ];
 
 		// Check if we're setting a value
 		if ( value !== undefined ) {
 			type = typeof value;
 
-			// convert relative number strings (+= or -=) to relative numbers. #7345
+			// Convert "+=" or "-=" to relative numbers (#7345)
 			if ( type === "string" && (ret = rrelNum.exec( value )) ) {
 				value = ( ret[1] + 1 ) * ret[2] + parseFloat( jQuery.css( elem, name ) );
 				// Fixes bug #9237
 				type = "number";
 			}
 
-			// Make sure that null and NaN values aren't set. See: #7116
+			// Make sure that null and NaN values aren't set (#7116)
 			if ( value == null || value !== value ) {
 				return;
 			}
 
-			// If a number was passed in, add 'px' to the (except for certain CSS properties)
+			// If a number, add 'px' to the (except for certain CSS properties)
 			if ( type === "number" && !jQuery.cssNumber[ origName ] ) {
 				value += "px";
 			}
 
-			// Fixes #8908, it can be done more correctly by specifying setters in cssHooks,
-			// but it would mean to define eight (for every problematic property) identical functions
+			// Support: IE9-11+
+			// background-* props affect original clone's values
 			if ( !support.clearCloneStyle && value === "" && name.indexOf( "background" ) === 0 ) {
 				style[ name ] = "inherit";
 			}
@@ -5979,8 +6014,7 @@ jQuery.extend({
 		// Make sure that we're working with the right name
 		name = jQuery.cssProps[ origName ] || ( jQuery.cssProps[ origName ] = vendorPropName( elem.style, origName ) );
 
-		// gets hook for the prefixed version
-		// followed by the unprefixed version
+		// Try prefixed name followed by the unprefixed name
 		hooks = jQuery.cssHooks[ name ] || jQuery.cssHooks[ origName ];
 
 		// If a hook was provided get the computed value from there
@@ -5993,12 +6027,12 @@ jQuery.extend({
 			val = curCSS( elem, name, styles );
 		}
 
-		//convert "normal" to computed value
+		// Convert "normal" to computed value
 		if ( val === "normal" && name in cssNormalTransform ) {
 			val = cssNormalTransform[ name ];
 		}
 
-		// Return, converting to number if forced or a qualifier was provided and val looks numeric
+		// Make numeric if forced or a qualifier was provided and val looks numeric
 		if ( extra === "" || extra ) {
 			num = parseFloat( val );
 			return extra === true || jQuery.isNumeric( num ) ? num || 0 : val;
@@ -6011,8 +6045,9 @@ jQuery.each([ "height", "width" ], function( i, name ) {
 	jQuery.cssHooks[ name ] = {
 		get: function( elem, computed, extra ) {
 			if ( computed ) {
-				// certain elements can have dimension info if we invisibly show them
-				// however, it must have a current display style that would benefit from this
+
+				// Certain elements can have dimension info if we invisibly show them
+				// but it must have a current display style that would benefit
 				return rdisplayswap.test( jQuery.css( elem, "display" ) ) && elem.offsetWidth === 0 ?
 					jQuery.swap( elem, cssShow, function() {
 						return getWidthOrHeight( elem, name, extra );
@@ -6040,8 +6075,6 @@ jQuery.each([ "height", "width" ], function( i, name ) {
 jQuery.cssHooks.marginRight = addGetHookIf( support.reliableMarginRight,
 	function( elem, computed ) {
 		if ( computed ) {
-			// WebKit Bug 13343 - getComputedStyle returns wrong value for margin-right
-			// Work around by temporarily setting element display to inline-block
 			return jQuery.swap( elem, { "display": "inline-block" },
 				curCSS, [ elem, "marginRight" ] );
 		}
@@ -6059,7 +6092,7 @@ jQuery.each({
 			var i = 0,
 				expanded = {},
 
-				// assumes a single number if not a string
+				// Assumes a single number if not a string
 				parts = typeof value === "string" ? value.split(" ") : [ value ];
 
 			for ( ; i < 4; i++ ) {
@@ -6182,17 +6215,18 @@ Tween.propHooks = {
 				return tween.elem[ tween.prop ];
 			}
 
-			// passing an empty string as a 3rd parameter to .css will automatically
-			// attempt a parseFloat and fallback to a string if the parse fails
-			// so, simple values such as "10px" are parsed to Float.
-			// complex values such as "rotate(1rad)" are returned as is.
+			// Passing an empty string as a 3rd parameter to .css will automatically
+			// attempt a parseFloat and fallback to a string if the parse fails.
+			// Simple values such as "10px" are parsed to Float;
+			// complex values such as "rotate(1rad)" are returned as-is.
 			result = jQuery.css( tween.elem, tween.prop, "" );
 			// Empty strings, null, undefined and "auto" are converted to 0.
 			return !result || result === "auto" ? 0 : result;
 		},
 		set: function( tween ) {
-			// use step hook for back compat - use cssHook if its there - use .style if its
-			// available and use plain properties where available
+			// Use step hook for back compat.
+			// Use cssHook if its there.
+			// Use .style if available and use plain properties where available.
 			if ( jQuery.fx.step[ tween.prop ] ) {
 				jQuery.fx.step[ tween.prop ]( tween );
 			} else if ( tween.elem.style && ( tween.elem.style[ jQuery.cssProps[ tween.prop ] ] != null || jQuery.cssHooks[ tween.prop ] ) ) {
@@ -6206,7 +6240,6 @@ Tween.propHooks = {
 
 // Support: IE9
 // Panic based approach to setting things on disconnected nodes
-
 Tween.propHooks.scrollTop = Tween.propHooks.scrollLeft = {
 	set: function( tween ) {
 		if ( tween.elem.nodeType && tween.elem.parentNode ) {
@@ -6262,16 +6295,16 @@ var
 				start = +target || 1;
 
 				do {
-					// If previous iteration zeroed out, double until we get *something*
-					// Use a string for doubling factor so we don't accidentally see scale as unchanged below
+					// If previous iteration zeroed out, double until we get *something*.
+					// Use string for doubling so we don't accidentally see scale as unchanged below
 					scale = scale || ".5";
 
 					// Adjust and apply
 					start = start / scale;
 					jQuery.style( tween.elem, prop, start + unit );
 
-				// Update scale, tolerating zero or NaN from tween.cur()
-				// And breaking the loop if scale is unchanged or perfect, or if we've just had enough
+				// Update scale, tolerating zero or NaN from tween.cur(),
+				// break the loop if scale is unchanged or perfect, or if we've just had enough
 				} while ( scale !== (scale = tween.cur() / target) && scale !== 1 && --maxIterations );
 			}
 
@@ -6303,8 +6336,8 @@ function genFx( type, includeWidth ) {
 		i = 0,
 		attrs = { height: type };
 
-	// if we include width, step value is 1 to do all cssExpand values,
-	// if we don't include width, step value is 2 to skip over Left and Right
+	// If we include width, step value is 1 to do all cssExpand values,
+	// otherwise step value is 2 to skip over Left and Right
 	includeWidth = includeWidth ? 1 : 0;
 	for ( ; i < 4 ; i += 2 - includeWidth ) {
 		which = cssExpand[ i ];
@@ -6326,7 +6359,7 @@ function createTween( value, prop, animation ) {
 	for ( ; index < length; index++ ) {
 		if ( (tween = collection[ index ].call( animation, prop, value )) ) {
 
-			// we're done with this property
+			// We're done with this property
 			return tween;
 		}
 	}
@@ -6341,7 +6374,7 @@ function defaultPrefilter( elem, props, opts ) {
 		hidden = elem.nodeType && isHidden( elem ),
 		dataShow = data_priv.get( elem, "fxshow" );
 
-	// handle queue: false promises
+	// Handle queue: false promises
 	if ( !opts.queue ) {
 		hooks = jQuery._queueHooks( elem, "fx" );
 		if ( hooks.unqueued == null ) {
@@ -6356,8 +6389,7 @@ function defaultPrefilter( elem, props, opts ) {
 		hooks.unqueued++;
 
 		anim.always(function() {
-			// doing this makes sure that the complete handler will be called
-			// before this completes
+			// Ensure the complete handler is called before this completes
 			anim.always(function() {
 				hooks.unqueued--;
 				if ( !jQuery.queue( elem, "fx" ).length ) {
@@ -6367,7 +6399,7 @@ function defaultPrefilter( elem, props, opts ) {
 		});
 	}
 
-	// height/width overflow pass
+	// Height/width overflow pass
 	if ( elem.nodeType === 1 && ( "height" in props || "width" in props ) ) {
 		// Make sure that nothing sneaks out
 		// Record all 3 overflow attributes because IE9-10 do not
@@ -6429,7 +6461,7 @@ function defaultPrefilter( elem, props, opts ) {
 			dataShow = data_priv.access( elem, "fxshow", {} );
 		}
 
-		// store state if its toggle - enables .stop().toggle() to "reverse"
+		// Store state if its toggle - enables .stop().toggle() to "reverse"
 		if ( toggle ) {
 			dataShow.hidden = !hidden;
 		}
@@ -6489,8 +6521,8 @@ function propFilter( props, specialEasing ) {
 			value = hooks.expand( value );
 			delete props[ name ];
 
-			// not quite $.extend, this wont overwrite keys already present.
-			// also - reusing 'index' from above because we have the correct "name"
+			// Not quite $.extend, this won't overwrite existing keys.
+			// Reusing 'index' because we have the correct "name"
 			for ( index in value ) {
 				if ( !( index in props ) ) {
 					props[ index ] = value[ index ];
@@ -6509,7 +6541,7 @@ function Animation( elem, properties, options ) {
 		index = 0,
 		length = animationPrefilters.length,
 		deferred = jQuery.Deferred().always( function() {
-			// don't match elem in the :animated selector
+			// Don't match elem in the :animated selector
 			delete tick.elem;
 		}),
 		tick = function() {
@@ -6518,7 +6550,8 @@ function Animation( elem, properties, options ) {
 			}
 			var currentTime = fxNow || createFxNow(),
 				remaining = Math.max( 0, animation.startTime + animation.duration - currentTime ),
-				// archaic crash bug won't allow us to use 1 - ( 0.5 || 0 ) (#12497)
+				// Support: Android 2.3
+				// Archaic crash bug won't allow us to use `1 - ( 0.5 || 0 )` (#12497)
 				temp = remaining / animation.duration || 0,
 				percent = 1 - temp,
 				index = 0,
@@ -6554,7 +6587,7 @@ function Animation( elem, properties, options ) {
 			},
 			stop: function( gotoEnd ) {
 				var index = 0,
-					// if we are going to the end, we want to run all the tweens
+					// If we are going to the end, we want to run all the tweens
 					// otherwise we skip this part
 					length = gotoEnd ? animation.tweens.length : 0;
 				if ( stopped ) {
@@ -6565,8 +6598,7 @@ function Animation( elem, properties, options ) {
 					animation.tweens[ index ].run( 1 );
 				}
 
-				// resolve when we played the last frame
-				// otherwise, reject
+				// Resolve when we played the last frame; otherwise, reject
 				if ( gotoEnd ) {
 					deferred.resolveWith( elem, [ animation, gotoEnd ] );
 				} else {
@@ -6648,7 +6680,7 @@ jQuery.speed = function( speed, easing, fn ) {
 	opt.duration = jQuery.fx.off ? 0 : typeof opt.duration === "number" ? opt.duration :
 		opt.duration in jQuery.fx.speeds ? jQuery.fx.speeds[ opt.duration ] : jQuery.fx.speeds._default;
 
-	// normalize opt.queue - true/undefined/null -> "fx"
+	// Normalize opt.queue - true/undefined/null -> "fx"
 	if ( opt.queue == null || opt.queue === true ) {
 		opt.queue = "fx";
 	}
@@ -6672,10 +6704,10 @@ jQuery.speed = function( speed, easing, fn ) {
 jQuery.fn.extend({
 	fadeTo: function( speed, to, easing, callback ) {
 
-		// show any hidden elements after setting opacity to 0
+		// Show any hidden elements after setting opacity to 0
 		return this.filter( isHidden ).css( "opacity", 0 ).show()
 
-			// animate to the value specified
+			// Animate to the value specified
 			.end().animate({ opacity: to }, speed, easing, callback );
 	},
 	animate: function( prop, speed, easing, callback ) {
@@ -6738,9 +6770,9 @@ jQuery.fn.extend({
 				}
 			}
 
-			// start the next in the queue if the last step wasn't forced
-			// timers currently will call their complete callbacks, which will dequeue
-			// but only if they were gotoEnd
+			// Start the next in the queue if the last step wasn't forced.
+			// Timers currently will call their complete callbacks, which
+			// will dequeue but only if they were gotoEnd.
 			if ( dequeue || !gotoEnd ) {
 				jQuery.dequeue( this, type );
 			}
@@ -6758,17 +6790,17 @@ jQuery.fn.extend({
 				timers = jQuery.timers,
 				length = queue ? queue.length : 0;
 
-			// enable finishing flag on private data
+			// Enable finishing flag on private data
 			data.finish = true;
 
-			// empty the queue first
+			// Empty the queue first
 			jQuery.queue( this, type, [] );
 
 			if ( hooks && hooks.stop ) {
 				hooks.stop.call( this, true );
 			}
 
-			// look for any active animations, and finish them
+			// Look for any active animations, and finish them
 			for ( index = timers.length; index--; ) {
 				if ( timers[ index ].elem === this && timers[ index ].queue === type ) {
 					timers[ index ].anim.stop( true );
@@ -6776,14 +6808,14 @@ jQuery.fn.extend({
 				}
 			}
 
-			// look for any animations in the old queue and finish them
+			// Look for any animations in the old queue and finish them
 			for ( index = 0; index < length; index++ ) {
 				if ( queue[ index ] && queue[ index ].finish ) {
 					queue[ index ].finish.call( this );
 				}
 			}
 
-			// turn off finishing flag
+			// Turn off finishing flag
 			delete data.finish;
 		});
 	}
@@ -6886,21 +6918,21 @@ jQuery.fn.delay = function( time, type ) {
 
 	input.type = "checkbox";
 
-	// Support: iOS 5.1, Android 4.x, Android 2.3
-	// Check the default checkbox/radio value ("" on old WebKit; "on" elsewhere)
+	// Support: iOS<=5.1, Android<=4.2+
+	// Default value for a checkbox should be "on"
 	support.checkOn = input.value !== "";
 
-	// Must access the parent to make an option select properly
-	// Support: IE9, IE10
+	// Support: IE<=11+
+	// Must access selectedIndex to make default options select
 	support.optSelected = opt.selected;
 
-	// Make sure that the options inside disabled selects aren't marked as disabled
-	// (WebKit marks them as disabled)
+	// Support: Android<=2.3
+	// Options inside disabled selects are incorrectly marked as disabled
 	select.disabled = true;
 	support.optDisabled = !opt.disabled;
 
-	// Check if an input maintains its value after becoming a radio
-	// Support: IE9, IE10
+	// Support: IE<=11+
+	// An input loses its value after becoming a radio
 	input = document.createElement( "input" );
 	input.value = "t";
 	input.type = "radio";
@@ -6997,8 +7029,6 @@ jQuery.extend({
 			set: function( elem, value ) {
 				if ( !support.radioValue && value === "radio" &&
 					jQuery.nodeName( elem, "input" ) ) {
-					// Setting the type on a radio button after the value resets the value in IE6-9
-					// Reset value to default in case type is set after value during creation
 					var val = elem.value;
 					elem.setAttribute( "type", value );
 					if ( val ) {
@@ -7068,7 +7098,7 @@ jQuery.extend({
 		var ret, hooks, notxml,
 			nType = elem.nodeType;
 
-		// don't get/set properties on text, comment and attribute nodes
+		// Don't get/set properties on text, comment and attribute nodes
 		if ( !elem || nType === 3 || nType === 8 || nType === 2 ) {
 			return;
 		}
@@ -7104,8 +7134,6 @@ jQuery.extend({
 	}
 });
 
-// Support: IE9+
-// Selectedness for an option in an optgroup can be inaccurate
 if ( !support.optSelected ) {
 	jQuery.propHooks.selected = {
 		get: function( elem ) {
@@ -7213,7 +7241,7 @@ jQuery.fn.extend({
 						}
 					}
 
-					// only assign if different to avoid unneeded rendering.
+					// Only assign if different to avoid unneeded rendering.
 					finalValue = value ? jQuery.trim( cur ) : "";
 					if ( elem.className !== finalValue ) {
 						elem.className = finalValue;
@@ -7240,14 +7268,14 @@ jQuery.fn.extend({
 
 		return this.each(function() {
 			if ( type === "string" ) {
-				// toggle individual class names
+				// Toggle individual class names
 				var className,
 					i = 0,
 					self = jQuery( this ),
 					classNames = value.match( rnotwhite ) || [];
 
 				while ( (className = classNames[ i++ ]) ) {
-					// check each className given, space separated list
+					// Check each className given, space separated list
 					if ( self.hasClass( className ) ) {
 						self.removeClass( className );
 					} else {
@@ -7262,7 +7290,7 @@ jQuery.fn.extend({
 					data_priv.set( this, "__className__", this.className );
 				}
 
-				// If the element has a class name or if we're passed "false",
+				// If the element has a class name or if we're passed `false`,
 				// then remove the whole classname (if there was one, the above saved it).
 				// Otherwise bring back whatever was previously saved (if anything),
 				// falling back to the empty string if nothing was stored.
@@ -7306,9 +7334,9 @@ jQuery.fn.extend({
 				ret = elem.value;
 
 				return typeof ret === "string" ?
-					// handle most common string cases
+					// Handle most common string cases
 					ret.replace(rreturn, "") :
-					// handle cases where value is null/undef or number
+					// Handle cases where value is null/undef or number
 					ret == null ? "" : ret;
 			}
 
@@ -7416,7 +7444,7 @@ jQuery.extend({
 					}
 				}
 
-				// force browsers to behave consistently when non-matching value is set
+				// Force browsers to behave consistently when non-matching value is set
 				if ( !optionSet ) {
 					elem.selectedIndex = -1;
 				}
@@ -7437,8 +7465,6 @@ jQuery.each([ "radio", "checkbox" ], function() {
 	};
 	if ( !support.checkOn ) {
 		jQuery.valHooks[ this ].get = function( elem ) {
-			// Support: Webkit
-			// "" is returned instead of "on" if a value isn't specified
 			return elem.getAttribute("value") === null ? "on" : elem.value;
 		};
 	}
@@ -7520,10 +7546,6 @@ jQuery.parseXML = function( data ) {
 
 
 var
-	// Document location
-	ajaxLocParts,
-	ajaxLocation,
-
 	rhash = /#.*$/,
 	rts = /([?&])_=[^&]*/,
 	rheaders = /^(.*?):[ \t]*([^\r\n]*)$/mg,
@@ -7552,22 +7574,13 @@ var
 	transports = {},
 
 	// Avoid comment-prolog char sequence (#10098); must appease lint and evade compression
-	allTypes = "*/".concat("*");
+	allTypes = "*/".concat( "*" ),
 
-// #8138, IE may throw an exception when accessing
-// a field from window.location if document.domain has been set
-try {
-	ajaxLocation = location.href;
-} catch( e ) {
-	// Use the href attribute of an A element
-	// since IE will modify it given document.location
-	ajaxLocation = document.createElement( "a" );
-	ajaxLocation.href = "";
-	ajaxLocation = ajaxLocation.href;
-}
+	// Document location
+	ajaxLocation = window.location.href,
 
-// Segment location into parts
-ajaxLocParts = rurl.exec( ajaxLocation.toLowerCase() ) || [];
+	// Segment location into parts
+	ajaxLocParts = rurl.exec( ajaxLocation.toLowerCase() ) || [];
 
 // Base "constructor" for jQuery.ajaxPrefilter and jQuery.ajaxTransport
 function addToPrefiltersOrTransports( structure ) {
@@ -8046,7 +8059,8 @@ jQuery.extend({
 		}
 
 		// We can fire global events as of now if asked to
-		fireGlobals = s.global;
+		// Don't fire events if jQuery.event is undefined in an AMD-usage scenario (#15118)
+		fireGlobals = jQuery.event && s.global;
 
 		// Watch for a new set of requests
 		if ( fireGlobals && jQuery.active++ === 0 ) {
@@ -8119,7 +8133,7 @@ jQuery.extend({
 			return jqXHR.abort();
 		}
 
-		// aborting is no longer a cancellation
+		// Aborting is no longer a cancellation
 		strAbort = "abort";
 
 		// Install callbacks on deferreds
@@ -8231,8 +8245,7 @@ jQuery.extend({
 					isSuccess = !error;
 				}
 			} else {
-				// We extract error from statusText
-				// then normalize statusText and status for non-aborts
+				// Extract error from statusText and normalize for non-aborts
 				error = statusText;
 				if ( status || !statusText ) {
 					statusText = "error";
@@ -8288,7 +8301,7 @@ jQuery.extend({
 
 jQuery.each( [ "get", "post" ], function( i, method ) {
 	jQuery[ method ] = function( url, data, callback, type ) {
-		// shift arguments if data argument was omitted
+		// Shift arguments if data argument was omitted
 		if ( jQuery.isFunction( data ) ) {
 			type = type || callback;
 			callback = data;
@@ -8302,13 +8315,6 @@ jQuery.each( [ "get", "post" ], function( i, method ) {
 			data: data,
 			success: callback
 		});
-	};
-});
-
-// Attach a bunch of functions for handling common AJAX events
-jQuery.each( [ "ajaxStart", "ajaxStop", "ajaxComplete", "ajaxError", "ajaxSuccess", "ajaxSend" ], function( i, type ) {
-	jQuery.fn[ type ] = function( fn ) {
-		return this.on( type, fn );
 	};
 });
 
@@ -8529,8 +8535,9 @@ var xhrId = 0,
 
 // Support: IE9
 // Open requests must be manually aborted on unload (#5280)
-if ( window.ActiveXObject ) {
-	jQuery( window ).on( "unload", function() {
+// See https://support.microsoft.com/kb/2856746 for more info
+if ( window.attachEvent ) {
+	window.attachEvent( "onunload", function() {
 		for ( var key in xhrCallbacks ) {
 			xhrCallbacks[ key ]();
 		}
@@ -8883,6 +8890,16 @@ jQuery.fn.load = function( url, params, callback ) {
 
 
 
+// Attach a bunch of functions for handling common AJAX events
+jQuery.each( [ "ajaxStart", "ajaxStop", "ajaxComplete", "ajaxError", "ajaxSuccess", "ajaxSend" ], function( i, type ) {
+	jQuery.fn[ type ] = function( fn ) {
+		return this.on( type, fn );
+	};
+});
+
+
+
+
 jQuery.expr.filters.animated = function( elem ) {
 	return jQuery.grep(jQuery.timers, function( fn ) {
 		return elem === fn.elem;
@@ -8919,7 +8936,8 @@ jQuery.offset = {
 		calculatePosition = ( position === "absolute" || position === "fixed" ) &&
 			( curCSSTop + curCSSLeft ).indexOf("auto") > -1;
 
-		// Need to be able to calculate position if either top or left is auto and position is either absolute or fixed
+		// Need to be able to calculate position if either
+		// top or left is auto and position is either absolute or fixed
 		if ( calculatePosition ) {
 			curPosition = curElem.position();
 			curTop = curPosition.top;
@@ -8976,8 +8994,8 @@ jQuery.fn.extend({
 			return box;
 		}
 
+		// Support: BlackBerry 5, iOS 3 (original iPhone)
 		// If we don't have gBCR, just use 0,0 rather than error
-		// BlackBerry 5, iOS 3 (original iPhone)
 		if ( typeof elem.getBoundingClientRect !== strundefined ) {
 			box = elem.getBoundingClientRect();
 		}
@@ -8999,7 +9017,7 @@ jQuery.fn.extend({
 
 		// Fixed elements are offset from window (parentOffset = {top:0, left: 0}, because it is its only offset parent
 		if ( jQuery.css( elem, "position" ) === "fixed" ) {
-			// We assume that getBoundingClientRect is available when computed position is fixed
+			// Assume getBoundingClientRect is there when computed position is fixed
 			offset = elem.getBoundingClientRect();
 
 		} else {
@@ -9062,16 +9080,18 @@ jQuery.each( { scrollLeft: "pageXOffset", scrollTop: "pageYOffset" }, function( 
 	};
 });
 
+// Support: Safari<7+, Chrome<37+
 // Add the top/left cssHooks using jQuery.fn.position
 // Webkit bug: https://bugs.webkit.org/show_bug.cgi?id=29084
-// getComputedStyle returns percent when specified for top/left/bottom/right
-// rather than make the css module depend on the offset module, we just check for it here
+// Blink bug: https://code.google.com/p/chromium/issues/detail?id=229280
+// getComputedStyle returns percent when specified for top/left/bottom/right;
+// rather than make the css module depend on the offset module, just check for it here
 jQuery.each( [ "top", "left" ], function( i, prop ) {
 	jQuery.cssHooks[ prop ] = addGetHookIf( support.pixelPosition,
 		function( elem, computed ) {
 			if ( computed ) {
 				computed = curCSS( elem, prop );
-				// if curCSS returns percentage, fallback to offset
+				// If curCSS returns percentage, fallback to offset
 				return rnumnonpx.test( computed ) ?
 					jQuery( elem ).position()[ prop ] + "px" :
 					computed;
@@ -9084,7 +9104,7 @@ jQuery.each( [ "top", "left" ], function( i, prop ) {
 // Create innerHeight, innerWidth, height, width, outerHeight and outerWidth methods
 jQuery.each( { Height: "height", Width: "width" }, function( name, type ) {
 	jQuery.each( { padding: "inner" + name, content: type, "": "outer" + name }, function( defaultExtra, funcName ) {
-		// margin is only for outerHeight, outerWidth
+		// Margin is only for outerHeight, outerWidth
 		jQuery.fn[ funcName ] = function( margin, value ) {
 			var chainable = arguments.length && ( defaultExtra || typeof margin !== "boolean" ),
 				extra = defaultExtra || ( margin === true || value === true ? "margin" : "border" );
@@ -9175,8 +9195,8 @@ jQuery.noConflict = function( deep ) {
 	return jQuery;
 };
 
-// Expose jQuery and $ identifiers, even in
-// AMD (#7102#comment:10, https://github.com/jquery/jquery/pull/557)
+// Expose jQuery and $ identifiers, even in AMD
+// (#7102#comment:10, https://github.com/jquery/jquery/pull/557)
 // and CommonJS for browser emulators (#13566)
 if ( typeof noGlobal === strundefined ) {
 	window.jQuery = window.$ = jQuery;
@@ -9189,5247 +9209,8880 @@ return jQuery;
 
 }));
 
-/*!
- * Bootstrap v3.0.2 by @fat and @mdo
- * Copyright 2013 Twitter, Inc.
- * Licensed under http://www.apache.org/licenses/LICENSE-2.0
- *
- * Designed and built with all the love in the world by @mdo and @fat.
- */
-
-if (typeof jQuery === "undefined") { throw new Error("Bootstrap requires jQuery") }
-
-/* ========================================================================
- * Bootstrap: transition.js v3.0.2
- * http://getbootstrap.com/javascript/#transitions
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // CSS TRANSITION SUPPORT (Shoutout: http://www.modernizr.com/)
-  // ============================================================
-
-  function transitionEnd() {
-    var el = document.createElement('bootstrap')
-
-    var transEndEventNames = {
-      'WebkitTransition' : 'webkitTransitionEnd'
-    , 'MozTransition'    : 'transitionend'
-    , 'OTransition'      : 'oTransitionEnd otransitionend'
-    , 'transition'       : 'transitionend'
-    }
-
-    for (var name in transEndEventNames) {
-      if (el.style[name] !== undefined) {
-        return { end: transEndEventNames[name] }
-      }
-    }
-  }
-
-  // http://blog.alexmaccaw.com/css-transitions
-  $.fn.emulateTransitionEnd = function (duration) {
-    var called = false, $el = this
-    $(this).one($.support.transition.end, function () { called = true })
-    var callback = function () { if (!called) $($el).trigger($.support.transition.end) }
-    setTimeout(callback, duration)
-    return this
-  }
-
-  $(function () {
-    $.support.transition = transitionEnd()
-  })
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: alert.js v3.0.2
- * http://getbootstrap.com/javascript/#alerts
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // ALERT CLASS DEFINITION
-  // ======================
-
-  var dismiss = '[data-dismiss="alert"]'
-  var Alert   = function (el) {
-    $(el).on('click', dismiss, this.close)
-  }
-
-  Alert.prototype.close = function (e) {
-    var $this    = $(this)
-    var selector = $this.attr('data-target')
-
-    if (!selector) {
-      selector = $this.attr('href')
-      selector = selector && selector.replace(/.*(?=#[^\s]*$)/, '') // strip for ie7
-    }
-
-    var $parent = $(selector)
-
-    if (e) e.preventDefault()
-
-    if (!$parent.length) {
-      $parent = $this.hasClass('alert') ? $this : $this.parent()
-    }
-
-    $parent.trigger(e = $.Event('close.bs.alert'))
-
-    if (e.isDefaultPrevented()) return
-
-    $parent.removeClass('in')
-
-    function removeElement() {
-      $parent.trigger('closed.bs.alert').remove()
-    }
-
-    $.support.transition && $parent.hasClass('fade') ?
-      $parent
-        .one($.support.transition.end, removeElement)
-        .emulateTransitionEnd(150) :
-      removeElement()
-  }
-
-
-  // ALERT PLUGIN DEFINITION
-  // =======================
-
-  var old = $.fn.alert
-
-  $.fn.alert = function (option) {
-    return this.each(function () {
-      var $this = $(this)
-      var data  = $this.data('bs.alert')
-
-      if (!data) $this.data('bs.alert', (data = new Alert(this)))
-      if (typeof option == 'string') data[option].call($this)
-    })
-  }
-
-  $.fn.alert.Constructor = Alert
-
-
-  // ALERT NO CONFLICT
-  // =================
-
-  $.fn.alert.noConflict = function () {
-    $.fn.alert = old
-    return this
-  }
-
-
-  // ALERT DATA-API
-  // ==============
-
-  $(document).on('click.bs.alert.data-api', dismiss, Alert.prototype.close)
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: button.js v3.0.2
- * http://getbootstrap.com/javascript/#buttons
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // BUTTON PUBLIC CLASS DEFINITION
-  // ==============================
-
-  var Button = function (element, options) {
-    this.$element = $(element)
-    this.options  = $.extend({}, Button.DEFAULTS, options)
-  }
-
-  Button.DEFAULTS = {
-    loadingText: 'loading...'
-  }
-
-  Button.prototype.setState = function (state) {
-    var d    = 'disabled'
-    var $el  = this.$element
-    var val  = $el.is('input') ? 'val' : 'html'
-    var data = $el.data()
-
-    state = state + 'Text'
-
-    if (!data.resetText) $el.data('resetText', $el[val]())
-
-    $el[val](data[state] || this.options[state])
-
-    // push to event loop to allow forms to submit
-    setTimeout(function () {
-      state == 'loadingText' ?
-        $el.addClass(d).attr(d, d) :
-        $el.removeClass(d).removeAttr(d);
-    }, 0)
-  }
-
-  Button.prototype.toggle = function () {
-    var $parent = this.$element.closest('[data-toggle="buttons"]')
-
-    if ($parent.length) {
-      var $input = this.$element.find('input')
-        .prop('checked', !this.$element.hasClass('active'))
-        .trigger('change')
-      if ($input.prop('type') === 'radio') $parent.find('.active').removeClass('active')
-    }
-
-    this.$element.toggleClass('active')
-  }
-
-
-  // BUTTON PLUGIN DEFINITION
-  // ========================
-
-  var old = $.fn.button
-
-  $.fn.button = function (option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.button')
-      var options = typeof option == 'object' && option
-
-      if (!data) $this.data('bs.button', (data = new Button(this, options)))
-
-      if (option == 'toggle') data.toggle()
-      else if (option) data.setState(option)
-    })
-  }
-
-  $.fn.button.Constructor = Button
-
-
-  // BUTTON NO CONFLICT
-  // ==================
-
-  $.fn.button.noConflict = function () {
-    $.fn.button = old
-    return this
-  }
-
-
-  // BUTTON DATA-API
-  // ===============
-
-  $(document).on('click.bs.button.data-api', '[data-toggle^=button]', function (e) {
-    var $btn = $(e.target)
-    if (!$btn.hasClass('btn')) $btn = $btn.closest('.btn')
-    $btn.button('toggle')
-    e.preventDefault()
-  })
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: carousel.js v3.0.2
- * http://getbootstrap.com/javascript/#carousel
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // CAROUSEL CLASS DEFINITION
-  // =========================
-
-  var Carousel = function (element, options) {
-    this.$element    = $(element)
-    this.$indicators = this.$element.find('.carousel-indicators')
-    this.options     = options
-    this.paused      =
-    this.sliding     =
-    this.interval    =
-    this.$active     =
-    this.$items      = null
-
-    this.options.pause == 'hover' && this.$element
-      .on('mouseenter', $.proxy(this.pause, this))
-      .on('mouseleave', $.proxy(this.cycle, this))
-  }
-
-  Carousel.DEFAULTS = {
-    interval: 5000
-  , pause: 'hover'
-  , wrap: true
-  }
-
-  Carousel.prototype.cycle =  function (e) {
-    e || (this.paused = false)
-
-    this.interval && clearInterval(this.interval)
-
-    this.options.interval
-      && !this.paused
-      && (this.interval = setInterval($.proxy(this.next, this), this.options.interval))
-
-    return this
-  }
-
-  Carousel.prototype.getActiveIndex = function () {
-    this.$active = this.$element.find('.item.active')
-    this.$items  = this.$active.parent().children()
-
-    return this.$items.index(this.$active)
-  }
-
-  Carousel.prototype.to = function (pos) {
-    var that        = this
-    var activeIndex = this.getActiveIndex()
-
-    if (pos > (this.$items.length - 1) || pos < 0) return
-
-    if (this.sliding)       return this.$element.one('slid', function () { that.to(pos) })
-    if (activeIndex == pos) return this.pause().cycle()
-
-    return this.slide(pos > activeIndex ? 'next' : 'prev', $(this.$items[pos]))
-  }
-
-  Carousel.prototype.pause = function (e) {
-    e || (this.paused = true)
-
-    if (this.$element.find('.next, .prev').length && $.support.transition.end) {
-      this.$element.trigger($.support.transition.end)
-      this.cycle(true)
-    }
-
-    this.interval = clearInterval(this.interval)
-
-    return this
-  }
-
-  Carousel.prototype.next = function () {
-    if (this.sliding) return
-    return this.slide('next')
-  }
-
-  Carousel.prototype.prev = function () {
-    if (this.sliding) return
-    return this.slide('prev')
-  }
-
-  Carousel.prototype.slide = function (type, next) {
-    var $active   = this.$element.find('.item.active')
-    var $next     = next || $active[type]()
-    var isCycling = this.interval
-    var direction = type == 'next' ? 'left' : 'right'
-    var fallback  = type == 'next' ? 'first' : 'last'
-    var that      = this
-
-    if (!$next.length) {
-      if (!this.options.wrap) return
-      $next = this.$element.find('.item')[fallback]()
-    }
-
-    this.sliding = true
-
-    isCycling && this.pause()
-
-    var e = $.Event('slide.bs.carousel', { relatedTarget: $next[0], direction: direction })
-
-    if ($next.hasClass('active')) return
-
-    if (this.$indicators.length) {
-      this.$indicators.find('.active').removeClass('active')
-      this.$element.one('slid', function () {
-        var $nextIndicator = $(that.$indicators.children()[that.getActiveIndex()])
-        $nextIndicator && $nextIndicator.addClass('active')
-      })
-    }
-
-    if ($.support.transition && this.$element.hasClass('slide')) {
-      this.$element.trigger(e)
-      if (e.isDefaultPrevented()) return
-      $next.addClass(type)
-      $next[0].offsetWidth // force reflow
-      $active.addClass(direction)
-      $next.addClass(direction)
-      $active
-        .one($.support.transition.end, function () {
-          $next.removeClass([type, direction].join(' ')).addClass('active')
-          $active.removeClass(['active', direction].join(' '))
-          that.sliding = false
-          setTimeout(function () { that.$element.trigger('slid') }, 0)
-        })
-        .emulateTransitionEnd(600)
-    } else {
-      this.$element.trigger(e)
-      if (e.isDefaultPrevented()) return
-      $active.removeClass('active')
-      $next.addClass('active')
-      this.sliding = false
-      this.$element.trigger('slid')
-    }
-
-    isCycling && this.cycle()
-
-    return this
-  }
-
-
-  // CAROUSEL PLUGIN DEFINITION
-  // ==========================
-
-  var old = $.fn.carousel
-
-  $.fn.carousel = function (option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.carousel')
-      var options = $.extend({}, Carousel.DEFAULTS, $this.data(), typeof option == 'object' && option)
-      var action  = typeof option == 'string' ? option : options.slide
-
-      if (!data) $this.data('bs.carousel', (data = new Carousel(this, options)))
-      if (typeof option == 'number') data.to(option)
-      else if (action) data[action]()
-      else if (options.interval) data.pause().cycle()
-    })
-  }
-
-  $.fn.carousel.Constructor = Carousel
-
-
-  // CAROUSEL NO CONFLICT
-  // ====================
-
-  $.fn.carousel.noConflict = function () {
-    $.fn.carousel = old
-    return this
-  }
-
-
-  // CAROUSEL DATA-API
-  // =================
-
-  $(document).on('click.bs.carousel.data-api', '[data-slide], [data-slide-to]', function (e) {
-    var $this   = $(this), href
-    var $target = $($this.attr('data-target') || (href = $this.attr('href')) && href.replace(/.*(?=#[^\s]+$)/, '')) //strip for ie7
-    var options = $.extend({}, $target.data(), $this.data())
-    var slideIndex = $this.attr('data-slide-to')
-    if (slideIndex) options.interval = false
-
-    $target.carousel(options)
-
-    if (slideIndex = $this.attr('data-slide-to')) {
-      $target.data('bs.carousel').to(slideIndex)
-    }
-
-    e.preventDefault()
-  })
-
-  $(window).on('load', function () {
-    $('[data-ride="carousel"]').each(function () {
-      var $carousel = $(this)
-      $carousel.carousel($carousel.data())
-    })
-  })
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: collapse.js v3.0.2
- * http://getbootstrap.com/javascript/#collapse
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // COLLAPSE PUBLIC CLASS DEFINITION
-  // ================================
-
-  var Collapse = function (element, options) {
-    this.$element      = $(element)
-    this.options       = $.extend({}, Collapse.DEFAULTS, options)
-    this.transitioning = null
-
-    if (this.options.parent) this.$parent = $(this.options.parent)
-    if (this.options.toggle) this.toggle()
-  }
-
-  Collapse.DEFAULTS = {
-    toggle: true
-  }
-
-  Collapse.prototype.dimension = function () {
-    var hasWidth = this.$element.hasClass('width')
-    return hasWidth ? 'width' : 'height'
-  }
-
-  Collapse.prototype.show = function () {
-    if (this.transitioning || this.$element.hasClass('in')) return
-
-    var startEvent = $.Event('show.bs.collapse')
-    this.$element.trigger(startEvent)
-    if (startEvent.isDefaultPrevented()) return
-
-    var actives = this.$parent && this.$parent.find('> .panel > .in')
-
-    if (actives && actives.length) {
-      var hasData = actives.data('bs.collapse')
-      if (hasData && hasData.transitioning) return
-      actives.collapse('hide')
-      hasData || actives.data('bs.collapse', null)
-    }
-
-    var dimension = this.dimension()
-
-    this.$element
-      .removeClass('collapse')
-      .addClass('collapsing')
-      [dimension](0)
-
-    this.transitioning = 1
-
-    var complete = function () {
-      this.$element
-        .removeClass('collapsing')
-        .addClass('in')
-        [dimension]('auto')
-      this.transitioning = 0
-      this.$element.trigger('shown.bs.collapse')
-    }
-
-    if (!$.support.transition) return complete.call(this)
-
-    var scrollSize = $.camelCase(['scroll', dimension].join('-'))
-
-    this.$element
-      .one($.support.transition.end, $.proxy(complete, this))
-      .emulateTransitionEnd(350)
-      [dimension](this.$element[0][scrollSize])
-  }
-
-  Collapse.prototype.hide = function () {
-    if (this.transitioning || !this.$element.hasClass('in')) return
-
-    var startEvent = $.Event('hide.bs.collapse')
-    this.$element.trigger(startEvent)
-    if (startEvent.isDefaultPrevented()) return
-
-    var dimension = this.dimension()
-
-    this.$element
-      [dimension](this.$element[dimension]())
-      [0].offsetHeight
-
-    this.$element
-      .addClass('collapsing')
-      .removeClass('collapse')
-      .removeClass('in')
-
-    this.transitioning = 1
-
-    var complete = function () {
-      this.transitioning = 0
-      this.$element
-        .trigger('hidden.bs.collapse')
-        .removeClass('collapsing')
-        .addClass('collapse')
-    }
-
-    if (!$.support.transition) return complete.call(this)
-
-    this.$element
-      [dimension](0)
-      .one($.support.transition.end, $.proxy(complete, this))
-      .emulateTransitionEnd(350)
-  }
-
-  Collapse.prototype.toggle = function () {
-    this[this.$element.hasClass('in') ? 'hide' : 'show']()
-  }
-
-
-  // COLLAPSE PLUGIN DEFINITION
-  // ==========================
-
-  var old = $.fn.collapse
-
-  $.fn.collapse = function (option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.collapse')
-      var options = $.extend({}, Collapse.DEFAULTS, $this.data(), typeof option == 'object' && option)
-
-      if (!data) $this.data('bs.collapse', (data = new Collapse(this, options)))
-      if (typeof option == 'string') data[option]()
-    })
-  }
-
-  $.fn.collapse.Constructor = Collapse
-
-
-  // COLLAPSE NO CONFLICT
-  // ====================
-
-  $.fn.collapse.noConflict = function () {
-    $.fn.collapse = old
-    return this
-  }
-
-
-  // COLLAPSE DATA-API
-  // =================
-
-  $(document).on('click.bs.collapse.data-api', '[data-toggle=collapse]', function (e) {
-    var $this   = $(this), href
-    var target  = $this.attr('data-target')
-        || e.preventDefault()
-        || (href = $this.attr('href')) && href.replace(/.*(?=#[^\s]+$)/, '') //strip for ie7
-    var $target = $(target)
-    var data    = $target.data('bs.collapse')
-    var option  = data ? 'toggle' : $this.data()
-    var parent  = $this.attr('data-parent')
-    var $parent = parent && $(parent)
-
-    if (!data || !data.transitioning) {
-      if ($parent) $parent.find('[data-toggle=collapse][data-parent="' + parent + '"]').not($this).addClass('collapsed')
-      $this[$target.hasClass('in') ? 'addClass' : 'removeClass']('collapsed')
-    }
-
-    $target.collapse(option)
-  })
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: dropdown.js v3.0.2
- * http://getbootstrap.com/javascript/#dropdowns
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // DROPDOWN CLASS DEFINITION
-  // =========================
-
-  var backdrop = '.dropdown-backdrop'
-  var toggle   = '[data-toggle=dropdown]'
-  var Dropdown = function (element) {
-    var $el = $(element).on('click.bs.dropdown', this.toggle)
-  }
-
-  Dropdown.prototype.toggle = function (e) {
-    var $this = $(this)
-
-    if ($this.is('.disabled, :disabled')) return
-
-    var $parent  = getParent($this)
-    var isActive = $parent.hasClass('open')
-
-    clearMenus()
-
-    if (!isActive) {
-      if ('ontouchstart' in document.documentElement && !$parent.closest('.navbar-nav').length) {
-        // if mobile we we use a backdrop because click events don't delegate
-        $('<div class="dropdown-backdrop"/>').insertAfter($(this)).on('click', clearMenus)
-      }
-
-      $parent.trigger(e = $.Event('show.bs.dropdown'))
-
-      if (e.isDefaultPrevented()) return
-
-      $parent
-        .toggleClass('open')
-        .trigger('shown.bs.dropdown')
-
-      $this.focus()
-    }
-
-    return false
-  }
-
-  Dropdown.prototype.keydown = function (e) {
-    if (!/(38|40|27)/.test(e.keyCode)) return
-
-    var $this = $(this)
-
-    e.preventDefault()
-    e.stopPropagation()
-
-    if ($this.is('.disabled, :disabled')) return
-
-    var $parent  = getParent($this)
-    var isActive = $parent.hasClass('open')
-
-    if (!isActive || (isActive && e.keyCode == 27)) {
-      if (e.which == 27) $parent.find(toggle).focus()
-      return $this.click()
-    }
-
-    var $items = $('[role=menu] li:not(.divider):visible a', $parent)
-
-    if (!$items.length) return
-
-    var index = $items.index($items.filter(':focus'))
-
-    if (e.keyCode == 38 && index > 0)                 index--                        // up
-    if (e.keyCode == 40 && index < $items.length - 1) index++                        // down
-    if (!~index)                                      index=0
-
-    $items.eq(index).focus()
-  }
-
-  function clearMenus() {
-    $(backdrop).remove()
-    $(toggle).each(function (e) {
-      var $parent = getParent($(this))
-      if (!$parent.hasClass('open')) return
-      $parent.trigger(e = $.Event('hide.bs.dropdown'))
-      if (e.isDefaultPrevented()) return
-      $parent.removeClass('open').trigger('hidden.bs.dropdown')
-    })
-  }
-
-  function getParent($this) {
-    var selector = $this.attr('data-target')
-
-    if (!selector) {
-      selector = $this.attr('href')
-      selector = selector && /#/.test(selector) && selector.replace(/.*(?=#[^\s]*$)/, '') //strip for ie7
-    }
-
-    var $parent = selector && $(selector)
-
-    return $parent && $parent.length ? $parent : $this.parent()
-  }
-
-
-  // DROPDOWN PLUGIN DEFINITION
-  // ==========================
-
-  var old = $.fn.dropdown
-
-  $.fn.dropdown = function (option) {
-    return this.each(function () {
-      var $this = $(this)
-      var data  = $this.data('dropdown')
-
-      if (!data) $this.data('dropdown', (data = new Dropdown(this)))
-      if (typeof option == 'string') data[option].call($this)
-    })
-  }
-
-  $.fn.dropdown.Constructor = Dropdown
-
-
-  // DROPDOWN NO CONFLICT
-  // ====================
-
-  $.fn.dropdown.noConflict = function () {
-    $.fn.dropdown = old
-    return this
-  }
-
-
-  // APPLY TO STANDARD DROPDOWN ELEMENTS
-  // ===================================
-
-  $(document)
-    .on('click.bs.dropdown.data-api', clearMenus)
-    .on('click.bs.dropdown.data-api', '.dropdown form', function (e) { e.stopPropagation() })
-    .on('click.bs.dropdown.data-api'  , toggle, Dropdown.prototype.toggle)
-    .on('keydown.bs.dropdown.data-api', toggle + ', [role=menu]' , Dropdown.prototype.keydown)
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: modal.js v3.0.2
- * http://getbootstrap.com/javascript/#modals
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // MODAL CLASS DEFINITION
-  // ======================
-
-  var Modal = function (element, options) {
-    this.options   = options
-    this.$element  = $(element)
-    this.$backdrop =
-    this.isShown   = null
-
-    if (this.options.remote) this.$element.load(this.options.remote)
-  }
-
-  Modal.DEFAULTS = {
-      backdrop: true
-    , keyboard: true
-    , show: true
-  }
-
-  Modal.prototype.toggle = function (_relatedTarget) {
-    return this[!this.isShown ? 'show' : 'hide'](_relatedTarget)
-  }
-
-  Modal.prototype.show = function (_relatedTarget) {
-    var that = this
-    var e    = $.Event('show.bs.modal', { relatedTarget: _relatedTarget })
-
-    this.$element.trigger(e)
-
-    if (this.isShown || e.isDefaultPrevented()) return
-
-    this.isShown = true
-
-    this.escape()
-
-    this.$element.on('click.dismiss.modal', '[data-dismiss="modal"]', $.proxy(this.hide, this))
-
-    this.backdrop(function () {
-      var transition = $.support.transition && that.$element.hasClass('fade')
-
-      if (!that.$element.parent().length) {
-        that.$element.appendTo(document.body) // don't move modals dom position
-      }
-
-      that.$element.show()
-
-      if (transition) {
-        that.$element[0].offsetWidth // force reflow
-      }
-
-      that.$element
-        .addClass('in')
-        .attr('aria-hidden', false)
-
-      that.enforceFocus()
-
-      var e = $.Event('shown.bs.modal', { relatedTarget: _relatedTarget })
-
-      transition ?
-        that.$element.find('.modal-dialog') // wait for modal to slide in
-          .one($.support.transition.end, function () {
-            that.$element.focus().trigger(e)
-          })
-          .emulateTransitionEnd(300) :
-        that.$element.focus().trigger(e)
-    })
-  }
-
-  Modal.prototype.hide = function (e) {
-    if (e) e.preventDefault()
-
-    e = $.Event('hide.bs.modal')
-
-    this.$element.trigger(e)
-
-    if (!this.isShown || e.isDefaultPrevented()) return
-
-    this.isShown = false
-
-    this.escape()
-
-    $(document).off('focusin.bs.modal')
-
-    this.$element
-      .removeClass('in')
-      .attr('aria-hidden', true)
-      .off('click.dismiss.modal')
-
-    $.support.transition && this.$element.hasClass('fade') ?
-      this.$element
-        .one($.support.transition.end, $.proxy(this.hideModal, this))
-        .emulateTransitionEnd(300) :
-      this.hideModal()
-  }
-
-  Modal.prototype.enforceFocus = function () {
-    $(document)
-      .off('focusin.bs.modal') // guard against infinite focus loop
-      .on('focusin.bs.modal', $.proxy(function (e) {
-        if (this.$element[0] !== e.target && !this.$element.has(e.target).length) {
-          this.$element.focus()
-        }
-      }, this))
-  }
-
-  Modal.prototype.escape = function () {
-    if (this.isShown && this.options.keyboard) {
-      this.$element.on('keyup.dismiss.bs.modal', $.proxy(function (e) {
-        e.which == 27 && this.hide()
-      }, this))
-    } else if (!this.isShown) {
-      this.$element.off('keyup.dismiss.bs.modal')
-    }
-  }
-
-  Modal.prototype.hideModal = function () {
-    var that = this
-    this.$element.hide()
-    this.backdrop(function () {
-      that.removeBackdrop()
-      that.$element.trigger('hidden.bs.modal')
-    })
-  }
-
-  Modal.prototype.removeBackdrop = function () {
-    this.$backdrop && this.$backdrop.remove()
-    this.$backdrop = null
-  }
-
-  Modal.prototype.backdrop = function (callback) {
-    var that    = this
-    var animate = this.$element.hasClass('fade') ? 'fade' : ''
-
-    if (this.isShown && this.options.backdrop) {
-      var doAnimate = $.support.transition && animate
-
-      this.$backdrop = $('<div class="modal-backdrop ' + animate + '" />')
-        .appendTo(document.body)
-
-      this.$element.on('click.dismiss.modal', $.proxy(function (e) {
-        if (e.target !== e.currentTarget) return
-        this.options.backdrop == 'static'
-          ? this.$element[0].focus.call(this.$element[0])
-          : this.hide.call(this)
-      }, this))
-
-      if (doAnimate) this.$backdrop[0].offsetWidth // force reflow
-
-      this.$backdrop.addClass('in')
-
-      if (!callback) return
-
-      doAnimate ?
-        this.$backdrop
-          .one($.support.transition.end, callback)
-          .emulateTransitionEnd(150) :
-        callback()
-
-    } else if (!this.isShown && this.$backdrop) {
-      this.$backdrop.removeClass('in')
-
-      $.support.transition && this.$element.hasClass('fade')?
-        this.$backdrop
-          .one($.support.transition.end, callback)
-          .emulateTransitionEnd(150) :
-        callback()
-
-    } else if (callback) {
-      callback()
-    }
-  }
-
-
-  // MODAL PLUGIN DEFINITION
-  // =======================
-
-  var old = $.fn.modal
-
-  $.fn.modal = function (option, _relatedTarget) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.modal')
-      var options = $.extend({}, Modal.DEFAULTS, $this.data(), typeof option == 'object' && option)
-
-      if (!data) $this.data('bs.modal', (data = new Modal(this, options)))
-      if (typeof option == 'string') data[option](_relatedTarget)
-      else if (options.show) data.show(_relatedTarget)
-    })
-  }
-
-  $.fn.modal.Constructor = Modal
-
-
-  // MODAL NO CONFLICT
-  // =================
-
-  $.fn.modal.noConflict = function () {
-    $.fn.modal = old
-    return this
-  }
-
-
-  // MODAL DATA-API
-  // ==============
-
-  $(document).on('click.bs.modal.data-api', '[data-toggle="modal"]', function (e) {
-    var $this   = $(this)
-    var href    = $this.attr('href')
-    var $target = $($this.attr('data-target') || (href && href.replace(/.*(?=#[^\s]+$)/, ''))) //strip for ie7
-    var option  = $target.data('modal') ? 'toggle' : $.extend({ remote: !/#/.test(href) && href }, $target.data(), $this.data())
-
-    e.preventDefault()
-
-    $target
-      .modal(option, this)
-      .one('hide', function () {
-        $this.is(':visible') && $this.focus()
-      })
-  })
-
-  $(document)
-    .on('show.bs.modal',  '.modal', function () { $(document.body).addClass('modal-open') })
-    .on('hidden.bs.modal', '.modal', function () { $(document.body).removeClass('modal-open') })
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: tooltip.js v3.0.2
- * http://getbootstrap.com/javascript/#tooltip
- * Inspired by the original jQuery.tipsy by Jason Frame
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // TOOLTIP PUBLIC CLASS DEFINITION
-  // ===============================
-
-  var Tooltip = function (element, options) {
-    this.type       =
-    this.options    =
-    this.enabled    =
-    this.timeout    =
-    this.hoverState =
-    this.$element   = null
-
-    this.init('tooltip', element, options)
-  }
-
-  Tooltip.DEFAULTS = {
-    animation: true
-  , placement: 'top'
-  , selector: false
-  , template: '<div class="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>'
-  , trigger: 'hover focus'
-  , title: ''
-  , delay: 0
-  , html: false
-  , container: false
-  }
-
-  Tooltip.prototype.init = function (type, element, options) {
-    this.enabled  = true
-    this.type     = type
-    this.$element = $(element)
-    this.options  = this.getOptions(options)
-
-    var triggers = this.options.trigger.split(' ')
-
-    for (var i = triggers.length; i--;) {
-      var trigger = triggers[i]
-
-      if (trigger == 'click') {
-        this.$element.on('click.' + this.type, this.options.selector, $.proxy(this.toggle, this))
-      } else if (trigger != 'manual') {
-        var eventIn  = trigger == 'hover' ? 'mouseenter' : 'focus'
-        var eventOut = trigger == 'hover' ? 'mouseleave' : 'blur'
-
-        this.$element.on(eventIn  + '.' + this.type, this.options.selector, $.proxy(this.enter, this))
-        this.$element.on(eventOut + '.' + this.type, this.options.selector, $.proxy(this.leave, this))
-      }
-    }
-
-    this.options.selector ?
-      (this._options = $.extend({}, this.options, { trigger: 'manual', selector: '' })) :
-      this.fixTitle()
-  }
-
-  Tooltip.prototype.getDefaults = function () {
-    return Tooltip.DEFAULTS
-  }
-
-  Tooltip.prototype.getOptions = function (options) {
-    options = $.extend({}, this.getDefaults(), this.$element.data(), options)
-
-    if (options.delay && typeof options.delay == 'number') {
-      options.delay = {
-        show: options.delay
-      , hide: options.delay
-      }
-    }
-
-    return options
-  }
-
-  Tooltip.prototype.getDelegateOptions = function () {
-    var options  = {}
-    var defaults = this.getDefaults()
-
-    this._options && $.each(this._options, function (key, value) {
-      if (defaults[key] != value) options[key] = value
-    })
-
-    return options
-  }
-
-  Tooltip.prototype.enter = function (obj) {
-    var self = obj instanceof this.constructor ?
-      obj : $(obj.currentTarget)[this.type](this.getDelegateOptions()).data('bs.' + this.type)
-
-    clearTimeout(self.timeout)
-
-    self.hoverState = 'in'
-
-    if (!self.options.delay || !self.options.delay.show) return self.show()
-
-    self.timeout = setTimeout(function () {
-      if (self.hoverState == 'in') self.show()
-    }, self.options.delay.show)
-  }
-
-  Tooltip.prototype.leave = function (obj) {
-    var self = obj instanceof this.constructor ?
-      obj : $(obj.currentTarget)[this.type](this.getDelegateOptions()).data('bs.' + this.type)
-
-    clearTimeout(self.timeout)
-
-    self.hoverState = 'out'
-
-    if (!self.options.delay || !self.options.delay.hide) return self.hide()
-
-    self.timeout = setTimeout(function () {
-      if (self.hoverState == 'out') self.hide()
-    }, self.options.delay.hide)
-  }
-
-  Tooltip.prototype.show = function () {
-    var e = $.Event('show.bs.'+ this.type)
-
-    if (this.hasContent() && this.enabled) {
-      this.$element.trigger(e)
-
-      if (e.isDefaultPrevented()) return
-
-      var $tip = this.tip()
-
-      this.setContent()
-
-      if (this.options.animation) $tip.addClass('fade')
-
-      var placement = typeof this.options.placement == 'function' ?
-        this.options.placement.call(this, $tip[0], this.$element[0]) :
-        this.options.placement
-
-      var autoToken = /\s?auto?\s?/i
-      var autoPlace = autoToken.test(placement)
-      if (autoPlace) placement = placement.replace(autoToken, '') || 'top'
-
-      $tip
-        .detach()
-        .css({ top: 0, left: 0, display: 'block' })
-        .addClass(placement)
-
-      this.options.container ? $tip.appendTo(this.options.container) : $tip.insertAfter(this.$element)
-
-      var pos          = this.getPosition()
-      var actualWidth  = $tip[0].offsetWidth
-      var actualHeight = $tip[0].offsetHeight
-
-      if (autoPlace) {
-        var $parent = this.$element.parent()
-
-        var orgPlacement = placement
-        var docScroll    = document.documentElement.scrollTop || document.body.scrollTop
-        var parentWidth  = this.options.container == 'body' ? window.innerWidth  : $parent.outerWidth()
-        var parentHeight = this.options.container == 'body' ? window.innerHeight : $parent.outerHeight()
-        var parentLeft   = this.options.container == 'body' ? 0 : $parent.offset().left
-
-        placement = placement == 'bottom' && pos.top   + pos.height  + actualHeight - docScroll > parentHeight  ? 'top'    :
-                    placement == 'top'    && pos.top   - docScroll   - actualHeight < 0                         ? 'bottom' :
-                    placement == 'right'  && pos.right + actualWidth > parentWidth                              ? 'left'   :
-                    placement == 'left'   && pos.left  - actualWidth < parentLeft                               ? 'right'  :
-                    placement
-
-        $tip
-          .removeClass(orgPlacement)
-          .addClass(placement)
-      }
-
-      var calculatedOffset = this.getCalculatedOffset(placement, pos, actualWidth, actualHeight)
-
-      this.applyPlacement(calculatedOffset, placement)
-      this.$element.trigger('shown.bs.' + this.type)
-    }
-  }
-
-  Tooltip.prototype.applyPlacement = function(offset, placement) {
-    var replace
-    var $tip   = this.tip()
-    var width  = $tip[0].offsetWidth
-    var height = $tip[0].offsetHeight
-
-    // manually read margins because getBoundingClientRect includes difference
-    var marginTop = parseInt($tip.css('margin-top'), 10)
-    var marginLeft = parseInt($tip.css('margin-left'), 10)
-
-    // we must check for NaN for ie 8/9
-    if (isNaN(marginTop))  marginTop  = 0
-    if (isNaN(marginLeft)) marginLeft = 0
-
-    offset.top  = offset.top  + marginTop
-    offset.left = offset.left + marginLeft
-
-    $tip
-      .offset(offset)
-      .addClass('in')
-
-    // check to see if placing tip in new offset caused the tip to resize itself
-    var actualWidth  = $tip[0].offsetWidth
-    var actualHeight = $tip[0].offsetHeight
-
-    if (placement == 'top' && actualHeight != height) {
-      replace = true
-      offset.top = offset.top + height - actualHeight
-    }
-
-    if (/bottom|top/.test(placement)) {
-      var delta = 0
-
-      if (offset.left < 0) {
-        delta       = offset.left * -2
-        offset.left = 0
-
-        $tip.offset(offset)
-
-        actualWidth  = $tip[0].offsetWidth
-        actualHeight = $tip[0].offsetHeight
-      }
-
-      this.replaceArrow(delta - width + actualWidth, actualWidth, 'left')
-    } else {
-      this.replaceArrow(actualHeight - height, actualHeight, 'top')
-    }
-
-    if (replace) $tip.offset(offset)
-  }
-
-  Tooltip.prototype.replaceArrow = function(delta, dimension, position) {
-    this.arrow().css(position, delta ? (50 * (1 - delta / dimension) + "%") : '')
-  }
-
-  Tooltip.prototype.setContent = function () {
-    var $tip  = this.tip()
-    var title = this.getTitle()
-
-    $tip.find('.tooltip-inner')[this.options.html ? 'html' : 'text'](title)
-    $tip.removeClass('fade in top bottom left right')
-  }
-
-  Tooltip.prototype.hide = function () {
-    var that = this
-    var $tip = this.tip()
-    var e    = $.Event('hide.bs.' + this.type)
-
-    function complete() {
-      if (that.hoverState != 'in') $tip.detach()
-    }
-
-    this.$element.trigger(e)
-
-    if (e.isDefaultPrevented()) return
-
-    $tip.removeClass('in')
-
-    $.support.transition && this.$tip.hasClass('fade') ?
-      $tip
-        .one($.support.transition.end, complete)
-        .emulateTransitionEnd(150) :
-      complete()
-
-    this.$element.trigger('hidden.bs.' + this.type)
-
-    return this
-  }
-
-  Tooltip.prototype.fixTitle = function () {
-    var $e = this.$element
-    if ($e.attr('title') || typeof($e.attr('data-original-title')) != 'string') {
-      $e.attr('data-original-title', $e.attr('title') || '').attr('title', '')
-    }
-  }
-
-  Tooltip.prototype.hasContent = function () {
-    return this.getTitle()
-  }
-
-  Tooltip.prototype.getPosition = function () {
-    var el = this.$element[0]
-    return $.extend({}, (typeof el.getBoundingClientRect == 'function') ? el.getBoundingClientRect() : {
-      width: el.offsetWidth
-    , height: el.offsetHeight
-    }, this.$element.offset())
-  }
-
-  Tooltip.prototype.getCalculatedOffset = function (placement, pos, actualWidth, actualHeight) {
-    return placement == 'bottom' ? { top: pos.top + pos.height,   left: pos.left + pos.width / 2 - actualWidth / 2  } :
-           placement == 'top'    ? { top: pos.top - actualHeight, left: pos.left + pos.width / 2 - actualWidth / 2  } :
-           placement == 'left'   ? { top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left - actualWidth } :
-        /* placement == 'right' */ { top: pos.top + pos.height / 2 - actualHeight / 2, left: pos.left + pos.width   }
-  }
-
-  Tooltip.prototype.getTitle = function () {
-    var title
-    var $e = this.$element
-    var o  = this.options
-
-    title = $e.attr('data-original-title')
-      || (typeof o.title == 'function' ? o.title.call($e[0]) :  o.title)
-
-    return title
-  }
-
-  Tooltip.prototype.tip = function () {
-    return this.$tip = this.$tip || $(this.options.template)
-  }
-
-  Tooltip.prototype.arrow = function () {
-    return this.$arrow = this.$arrow || this.tip().find('.tooltip-arrow')
-  }
-
-  Tooltip.prototype.validate = function () {
-    if (!this.$element[0].parentNode) {
-      this.hide()
-      this.$element = null
-      this.options  = null
-    }
-  }
-
-  Tooltip.prototype.enable = function () {
-    this.enabled = true
-  }
-
-  Tooltip.prototype.disable = function () {
-    this.enabled = false
-  }
-
-  Tooltip.prototype.toggleEnabled = function () {
-    this.enabled = !this.enabled
-  }
-
-  Tooltip.prototype.toggle = function (e) {
-    var self = e ? $(e.currentTarget)[this.type](this.getDelegateOptions()).data('bs.' + this.type) : this
-    self.tip().hasClass('in') ? self.leave(self) : self.enter(self)
-  }
-
-  Tooltip.prototype.destroy = function () {
-    this.hide().$element.off('.' + this.type).removeData('bs.' + this.type)
-  }
-
-
-  // TOOLTIP PLUGIN DEFINITION
-  // =========================
-
-  var old = $.fn.tooltip
-
-  $.fn.tooltip = function (option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.tooltip')
-      var options = typeof option == 'object' && option
-
-      if (!data) $this.data('bs.tooltip', (data = new Tooltip(this, options)))
-      if (typeof option == 'string') data[option]()
-    })
-  }
-
-  $.fn.tooltip.Constructor = Tooltip
-
-
-  // TOOLTIP NO CONFLICT
-  // ===================
-
-  $.fn.tooltip.noConflict = function () {
-    $.fn.tooltip = old
-    return this
-  }
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: popover.js v3.0.2
- * http://getbootstrap.com/javascript/#popovers
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // POPOVER PUBLIC CLASS DEFINITION
-  // ===============================
-
-  var Popover = function (element, options) {
-    this.init('popover', element, options)
-  }
-
-  if (!$.fn.tooltip) throw new Error('Popover requires tooltip.js')
-
-  Popover.DEFAULTS = $.extend({} , $.fn.tooltip.Constructor.DEFAULTS, {
-    placement: 'right'
-  , trigger: 'click'
-  , content: ''
-  , template: '<div class="popover"><div class="arrow"></div><h3 class="popover-title"></h3><div class="popover-content"></div></div>'
-  })
-
-
-  // NOTE: POPOVER EXTENDS tooltip.js
-  // ================================
-
-  Popover.prototype = $.extend({}, $.fn.tooltip.Constructor.prototype)
-
-  Popover.prototype.constructor = Popover
-
-  Popover.prototype.getDefaults = function () {
-    return Popover.DEFAULTS
-  }
-
-  Popover.prototype.setContent = function () {
-    var $tip    = this.tip()
-    var title   = this.getTitle()
-    var content = this.getContent()
-
-    $tip.find('.popover-title')[this.options.html ? 'html' : 'text'](title)
-    $tip.find('.popover-content')[this.options.html ? 'html' : 'text'](content)
-
-    $tip.removeClass('fade top bottom left right in')
-
-    // IE8 doesn't accept hiding via the `:empty` pseudo selector, we have to do
-    // this manually by checking the contents.
-    if (!$tip.find('.popover-title').html()) $tip.find('.popover-title').hide()
-  }
-
-  Popover.prototype.hasContent = function () {
-    return this.getTitle() || this.getContent()
-  }
-
-  Popover.prototype.getContent = function () {
-    var $e = this.$element
-    var o  = this.options
-
-    return $e.attr('data-content')
-      || (typeof o.content == 'function' ?
-            o.content.call($e[0]) :
-            o.content)
-  }
-
-  Popover.prototype.arrow = function () {
-    return this.$arrow = this.$arrow || this.tip().find('.arrow')
-  }
-
-  Popover.prototype.tip = function () {
-    if (!this.$tip) this.$tip = $(this.options.template)
-    return this.$tip
-  }
-
-
-  // POPOVER PLUGIN DEFINITION
-  // =========================
-
-  var old = $.fn.popover
-
-  $.fn.popover = function (option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.popover')
-      var options = typeof option == 'object' && option
-
-      if (!data) $this.data('bs.popover', (data = new Popover(this, options)))
-      if (typeof option == 'string') data[option]()
-    })
-  }
-
-  $.fn.popover.Constructor = Popover
-
-
-  // POPOVER NO CONFLICT
-  // ===================
-
-  $.fn.popover.noConflict = function () {
-    $.fn.popover = old
-    return this
-  }
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: scrollspy.js v3.0.2
- * http://getbootstrap.com/javascript/#scrollspy
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // SCROLLSPY CLASS DEFINITION
-  // ==========================
-
-  function ScrollSpy(element, options) {
-    var href
-    var process  = $.proxy(this.process, this)
-
-    this.$element       = $(element).is('body') ? $(window) : $(element)
-    this.$body          = $('body')
-    this.$scrollElement = this.$element.on('scroll.bs.scroll-spy.data-api', process)
-    this.options        = $.extend({}, ScrollSpy.DEFAULTS, options)
-    this.selector       = (this.options.target
-      || ((href = $(element).attr('href')) && href.replace(/.*(?=#[^\s]+$)/, '')) //strip for ie7
-      || '') + ' .nav li > a'
-    this.offsets        = $([])
-    this.targets        = $([])
-    this.activeTarget   = null
-
-    this.refresh()
-    this.process()
-  }
-
-  ScrollSpy.DEFAULTS = {
-    offset: 10
-  }
-
-  ScrollSpy.prototype.refresh = function () {
-    var offsetMethod = this.$element[0] == window ? 'offset' : 'position'
-
-    this.offsets = $([])
-    this.targets = $([])
-
-    var self     = this
-    var $targets = this.$body
-      .find(this.selector)
-      .map(function () {
-        var $el   = $(this)
-        var href  = $el.data('target') || $el.attr('href')
-        var $href = /^#\w/.test(href) && $(href)
-
-        return ($href
-          && $href.length
-          && [[ $href[offsetMethod]().top + (!$.isWindow(self.$scrollElement.get(0)) && self.$scrollElement.scrollTop()), href ]]) || null
-      })
-      .sort(function (a, b) { return a[0] - b[0] })
-      .each(function () {
-        self.offsets.push(this[0])
-        self.targets.push(this[1])
-      })
-  }
-
-  ScrollSpy.prototype.process = function () {
-    var scrollTop    = this.$scrollElement.scrollTop() + this.options.offset
-    var scrollHeight = this.$scrollElement[0].scrollHeight || this.$body[0].scrollHeight
-    var maxScroll    = scrollHeight - this.$scrollElement.height()
-    var offsets      = this.offsets
-    var targets      = this.targets
-    var activeTarget = this.activeTarget
-    var i
-
-    if (scrollTop >= maxScroll) {
-      return activeTarget != (i = targets.last()[0]) && this.activate(i)
-    }
-
-    for (i = offsets.length; i--;) {
-      activeTarget != targets[i]
-        && scrollTop >= offsets[i]
-        && (!offsets[i + 1] || scrollTop <= offsets[i + 1])
-        && this.activate( targets[i] )
-    }
-  }
-
-  ScrollSpy.prototype.activate = function (target) {
-    this.activeTarget = target
-
-    $(this.selector)
-      .parents('.active')
-      .removeClass('active')
-
-    var selector = this.selector
-      + '[data-target="' + target + '"],'
-      + this.selector + '[href="' + target + '"]'
-
-    var active = $(selector)
-      .parents('li')
-      .addClass('active')
-
-    if (active.parent('.dropdown-menu').length)  {
-      active = active
-        .closest('li.dropdown')
-        .addClass('active')
-    }
-
-    active.trigger('activate')
-  }
-
-
-  // SCROLLSPY PLUGIN DEFINITION
-  // ===========================
-
-  var old = $.fn.scrollspy
-
-  $.fn.scrollspy = function (option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.scrollspy')
-      var options = typeof option == 'object' && option
-
-      if (!data) $this.data('bs.scrollspy', (data = new ScrollSpy(this, options)))
-      if (typeof option == 'string') data[option]()
-    })
-  }
-
-  $.fn.scrollspy.Constructor = ScrollSpy
-
-
-  // SCROLLSPY NO CONFLICT
-  // =====================
-
-  $.fn.scrollspy.noConflict = function () {
-    $.fn.scrollspy = old
-    return this
-  }
-
-
-  // SCROLLSPY DATA-API
-  // ==================
-
-  $(window).on('load', function () {
-    $('[data-spy="scroll"]').each(function () {
-      var $spy = $(this)
-      $spy.scrollspy($spy.data())
-    })
-  })
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: tab.js v3.0.2
- * http://getbootstrap.com/javascript/#tabs
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // TAB CLASS DEFINITION
-  // ====================
-
-  var Tab = function (element) {
-    this.element = $(element)
-  }
-
-  Tab.prototype.show = function () {
-    var $this    = this.element
-    var $ul      = $this.closest('ul:not(.dropdown-menu)')
-    var selector = $this.data('target')
-
-    if (!selector) {
-      selector = $this.attr('href')
-      selector = selector && selector.replace(/.*(?=#[^\s]*$)/, '') //strip for ie7
-    }
-
-    if ($this.parent('li').hasClass('active')) return
-
-    var previous = $ul.find('.active:last a')[0]
-    var e        = $.Event('show.bs.tab', {
-      relatedTarget: previous
-    })
-
-    $this.trigger(e)
-
-    if (e.isDefaultPrevented()) return
-
-    var $target = $(selector)
-
-    this.activate($this.parent('li'), $ul)
-    this.activate($target, $target.parent(), function () {
-      $this.trigger({
-        type: 'shown.bs.tab'
-      , relatedTarget: previous
-      })
-    })
-  }
-
-  Tab.prototype.activate = function (element, container, callback) {
-    var $active    = container.find('> .active')
-    var transition = callback
-      && $.support.transition
-      && $active.hasClass('fade')
-
-    function next() {
-      $active
-        .removeClass('active')
-        .find('> .dropdown-menu > .active')
-        .removeClass('active')
-
-      element.addClass('active')
-
-      if (transition) {
-        element[0].offsetWidth // reflow for transition
-        element.addClass('in')
-      } else {
-        element.removeClass('fade')
-      }
-
-      if (element.parent('.dropdown-menu')) {
-        element.closest('li.dropdown').addClass('active')
-      }
-
-      callback && callback()
-    }
-
-    transition ?
-      $active
-        .one($.support.transition.end, next)
-        .emulateTransitionEnd(150) :
-      next()
-
-    $active.removeClass('in')
-  }
-
-
-  // TAB PLUGIN DEFINITION
-  // =====================
-
-  var old = $.fn.tab
-
-  $.fn.tab = function ( option ) {
-    return this.each(function () {
-      var $this = $(this)
-      var data  = $this.data('bs.tab')
-
-      if (!data) $this.data('bs.tab', (data = new Tab(this)))
-      if (typeof option == 'string') data[option]()
-    })
-  }
-
-  $.fn.tab.Constructor = Tab
-
-
-  // TAB NO CONFLICT
-  // ===============
-
-  $.fn.tab.noConflict = function () {
-    $.fn.tab = old
-    return this
-  }
-
-
-  // TAB DATA-API
-  // ============
-
-  $(document).on('click.bs.tab.data-api', '[data-toggle="tab"], [data-toggle="pill"]', function (e) {
-    e.preventDefault()
-    $(this).tab('show')
-  })
-
-}(jQuery);
-
-/* ========================================================================
- * Bootstrap: affix.js v3.0.2
- * http://getbootstrap.com/javascript/#affix
- * ========================================================================
- * Copyright 2013 Twitter, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * ======================================================================== */
-
-
-+function ($) { "use strict";
-
-  // AFFIX CLASS DEFINITION
-  // ======================
-
-  var Affix = function (element, options) {
-    this.options = $.extend({}, Affix.DEFAULTS, options)
-    this.$window = $(window)
-      .on('scroll.bs.affix.data-api', $.proxy(this.checkPosition, this))
-      .on('click.bs.affix.data-api',  $.proxy(this.checkPositionWithEventLoop, this))
-
-    this.$element = $(element)
-    this.affixed  =
-    this.unpin    = null
-
-    this.checkPosition()
-  }
-
-  Affix.RESET = 'affix affix-top affix-bottom'
-
-  Affix.DEFAULTS = {
-    offset: 0
-  }
-
-  Affix.prototype.checkPositionWithEventLoop = function () {
-    setTimeout($.proxy(this.checkPosition, this), 1)
-  }
-
-  Affix.prototype.checkPosition = function () {
-    if (!this.$element.is(':visible')) return
-
-    var scrollHeight = $(document).height()
-    var scrollTop    = this.$window.scrollTop()
-    var position     = this.$element.offset()
-    var offset       = this.options.offset
-    var offsetTop    = offset.top
-    var offsetBottom = offset.bottom
-
-    if (typeof offset != 'object')         offsetBottom = offsetTop = offset
-    if (typeof offsetTop == 'function')    offsetTop    = offset.top()
-    if (typeof offsetBottom == 'function') offsetBottom = offset.bottom()
-
-    var affix = this.unpin   != null && (scrollTop + this.unpin <= position.top) ? false :
-                offsetBottom != null && (position.top + this.$element.height() >= scrollHeight - offsetBottom) ? 'bottom' :
-                offsetTop    != null && (scrollTop <= offsetTop) ? 'top' : false
-
-    if (this.affixed === affix) return
-    if (this.unpin) this.$element.css('top', '')
-
-    this.affixed = affix
-    this.unpin   = affix == 'bottom' ? position.top - scrollTop : null
-
-    this.$element.removeClass(Affix.RESET).addClass('affix' + (affix ? '-' + affix : ''))
-
-    if (affix == 'bottom') {
-      this.$element.offset({ top: document.body.offsetHeight - offsetBottom - this.$element.height() })
-    }
-  }
-
-
-  // AFFIX PLUGIN DEFINITION
-  // =======================
-
-  var old = $.fn.affix
-
-  $.fn.affix = function (option) {
-    return this.each(function () {
-      var $this   = $(this)
-      var data    = $this.data('bs.affix')
-      var options = typeof option == 'object' && option
-
-      if (!data) $this.data('bs.affix', (data = new Affix(this, options)))
-      if (typeof option == 'string') data[option]()
-    })
-  }
-
-  $.fn.affix.Constructor = Affix
-
-
-  // AFFIX NO CONFLICT
-  // =================
-
-  $.fn.affix.noConflict = function () {
-    $.fn.affix = old
-    return this
-  }
-
-
-  // AFFIX DATA-API
-  // ==============
-
-  $(window).on('load', function () {
-    $('[data-spy="affix"]').each(function () {
-      var $spy = $(this)
-      var data = $spy.data()
-
-      data.offset = data.offset || {}
-
-      if (data.offsetBottom) data.offset.bottom = data.offsetBottom
-      if (data.offsetTop)    data.offset.top    = data.offsetTop
-
-      $spy.affix(data)
-    })
-  })
-
-}(jQuery);
-
 /*
   html2canvas 0.4.1 <http://html2canvas.hertzen.com>
-  Copyright (c) 2014 Niklas von Hertzen
+  Copyright (c) 2013 Niklas von Hertzen
 
   Released under MIT License
 */
 
-(function(window, document, undefined) {
+(function(window, document, undefined){
 
-    "use strict";
+"use strict";
 
-    var _html2canvas = {},
-        previousElement,
-        computedCSS,
-        html2canvas;
+var _html2canvas = {},
+previousElement,
+computedCSS,
+html2canvas;
 
-    _html2canvas.Util = {};
+_html2canvas.Util = {};
 
-    _html2canvas.Util.log = function(a) {
-        if (_html2canvas.logging && window.console && window.console.log) {
-            window.console.log(a);
+_html2canvas.Util.log = function(a) {
+  if (_html2canvas.logging && window.console && window.console.log) {
+    window.console.log(a);
+  }
+};
+
+_html2canvas.Util.trimText = (function(isNative){
+  return function(input) {
+    return isNative ? isNative.apply(input) : ((input || '') + '').replace( /^\s+|\s+$/g , '' );
+  };
+})(String.prototype.trim);
+
+_html2canvas.Util.asFloat = function(v) {
+  return parseFloat(v);
+};
+
+(function() {
+  // TODO: support all possible length values
+  var TEXT_SHADOW_PROPERTY = /((rgba|rgb)\([^\)]+\)(\s-?\d+px){0,})/g;
+  var TEXT_SHADOW_VALUES = /(-?\d+px)|(#.+)|(rgb\(.+\))|(rgba\(.+\))/g;
+  _html2canvas.Util.parseTextShadows = function (value) {
+    if (!value || value === 'none') {
+      return [];
+    }
+
+    // find multiple shadow declarations
+    var shadows = value.match(TEXT_SHADOW_PROPERTY),
+      results = [];
+    for (var i = 0; shadows && (i < shadows.length); i++) {
+      var s = shadows[i].match(TEXT_SHADOW_VALUES);
+      results.push({
+        color: s[0],
+        offsetX: s[1] ? s[1].replace('px', '') : 0,
+        offsetY: s[2] ? s[2].replace('px', '') : 0,
+        blur: s[3] ? s[3].replace('px', '') : 0
+      });
+    }
+    return results;
+  };
+})();
+
+
+_html2canvas.Util.parseBackgroundImage = function (value) {
+    var whitespace = ' \r\n\t',
+        method, definition, prefix, prefix_i, block, results = [],
+        c, mode = 0, numParen = 0, quote, args;
+
+    var appendResult = function(){
+        if(method) {
+            if(definition.substr( 0, 1 ) === '"') {
+                definition = definition.substr( 1, definition.length - 2 );
+            }
+            if(definition) {
+                args.push(definition);
+            }
+            if(method.substr( 0, 1 ) === '-' &&
+                    (prefix_i = method.indexOf( '-', 1 ) + 1) > 0) {
+                prefix = method.substr( 0, prefix_i);
+                method = method.substr( prefix_i );
+            }
+            results.push({
+                prefix: prefix,
+                method: method.toLowerCase(),
+                value: block,
+                args: args
+            });
         }
+        args = []; //for some odd reason, setting .length = 0 didn't work in safari
+        method =
+            prefix =
+            definition =
+            block = '';
     };
 
-    _html2canvas.Util.trimText = (function(isNative) {
-        return function(input) {
-            return isNative ? isNative.apply(input) : ((input || '') + '').replace(/^\s+|\s+$/g, '');
-        };
-    })(String.prototype.trim);
-
-    _html2canvas.Util.asFloat = function(v) {
-        return parseFloat(v);
-    };
-
-    (function() {
-        // TODO: support all possible length values
-        var TEXT_SHADOW_PROPERTY = /((rgba|rgb)\([^\)]+\)(\s-?\d+px){0,})/g;
-        var TEXT_SHADOW_VALUES = /(-?\d+px)|(#.+)|(rgb\(.+\))|(rgba\(.+\))/g;
-        _html2canvas.Util.parseTextShadows = function(value) {
-            if (!value || value === 'none') {
-                return [];
-            }
-
-            // find multiple shadow declarations
-            var shadows = value.match(TEXT_SHADOW_PROPERTY),
-                results = [];
-            for (var i = 0; shadows && (i < shadows.length); i++) {
-                var s = shadows[i].match(TEXT_SHADOW_VALUES);
-                results.push({
-                    color: s[0],
-                    offsetX: s[1] ? s[1].replace('px', '') : 0,
-                    offsetY: s[2] ? s[2].replace('px', '') : 0,
-                    blur: s[3] ? s[3].replace('px', '') : 0
-                });
-            }
-            return results;
-        };
-    })();
-
-    _html2canvas.Util.parseBackgroundImage = function(value) {
-        var whitespace = ' \r\n\t',
-            method, definition, prefix, prefix_i, block, results = [],
-            c, mode = 0,
-            numParen = 0,
-            quote, args;
-
-        var appendResult = function() {
-            if (method) {
-                if (definition.substr(0, 1) === '"') {
-                    definition = definition.substr(1, definition.length - 2);
+    appendResult();
+    for(var i = 0, ii = value.length; i<ii; i++) {
+        c = value[i];
+        if(mode === 0 && whitespace.indexOf( c ) > -1){
+            continue;
+        }
+        switch(c) {
+            case '"':
+                if(!quote) {
+                    quote = c;
                 }
-                if (definition) {
-                    args.push(definition);
+                else if(quote === c) {
+                    quote = null;
                 }
-                if (method.substr(0, 1) === '-' &&
-                    (prefix_i = method.indexOf('-', 1) + 1) > 0) {
-                    prefix = method.substr(0, prefix_i);
-                    method = method.substr(prefix_i);
+                break;
+
+            case '(':
+                if(quote) { break; }
+                else if(mode === 0) {
+                    mode = 1;
+                    block += c;
+                    continue;
+                } else {
+                    numParen++;
                 }
-                results.push({
-                    prefix: prefix,
-                    method: method.toLowerCase(),
-                    value: block,
-                    args: args
-                });
-            }
-            args = []; //for some odd reason, setting .length = 0 didn't work in safari
-            method =
-                prefix =
-                definition =
-                block = '';
-        };
+                break;
 
-        appendResult();
-        for (var i = 0, ii = value.length; i < ii; i++) {
-            c = value[i];
-            if (mode === 0 && whitespace.indexOf(c) > -1) {
-                continue;
-            }
-            switch (c) {
-                case '"':
-                    if (!quote) {
-                        quote = c;
-                    } else if (quote === c) {
-                        quote = null;
-                    }
-                    break;
-
-                case '(':
-                    if (quote) {
-                        break;
-                    } else if (mode === 0) {
-                        mode = 1;
+            case ')':
+                if(quote) { break; }
+                else if(mode === 1) {
+                    if(numParen === 0) {
+                        mode = 0;
                         block += c;
-                        continue;
-                    } else {
-                        numParen++;
-                    }
-                    break;
-
-                case ')':
-                    if (quote) {
-                        break;
-                    } else if (mode === 1) {
-                        if (numParen === 0) {
-                            mode = 0;
-                            block += c;
-                            appendResult();
-                            continue;
-                        } else {
-                            numParen--;
-                        }
-                    }
-                    break;
-
-                case ',':
-                    if (quote) {
-                        break;
-                    } else if (mode === 0) {
                         appendResult();
                         continue;
-                    } else if (mode === 1) {
-                        if (numParen === 0 && !method.match(/^url$/i)) {
-                            args.push(definition);
-                            definition = '';
-                            block += c;
-                            continue;
-                        }
-                    }
-                    break;
-            }
-
-            block += c;
-            if (mode === 0) {
-                method += c;
-            } else {
-                definition += c;
-            }
-        }
-        appendResult();
-
-        return results;
-    };
-
-    _html2canvas.Util.Bounds = function(element) {
-        var clientRect, bounds = {};
-
-        if (element.getBoundingClientRect) {
-            clientRect = element.getBoundingClientRect();
-
-            // TODO add scroll position to bounds, so no scrolling of window necessary
-            bounds.top = clientRect.top;
-            bounds.bottom = clientRect.bottom || (clientRect.top + clientRect.height);
-            bounds.left = clientRect.left;
-
-            bounds.width = element.offsetWidth;
-            bounds.height = element.offsetHeight;
-        }
-
-        return bounds;
-    };
-
-    // TODO ideally, we'd want everything to go through this function instead of Util.Bounds,
-    // but would require further work to calculate the correct positions for elements with offsetParents
-    _html2canvas.Util.OffsetBounds = function(element) {
-        var parent = element.offsetParent ? _html2canvas.Util.OffsetBounds(element.offsetParent) : {
-            top: 0,
-            left: 0
-        };
-
-        return {
-            top: element.offsetTop + parent.top,
-            bottom: element.offsetTop + element.offsetHeight + parent.top,
-            left: element.offsetLeft + parent.left,
-            width: element.offsetWidth,
-            height: element.offsetHeight
-        };
-    };
-
-    function toPX(element, attribute, value) {
-        var rsLeft = element.runtimeStyle && element.runtimeStyle[attribute],
-            left,
-            style = element.style;
-
-        // Check if we are not dealing with pixels, (Opera has issues with this)
-        // Ported from jQuery css.js
-        // From the awesome hack by Dean Edwards
-        // http://erik.eae.net/archives/2007/07/27/18.54.15/#comment-102291
-
-        // If we're not dealing with a regular pixel number
-        // but a number that has a weird ending, we need to convert it to pixels
-
-        if (!/^-?[0-9]+\.?[0-9]*(?:px)?$/i.test(value) && /^-?\d/.test(value)) {
-            // Remember the original values
-            left = style.left;
-
-            // Put in the new values to get a computed value out
-            if (rsLeft) {
-                element.runtimeStyle.left = element.currentStyle.left;
-            }
-            style.left = attribute === "fontSize" ? "1em" : (value || 0);
-            value = style.pixelLeft + "px";
-
-            // Revert the changed values
-            style.left = left;
-            if (rsLeft) {
-                element.runtimeStyle.left = rsLeft;
-            }
-        }
-
-        if (!/^(thin|medium|thick)$/i.test(value)) {
-            return Math.round(parseFloat(value)) + "px";
-        }
-
-        return value;
-    }
-
-    function asInt(val) {
-        return parseInt(val, 10);
-    }
-
-    function isPercentage(value) {
-        return value.toString().indexOf("%") !== -1;
-    }
-
-    function parseBackgroundSizePosition(value, element, attribute, index) {
-        value = (value || '').split(',');
-        value = value[index || 0] || value[0] || 'auto';
-        value = _html2canvas.Util.trimText(value).split(' ');
-        if (attribute === 'backgroundSize' && (value[0] && value[0].match(/^(cover|contain|auto)$/))) {
-            return value;
-        } else {
-            value[0] = (value[0].indexOf("%") === -1) ? toPX(element, attribute + "X", value[0]) : value[0];
-            if (value[1] === undefined) {
-                if (attribute === 'backgroundSize') {
-                    value[1] = 'auto';
-                    return value;
-                } else {
-                    // IE 9 doesn't return double digit always
-                    value[1] = value[0];
-                }
-            }
-            value[1] = (value[1].indexOf("%") === -1) ? toPX(element, attribute + "Y", value[1]) : value[1];
-        }
-        return value;
-    }
-
-    _html2canvas.Util.getCSS = function(element, attribute, index) {
-        if (previousElement !== element) {
-            computedCSS = document.defaultView.getComputedStyle(element, null);
-        }
-
-        var value = computedCSS[attribute];
-
-        if (/^background(Size|Position)$/.test(attribute)) {
-            return parseBackgroundSizePosition(value, element, attribute, index);
-        } else if (/border(Top|Bottom)(Left|Right)Radius/.test(attribute)) {
-            var arr = value.split(" ");
-            if (arr.length <= 1) {
-                arr[1] = arr[0];
-            }
-            return arr.map(asInt);
-        }
-
-        return value;
-    };
-
-    _html2canvas.Util.resizeBounds = function(current_width, current_height, target_width, target_height, stretch_mode) {
-        var target_ratio = target_width / target_height,
-            current_ratio = current_width / current_height,
-            output_width, output_height;
-
-        if (!stretch_mode || stretch_mode === 'auto') {
-            output_width = target_width;
-            output_height = target_height;
-        } else if (target_ratio < current_ratio ^ stretch_mode === 'contain') {
-            output_height = target_height;
-            output_width = target_height * current_ratio;
-        } else {
-            output_width = target_width;
-            output_height = target_width / current_ratio;
-        }
-
-        return {
-            width: output_width,
-            height: output_height
-        };
-    };
-
-    _html2canvas.Util.BackgroundPosition = function(element, bounds, image, imageIndex, backgroundSize) {
-        var backgroundPosition = _html2canvas.Util.getCSS(element, 'backgroundPosition', imageIndex),
-            leftPosition,
-            topPosition;
-        if (backgroundPosition.length === 1) {
-            backgroundPosition = [backgroundPosition[0], backgroundPosition[0]];
-        }
-
-        if (isPercentage(backgroundPosition[0])) {
-            leftPosition = (bounds.width - (backgroundSize || image).width) * (parseFloat(backgroundPosition[0]) / 100);
-        } else {
-            leftPosition = parseInt(backgroundPosition[0], 10);
-        }
-
-        if (backgroundPosition[1] === 'auto') {
-            topPosition = leftPosition / image.width * image.height;
-        } else if (isPercentage(backgroundPosition[1])) {
-            topPosition = (bounds.height - (backgroundSize || image).height) * parseFloat(backgroundPosition[1]) / 100;
-        } else {
-            topPosition = parseInt(backgroundPosition[1], 10);
-        }
-
-        if (backgroundPosition[0] === 'auto') {
-            leftPosition = topPosition / image.height * image.width;
-        }
-
-        return {
-            left: leftPosition,
-            top: topPosition
-        };
-    };
-
-    _html2canvas.Util.BackgroundSize = function(element, bounds, image, imageIndex) {
-        var backgroundSize = _html2canvas.Util.getCSS(element, 'backgroundSize', imageIndex),
-            width, height;
-
-        if (backgroundSize.length === 1) {
-            backgroundSize = [backgroundSize[0], backgroundSize[0]];
-        }
-
-        if (isPercentage(backgroundSize[0])) {
-            width = bounds.width * parseFloat(backgroundSize[0]) / 100;
-        } else if (/contain|cover/.test(backgroundSize[0])) {
-            return _html2canvas.Util.resizeBounds(image.width, image.height, bounds.width, bounds.height, backgroundSize[0]);
-        } else {
-            width = parseInt(backgroundSize[0], 10);
-        }
-
-        if (backgroundSize[0] === 'auto' && backgroundSize[1] === 'auto') {
-            height = image.height;
-        } else if (backgroundSize[1] === 'auto') {
-            height = width / image.width * image.height;
-        } else if (isPercentage(backgroundSize[1])) {
-            height = bounds.height * parseFloat(backgroundSize[1]) / 100;
-        } else {
-            height = parseInt(backgroundSize[1], 10);
-        }
-
-        if (backgroundSize[0] === 'auto') {
-            width = height / image.height * image.width;
-        }
-
-        return {
-            width: width,
-            height: height
-        };
-    };
-
-    _html2canvas.Util.BackgroundRepeat = function(element, imageIndex) {
-        var backgroundRepeat = _html2canvas.Util.getCSS(element, "backgroundRepeat").split(",").map(_html2canvas.Util.trimText);
-        return backgroundRepeat[imageIndex] || backgroundRepeat[0];
-    };
-
-    _html2canvas.Util.Extend = function(options, defaults) {
-        for (var key in options) {
-            if (options.hasOwnProperty(key)) {
-                defaults[key] = options[key];
-            }
-        }
-        return defaults;
-    };
-
-
-    /*
-     * Derived from jQuery.contents()
-     * Copyright 2010, John Resig
-     * Dual licensed under the MIT or GPL Version 2 licenses.
-     * http://jquery.org/license
-     */
-    _html2canvas.Util.Children = function(elem) {
-        var children;
-        try {
-            children = (elem.nodeName && elem.nodeName.toUpperCase() === "IFRAME") ? elem.contentDocument || elem.contentWindow.document : (function(array) {
-                var ret = [];
-                if (array !== null) {
-                    (function(first, second) {
-                        var i = first.length,
-                            j = 0;
-
-                        if (typeof second.length === "number") {
-                            for (var l = second.length; j < l; j++) {
-                                first[i++] = second[j];
-                            }
-                        } else {
-                            while (second[j] !== undefined) {
-                                first[i++] = second[j++];
-                            }
-                        }
-
-                        first.length = i;
-
-                        return first;
-                    })(ret, array);
-                }
-                return ret;
-            })(elem.childNodes);
-
-        } catch (ex) {
-            _html2canvas.Util.log("html2canvas.Util.Children failed with exception: " + ex.message);
-            children = [];
-        }
-        return children;
-    };
-
-    _html2canvas.Util.isTransparent = function(backgroundColor) {
-        return (!backgroundColor || backgroundColor === "transparent" || backgroundColor === "rgba(0, 0, 0, 0)");
-    };
-
-    _html2canvas.Util.Font = (function() {
-
-        var fontData = {};
-
-        return function(font, fontSize, doc) {
-            if (fontData[font + "-" + fontSize] !== undefined) {
-                return fontData[font + "-" + fontSize];
-            }
-
-            var container = doc.createElement('div'),
-                img = doc.createElement('img'),
-                span = doc.createElement('span'),
-                sampleText = 'Hidden Text',
-                baseline,
-                middle,
-                metricsObj;
-
-            container.style.visibility = "hidden";
-            container.style.fontFamily = font;
-            container.style.fontSize = fontSize;
-            container.style.margin = 0;
-            container.style.padding = 0;
-
-            doc.body.appendChild(container);
-
-            // http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever (handtinywhite.gif)
-            img.src = "data:image/gif;base64,R0lGODlhAQABAIABAP///wAAACwAAAAAAQABAAACAkQBADs=";
-            img.width = 1;
-            img.height = 1;
-
-            img.style.margin = 0;
-            img.style.padding = 0;
-            img.style.verticalAlign = "baseline";
-
-            span.style.fontFamily = font;
-            span.style.fontSize = fontSize;
-            span.style.margin = 0;
-            span.style.padding = 0;
-
-            span.appendChild(doc.createTextNode(sampleText));
-            container.appendChild(span);
-            container.appendChild(img);
-            baseline = (img.offsetTop - span.offsetTop) + 1;
-
-            container.removeChild(span);
-            container.appendChild(doc.createTextNode(sampleText));
-
-            container.style.lineHeight = "normal";
-            img.style.verticalAlign = "super";
-
-            middle = (img.offsetTop - container.offsetTop) + 1;
-            metricsObj = {
-                baseline: baseline,
-                lineWidth: 1,
-                middle: middle
-            };
-
-            fontData[font + "-" + fontSize] = metricsObj;
-
-            doc.body.removeChild(container);
-
-            return metricsObj;
-        };
-    })();
-
-    (function() {
-        var Util = _html2canvas.Util,
-            Generate = {};
-
-        _html2canvas.Generate = Generate;
-
-        var reGradients = [
-            /^(-webkit-linear-gradient)\(([a-z\s]+)([\w\d\.\s,%\(\)]+)\)$/,
-            /^(-o-linear-gradient)\(([a-z\s]+)([\w\d\.\s,%\(\)]+)\)$/,
-            /^(-webkit-gradient)\((linear|radial),\s((?:\d{1,3}%?)\s(?:\d{1,3}%?),\s(?:\d{1,3}%?)\s(?:\d{1,3}%?))([\w\d\.\s,%\(\)\-]+)\)$/,
-            /^(-moz-linear-gradient)\(((?:\d{1,3}%?)\s(?:\d{1,3}%?))([\w\d\.\s,%\(\)]+)\)$/,
-            /^(-webkit-radial-gradient)\(((?:\d{1,3}%?)\s(?:\d{1,3}%?)),\s(\w+)\s([a-z\-]+)([\w\d\.\s,%\(\)]+)\)$/,
-            /^(-moz-radial-gradient)\(((?:\d{1,3}%?)\s(?:\d{1,3}%?)),\s(\w+)\s?([a-z\-]*)([\w\d\.\s,%\(\)]+)\)$/,
-            /^(-o-radial-gradient)\(((?:\d{1,3}%?)\s(?:\d{1,3}%?)),\s(\w+)\s([a-z\-]+)([\w\d\.\s,%\(\)]+)\)$/
-        ];
-
-        /*
-         * TODO: Add IE10 vendor prefix (-ms) support
-         * TODO: Add W3C gradient (linear-gradient) support
-         * TODO: Add old Webkit -webkit-gradient(radial, ...) support
-         * TODO: Maybe some RegExp optimizations are possible ;o)
-         */
-        Generate.parseGradient = function(css, bounds) {
-            var gradient, i, len = reGradients.length,
-                m1, stop, m2, m2Len, step, m3, tl, tr, br, bl;
-
-            for (i = 0; i < len; i += 1) {
-                m1 = css.match(reGradients[i]);
-                if (m1) {
-                    break;
-                }
-            }
-
-            if (m1) {
-                switch (m1[1]) {
-                    case '-webkit-linear-gradient':
-                    case '-o-linear-gradient':
-
-                        gradient = {
-                            type: 'linear',
-                            x0: null,
-                            y0: null,
-                            x1: null,
-                            y1: null,
-                            colorStops: []
-                        };
-
-                        // get coordinates
-                        m2 = m1[2].match(/\w+/g);
-                        if (m2) {
-                            m2Len = m2.length;
-                            for (i = 0; i < m2Len; i += 1) {
-                                switch (m2[i]) {
-                                    case 'top':
-                                        gradient.y0 = 0;
-                                        gradient.y1 = bounds.height;
-                                        break;
-
-                                    case 'right':
-                                        gradient.x0 = bounds.width;
-                                        gradient.x1 = 0;
-                                        break;
-
-                                    case 'bottom':
-                                        gradient.y0 = bounds.height;
-                                        gradient.y1 = 0;
-                                        break;
-
-                                    case 'left':
-                                        gradient.x0 = 0;
-                                        gradient.x1 = bounds.width;
-                                        break;
-                                }
-                            }
-                        }
-                        if (gradient.x0 === null && gradient.x1 === null) { // center
-                            gradient.x0 = gradient.x1 = bounds.width / 2;
-                        }
-                        if (gradient.y0 === null && gradient.y1 === null) { // center
-                            gradient.y0 = gradient.y1 = bounds.height / 2;
-                        }
-
-                        // get colors and stops
-                        m2 = m1[3].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\)(?:\s\d{1,3}(?:%|px))?)+/g);
-                        if (m2) {
-                            m2Len = m2.length;
-                            step = 1 / Math.max(m2Len - 1, 1);
-                            for (i = 0; i < m2Len; i += 1) {
-                                m3 = m2[i].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/);
-                                if (m3[2]) {
-                                    stop = parseFloat(m3[2]);
-                                    if (m3[3] === '%') {
-                                        stop /= 100;
-                                    } else { // px - stupid opera
-                                        stop /= bounds.width;
-                                    }
-                                } else {
-                                    stop = i * step;
-                                }
-                                gradient.colorStops.push({
-                                    color: m3[1],
-                                    stop: stop
-                                });
-                            }
-                        }
-                        break;
-
-                    case '-webkit-gradient':
-
-                        gradient = {
-                            type: m1[2] === 'radial' ? 'circle' : m1[2], // TODO: Add radial gradient support for older mozilla definitions
-                            x0: 0,
-                            y0: 0,
-                            x1: 0,
-                            y1: 0,
-                            colorStops: []
-                        };
-
-                        // get coordinates
-                        m2 = m1[3].match(/(\d{1,3})%?\s(\d{1,3})%?,\s(\d{1,3})%?\s(\d{1,3})%?/);
-                        if (m2) {
-                            gradient.x0 = (m2[1] * bounds.width) / 100;
-                            gradient.y0 = (m2[2] * bounds.height) / 100;
-                            gradient.x1 = (m2[3] * bounds.width) / 100;
-                            gradient.y1 = (m2[4] * bounds.height) / 100;
-                        }
-
-                        // get colors and stops
-                        m2 = m1[4].match(/((?:from|to|color-stop)\((?:[0-9\.]+,\s)?(?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\)\))+/g);
-                        if (m2) {
-                            m2Len = m2.length;
-                            for (i = 0; i < m2Len; i += 1) {
-                                m3 = m2[i].match(/(from|to|color-stop)\(([0-9\.]+)?(?:,\s)?((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\)/);
-                                stop = parseFloat(m3[2]);
-                                if (m3[1] === 'from') {
-                                    stop = 0.0;
-                                }
-                                if (m3[1] === 'to') {
-                                    stop = 1.0;
-                                }
-                                gradient.colorStops.push({
-                                    color: m3[3],
-                                    stop: stop
-                                });
-                            }
-                        }
-                        break;
-
-                    case '-moz-linear-gradient':
-
-                        gradient = {
-                            type: 'linear',
-                            x0: 0,
-                            y0: 0,
-                            x1: 0,
-                            y1: 0,
-                            colorStops: []
-                        };
-
-                        // get coordinates
-                        m2 = m1[2].match(/(\d{1,3})%?\s(\d{1,3})%?/);
-
-                        // m2[1] == 0%   -> left
-                        // m2[1] == 50%  -> center
-                        // m2[1] == 100% -> right
-
-                        // m2[2] == 0%   -> top
-                        // m2[2] == 50%  -> center
-                        // m2[2] == 100% -> bottom
-
-                        if (m2) {
-                            gradient.x0 = (m2[1] * bounds.width) / 100;
-                            gradient.y0 = (m2[2] * bounds.height) / 100;
-                            gradient.x1 = bounds.width - gradient.x0;
-                            gradient.y1 = bounds.height - gradient.y0;
-                        }
-
-                        // get colors and stops
-                        m2 = m1[3].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\)(?:\s\d{1,3}%)?)+/g);
-                        if (m2) {
-                            m2Len = m2.length;
-                            step = 1 / Math.max(m2Len - 1, 1);
-                            for (i = 0; i < m2Len; i += 1) {
-                                m3 = m2[i].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%)?/);
-                                if (m3[2]) {
-                                    stop = parseFloat(m3[2]);
-                                    if (m3[3]) { // percentage
-                                        stop /= 100;
-                                    }
-                                } else {
-                                    stop = i * step;
-                                }
-                                gradient.colorStops.push({
-                                    color: m3[1],
-                                    stop: stop
-                                });
-                            }
-                        }
-                        break;
-
-                    case '-webkit-radial-gradient':
-                    case '-moz-radial-gradient':
-                    case '-o-radial-gradient':
-
-                        gradient = {
-                            type: 'circle',
-                            x0: 0,
-                            y0: 0,
-                            x1: bounds.width,
-                            y1: bounds.height,
-                            cx: 0,
-                            cy: 0,
-                            rx: 0,
-                            ry: 0,
-                            colorStops: []
-                        };
-
-                        // center
-                        m2 = m1[2].match(/(\d{1,3})%?\s(\d{1,3})%?/);
-                        if (m2) {
-                            gradient.cx = (m2[1] * bounds.width) / 100;
-                            gradient.cy = (m2[2] * bounds.height) / 100;
-                        }
-
-                        // size
-                        m2 = m1[3].match(/\w+/);
-                        m3 = m1[4].match(/[a-z\-]*/);
-                        if (m2 && m3) {
-                            switch (m3[0]) {
-                                case 'farthest-corner':
-                                case 'cover': // is equivalent to farthest-corner
-                                case '': // mozilla removes "cover" from definition :(
-                                    tl = Math.sqrt(Math.pow(gradient.cx, 2) + Math.pow(gradient.cy, 2));
-                                    tr = Math.sqrt(Math.pow(gradient.cx, 2) + Math.pow(gradient.y1 - gradient.cy, 2));
-                                    br = Math.sqrt(Math.pow(gradient.x1 - gradient.cx, 2) + Math.pow(gradient.y1 - gradient.cy, 2));
-                                    bl = Math.sqrt(Math.pow(gradient.x1 - gradient.cx, 2) + Math.pow(gradient.cy, 2));
-                                    gradient.rx = gradient.ry = Math.max(tl, tr, br, bl);
-                                    break;
-                                case 'closest-corner':
-                                    tl = Math.sqrt(Math.pow(gradient.cx, 2) + Math.pow(gradient.cy, 2));
-                                    tr = Math.sqrt(Math.pow(gradient.cx, 2) + Math.pow(gradient.y1 - gradient.cy, 2));
-                                    br = Math.sqrt(Math.pow(gradient.x1 - gradient.cx, 2) + Math.pow(gradient.y1 - gradient.cy, 2));
-                                    bl = Math.sqrt(Math.pow(gradient.x1 - gradient.cx, 2) + Math.pow(gradient.cy, 2));
-                                    gradient.rx = gradient.ry = Math.min(tl, tr, br, bl);
-                                    break;
-                                case 'farthest-side':
-                                    if (m2[0] === 'circle') {
-                                        gradient.rx = gradient.ry = Math.max(
-                                            gradient.cx,
-                                            gradient.cy,
-                                            gradient.x1 - gradient.cx,
-                                            gradient.y1 - gradient.cy
-                                        );
-                                    } else { // ellipse
-
-                                        gradient.type = m2[0];
-
-                                        gradient.rx = Math.max(
-                                            gradient.cx,
-                                            gradient.x1 - gradient.cx
-                                        );
-                                        gradient.ry = Math.max(
-                                            gradient.cy,
-                                            gradient.y1 - gradient.cy
-                                        );
-                                    }
-                                    break;
-                                case 'closest-side':
-                                case 'contain': // is equivalent to closest-side
-                                    if (m2[0] === 'circle') {
-                                        gradient.rx = gradient.ry = Math.min(
-                                            gradient.cx,
-                                            gradient.cy,
-                                            gradient.x1 - gradient.cx,
-                                            gradient.y1 - gradient.cy
-                                        );
-                                    } else { // ellipse
-
-                                        gradient.type = m2[0];
-
-                                        gradient.rx = Math.min(
-                                            gradient.cx,
-                                            gradient.x1 - gradient.cx
-                                        );
-                                        gradient.ry = Math.min(
-                                            gradient.cy,
-                                            gradient.y1 - gradient.cy
-                                        );
-                                    }
-                                    break;
-
-                                    // TODO: add support for "30px 40px" sizes (webkit only)
-                            }
-                        }
-
-                        // color stops
-                        m2 = m1[5].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\)(?:\s\d{1,3}(?:%|px))?)+/g);
-                        if (m2) {
-                            m2Len = m2.length;
-                            step = 1 / Math.max(m2Len - 1, 1);
-                            for (i = 0; i < m2Len; i += 1) {
-                                m3 = m2[i].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/);
-                                if (m3[2]) {
-                                    stop = parseFloat(m3[2]);
-                                    if (m3[3] === '%') {
-                                        stop /= 100;
-                                    } else { // px - stupid opera
-                                        stop /= bounds.width;
-                                    }
-                                } else {
-                                    stop = i * step;
-                                }
-                                gradient.colorStops.push({
-                                    color: m3[1],
-                                    stop: stop
-                                });
-                            }
-                        }
-                        break;
-                }
-            }
-
-            return gradient;
-        };
-
-        function addScrollStops(grad) {
-            return function(colorStop) {
-                try {
-                    grad.addColorStop(colorStop.stop, colorStop.color);
-                } catch (e) {
-                    Util.log(['failed to add color stop: ', e, '; tried to add: ', colorStop]);
-                }
-            };
-        }
-
-        Generate.Gradient = function(src, bounds) {
-            if (bounds.width === 0 || bounds.height === 0) {
-                return;
-            }
-
-            var canvas = document.createElement('canvas'),
-                ctx = canvas.getContext('2d'),
-                gradient, grad;
-
-            canvas.width = bounds.width;
-            canvas.height = bounds.height;
-
-            // TODO: add support for multi defined background gradients
-            gradient = _html2canvas.Generate.parseGradient(src, bounds);
-
-            if (gradient) {
-                switch (gradient.type) {
-                    case 'linear':
-                        grad = ctx.createLinearGradient(gradient.x0, gradient.y0, gradient.x1, gradient.y1);
-                        gradient.colorStops.forEach(addScrollStops(grad));
-                        ctx.fillStyle = grad;
-                        ctx.fillRect(0, 0, bounds.width, bounds.height);
-                        break;
-
-                    case 'circle':
-                        grad = ctx.createRadialGradient(gradient.cx, gradient.cy, 0, gradient.cx, gradient.cy, gradient.rx);
-                        gradient.colorStops.forEach(addScrollStops(grad));
-                        ctx.fillStyle = grad;
-                        ctx.fillRect(0, 0, bounds.width, bounds.height);
-                        break;
-
-                    case 'ellipse':
-                        var canvasRadial = document.createElement('canvas'),
-                            ctxRadial = canvasRadial.getContext('2d'),
-                            ri = Math.max(gradient.rx, gradient.ry),
-                            di = ri * 2;
-
-                        canvasRadial.width = canvasRadial.height = di;
-
-                        grad = ctxRadial.createRadialGradient(gradient.rx, gradient.ry, 0, gradient.rx, gradient.ry, ri);
-                        gradient.colorStops.forEach(addScrollStops(grad));
-
-                        ctxRadial.fillStyle = grad;
-                        ctxRadial.fillRect(0, 0, di, di);
-
-                        ctx.fillStyle = gradient.colorStops[gradient.colorStops.length - 1].color;
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(canvasRadial, gradient.cx - gradient.rx, gradient.cy - gradient.ry, 2 * gradient.rx, 2 * gradient.ry);
-                        break;
-                }
-            }
-
-            return canvas;
-        };
-
-        Generate.ListAlpha = function(number) {
-            var tmp = "",
-                modulus;
-
-            do {
-                modulus = number % 26;
-                tmp = String.fromCharCode((modulus) + 64) + tmp;
-                number = number / 26;
-            } while ((number * 26) > 26);
-
-            return tmp;
-        };
-
-        Generate.ListRoman = function(number) {
-            var romanArray = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"],
-                decimal = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1],
-                roman = "",
-                v,
-                len = romanArray.length;
-
-            if (number <= 0 || number >= 4000) {
-                return number;
-            }
-
-            for (v = 0; v < len; v += 1) {
-                while (number >= decimal[v]) {
-                    number -= decimal[v];
-                    roman += romanArray[v];
-                }
-            }
-
-            return roman;
-        };
-    })();
-
-    function h2cRenderContext(width, height) {
-        var storage = [];
-        return {
-            storage: storage,
-            width: width,
-            height: height,
-            clip: function() {
-                storage.push({
-                    type: "function",
-                    name: "clip",
-                    'arguments': arguments
-                });
-            },
-            translate: function() {
-                storage.push({
-                    type: "function",
-                    name: "translate",
-                    'arguments': arguments
-                });
-            },
-            fill: function() {
-                storage.push({
-                    type: "function",
-                    name: "fill",
-                    'arguments': arguments
-                });
-            },
-            save: function() {
-                storage.push({
-                    type: "function",
-                    name: "save",
-                    'arguments': arguments
-                });
-            },
-            restore: function() {
-                storage.push({
-                    type: "function",
-                    name: "restore",
-                    'arguments': arguments
-                });
-            },
-            fillRect: function() {
-                storage.push({
-                    type: "function",
-                    name: "fillRect",
-                    'arguments': arguments
-                });
-            },
-            createPattern: function() {
-                storage.push({
-                    type: "function",
-                    name: "createPattern",
-                    'arguments': arguments
-                });
-            },
-            drawShape: function() {
-
-                var shape = [];
-
-                storage.push({
-                    type: "function",
-                    name: "drawShape",
-                    'arguments': shape
-                });
-
-                return {
-                    moveTo: function() {
-                        shape.push({
-                            name: "moveTo",
-                            'arguments': arguments
-                        });
-                    },
-                    lineTo: function() {
-                        shape.push({
-                            name: "lineTo",
-                            'arguments': arguments
-                        });
-                    },
-                    arcTo: function() {
-                        shape.push({
-                            name: "arcTo",
-                            'arguments': arguments
-                        });
-                    },
-                    bezierCurveTo: function() {
-                        shape.push({
-                            name: "bezierCurveTo",
-                            'arguments': arguments
-                        });
-                    },
-                    quadraticCurveTo: function() {
-                        shape.push({
-                            name: "quadraticCurveTo",
-                            'arguments': arguments
-                        });
-                    }
-                };
-
-            },
-            drawImage: function() {
-                storage.push({
-                    type: "function",
-                    name: "drawImage",
-                    'arguments': arguments
-                });
-            },
-            fillText: function() {
-                storage.push({
-                    type: "function",
-                    name: "fillText",
-                    'arguments': arguments
-                });
-            },
-            setVariable: function(variable, value) {
-                storage.push({
-                    type: "variable",
-                    name: variable,
-                    'arguments': value
-                });
-                return value;
-            }
-        };
-    }
-    _html2canvas.Parse = function(images, options, cb) {
-        window.scroll(0, 0);
-
-        var element = ((options.elements === undefined) ? document.body : options.elements[0]), // select body by default
-            numDraws = 0,
-            doc = element.ownerDocument,
-            Util = _html2canvas.Util,
-            support = Util.Support(options, doc),
-            ignoreElementsRegExp = new RegExp("(" + options.ignoreElements + ")"),
-            body = doc.body,
-            getCSS = Util.getCSS,
-            pseudoHide = "___html2canvas___pseudoelement",
-            hidePseudoElementsStyles = doc.createElement('style');
-
-        hidePseudoElementsStyles.innerHTML = '.' + pseudoHide +
-            '-parent:before { content: "" !important; display: none !important; }' +
-            '.' + pseudoHide + '-parent:after { content: "" !important; display: none !important; }';
-
-        body.appendChild(hidePseudoElementsStyles);
-
-        images = images || {};
-
-        init();
-
-        function init() {
-            var background = getCSS(document.documentElement, "backgroundColor"),
-                transparentBackground = (Util.isTransparent(background) && element === document.body),
-                stack = renderElement(element, null, false, transparentBackground);
-
-            // create pseudo elements in a single pass to prevent synchronous layouts
-            addPseudoElements(element);
-
-            parseChildren(element, stack, function() {
-                if (transparentBackground) {
-                    background = stack.backgroundColor;
-                }
-
-                removePseudoElements();
-
-                Util.log('Done parsing, moving to Render.');
-
-                cb({
-                    backgroundColor: background,
-                    stack: stack
-                });
-            });
-        }
-
-        // Given a root element, find all pseudo elements below, create elements mocking pseudo element styles
-        // so we can process them as normal elements, and hide the original pseudo elements so they don't interfere
-        // with layout.
-        function addPseudoElements(el) {
-            // These are done in discrete steps to prevent a relayout loop caused by addClass() invalidating
-            // layouts & getPseudoElement calling getComputedStyle.
-            var jobs = [],
-                classes = [];
-            getPseudoElementClasses();
-            findPseudoElements(el);
-            runJobs();
-
-            function getPseudoElementClasses() {
-                var findPsuedoEls = /:before|:after/;
-                var sheets = document.styleSheets;
-                for (var i = 0, j = sheets.length; i < j; i++) {
-                    try {
-                        var rules = sheets[i].cssRules;
-                        for (var k = 0, l = rules.length; k < l; k++) {
-                            if (findPsuedoEls.test(rules[k].selectorText)) {
-                                classes.push(rules[k].selectorText);
-                            }
-                        }
-                    } catch (e) { // will throw security exception for style sheets loaded from external domains
-                    }
-                }
-
-                // Trim off the :after and :before (or ::after and ::before)
-                for (i = 0, j = classes.length; i < j; i++) {
-                    classes[i] = classes[i].match(/(^[^:]*)/)[1].replace(/(\s+[>]\s+$)|([,]\s+$)/, '');
-                }
-            }
-
-            // Using the list of elements we know how pseudo el styles, create fake pseudo elements.
-            function findPseudoElements(el) {
-                var els = document.querySelectorAll(classes.join(','));
-                for (var i = 0, j = els.length; i < j; i++) {
-                    createPseudoElements(els[i]);
-                }
-            }
-
-            // Create pseudo elements & add them to a job queue.
-            function createPseudoElements(el) {
-                var before = getPseudoElement(el, ':before'),
-                    after = getPseudoElement(el, ':after');
-
-                if (before) {
-                    jobs.push({
-                        type: 'before',
-                        pseudo: before,
-                        el: el
-                    });
-                }
-
-                if (after) {
-                    jobs.push({
-                        type: 'after',
-                        pseudo: after,
-                        el: el
-                    });
-                }
-            }
-
-            // Adds a class to the pseudo's parent to prevent the original before/after from messing
-            // with layouts.
-            // Execute the inserts & addClass() calls in a batch to prevent relayouts.
-            function runJobs() {
-                // Add Class
-                jobs.forEach(function(job) {
-                    addClass(job.el, pseudoHide + "-parent");
-                });
-
-                // Insert el
-                jobs.forEach(function(job) {
-                    if (job.type === 'before') {
-                        job.el.insertBefore(job.pseudo, job.el.firstChild);
                     } else {
-                        job.el.appendChild(job.pseudo);
-                    }
-                });
-            }
-        }
-
-
-
-        // Delete our fake pseudo elements from the DOM. This will remove those actual elements
-        // and the classes on their parents that hide the actual pseudo elements.
-        // Note that NodeLists are 'live' collections so you can't use a for loop here. They are
-        // actually deleted from the NodeList after each iteration.
-        function removePseudoElements() {
-            // delete pseudo elements
-            body.removeChild(hidePseudoElementsStyles);
-            var pseudos = document.getElementsByClassName(pseudoHide + "-element");
-            while (pseudos.length) {
-                pseudos[0].parentNode.removeChild(pseudos[0]);
-            }
-
-            // Remove pseudo hiding classes
-            var parents = document.getElementsByClassName(pseudoHide + "-parent");
-            while (parents.length) {
-                removeClass(parents[0], pseudoHide + "-parent");
-            }
-        }
-
-        function addClass(el, className) {
-            if (el.classList) {
-                el.classList.add(className);
-            } else {
-                el.className = el.className + " " + className;
-            }
-        }
-
-        function removeClass(el, className) {
-            if (el.classList) {
-                el.classList.remove(className);
-            } else {
-                el.className = el.className.replace(className, "").trim();
-            }
-        }
-
-        function hasClass(el, className) {
-            return el.className.indexOf(className) > -1;
-        }
-
-        // Note that this doesn't work in < IE8, but we don't support that anyhow
-        function nodeListToArray(nodeList) {
-            return Array.prototype.slice.call(nodeList);
-        }
-
-        function documentWidth() {
-            return Math.max(
-                Math.max(doc.body.scrollWidth, doc.documentElement.scrollWidth),
-                Math.max(doc.body.offsetWidth, doc.documentElement.offsetWidth),
-                Math.max(doc.body.clientWidth, doc.documentElement.clientWidth)
-            );
-        }
-
-        function documentHeight() {
-            return Math.max(
-                Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight),
-                Math.max(doc.body.offsetHeight, doc.documentElement.offsetHeight),
-                Math.max(doc.body.clientHeight, doc.documentElement.clientHeight)
-            );
-        }
-
-        function getCSSInt(element, attribute) {
-            var val = parseInt(getCSS(element, attribute), 10);
-            return (isNaN(val)) ? 0 : val; // borders in old IE are throwing 'medium' for demo.html
-        }
-
-        function renderRect(ctx, x, y, w, h, bgcolor) {
-            if (bgcolor !== "transparent") {
-                ctx.setVariable("fillStyle", bgcolor);
-                ctx.fillRect(x, y, w, h);
-                numDraws += 1;
-            }
-        }
-
-        function capitalize(m, p1, p2) {
-            if (m.length > 0) {
-                return p1 + p2.toUpperCase();
-            }
-        }
-
-        function textTransform(text, transform) {
-            switch (transform) {
-                case "lowercase":
-                    return text.toLowerCase();
-                case "capitalize":
-                    return text.replace(/(^|\s|:|-|\(|\))([a-z])/g, capitalize);
-                case "uppercase":
-                    return text.toUpperCase();
-                default:
-                    return text;
-            }
-        }
-
-        function noLetterSpacing(letter_spacing) {
-            return (/^(normal|none|0px)$/.test(letter_spacing));
-        }
-
-        function drawText(currentText, x, y, ctx) {
-            if (currentText !== null && Util.trimText(currentText).length > 0) {
-                ctx.fillText(currentText, x, y);
-                numDraws += 1;
-            }
-        }
-
-        function setTextVariables(ctx, el, text_decoration, color) {
-            var align = false,
-                bold = getCSS(el, "fontWeight"),
-                family = getCSS(el, "fontFamily"),
-                size = getCSS(el, "fontSize"),
-                shadows = Util.parseTextShadows(getCSS(el, "textShadow"));
-
-            switch (parseInt(bold, 10)) {
-                case 401:
-                    bold = "bold";
-                    break;
-                case 400:
-                    bold = "normal";
-                    break;
-            }
-
-            ctx.setVariable("fillStyle", color);
-            ctx.setVariable("font", [getCSS(el, "fontStyle"), getCSS(el, "fontVariant"), bold, size, family].join(" "));
-            ctx.setVariable("textAlign", (align) ? "right" : "left");
-
-            if (shadows.length) {
-                // TODO: support multiple text shadows
-                // apply the first text shadow
-                ctx.setVariable("shadowColor", shadows[0].color);
-                ctx.setVariable("shadowOffsetX", shadows[0].offsetX);
-                ctx.setVariable("shadowOffsetY", shadows[0].offsetY);
-                ctx.setVariable("shadowBlur", shadows[0].blur);
-            }
-
-            if (text_decoration !== "none") {
-                return Util.Font(family, size, doc);
-            }
-        }
-
-        function renderTextDecoration(ctx, text_decoration, bounds, metrics, color) {
-            switch (text_decoration) {
-                case "underline":
-                    // Draws a line at the baseline of the font
-                    // TODO As some browsers display the line as more than 1px if the font-size is big, need to take that into account both in position and size
-                    renderRect(ctx, bounds.left, Math.round(bounds.top + metrics.baseline + metrics.lineWidth), bounds.width, 1, color);
-                    break;
-                case "overline":
-                    renderRect(ctx, bounds.left, Math.round(bounds.top), bounds.width, 1, color);
-                    break;
-                case "line-through":
-                    // TODO try and find exact position for line-through
-                    renderRect(ctx, bounds.left, Math.ceil(bounds.top + metrics.middle + metrics.lineWidth), bounds.width, 1, color);
-                    break;
-            }
-        }
-
-        function getTextBounds(state, text, textDecoration, isLast, transform) {
-            var bounds;
-            if (support.rangeBounds && !transform) {
-                if (textDecoration !== "none" || Util.trimText(text).length !== 0) {
-                    bounds = textRangeBounds(text, state.node, state.textOffset);
-                }
-                state.textOffset += text.length;
-            } else if (state.node && typeof state.node.nodeValue === "string") {
-                var newTextNode = (isLast) ? state.node.splitText(text.length) : null;
-                bounds = textWrapperBounds(state.node, transform);
-                state.node = newTextNode;
-            }
-            return bounds;
-        }
-
-        function textRangeBounds(text, textNode, textOffset) {
-            var range = doc.createRange();
-            range.setStart(textNode, textOffset);
-            range.setEnd(textNode, textOffset + text.length);
-            return range.getBoundingClientRect();
-        }
-
-        function textWrapperBounds(oldTextNode, transform) {
-            var parent = oldTextNode.parentNode,
-                wrapElement = doc.createElement('wrapper'),
-                backupText = oldTextNode.cloneNode(true);
-
-            wrapElement.appendChild(oldTextNode.cloneNode(true));
-            parent.replaceChild(wrapElement, oldTextNode);
-
-            var bounds = transform ? Util.OffsetBounds(wrapElement) : Util.Bounds(wrapElement);
-            parent.replaceChild(backupText, wrapElement);
-            return bounds;
-        }
-
-        function renderText(el, textNode, stack) {
-            var ctx = stack.ctx,
-                color = getCSS(el, "color"),
-                textDecoration = getCSS(el, "textDecoration"),
-                textAlign = getCSS(el, "textAlign"),
-                metrics,
-                textList,
-                state = {
-                    node: textNode,
-                    textOffset: 0
-                };
-
-            if (Util.trimText(textNode.nodeValue).length > 0) {
-                textNode.nodeValue = textTransform(textNode.nodeValue, getCSS(el, "textTransform"));
-                textAlign = textAlign.replace(["-webkit-auto"], ["auto"]);
-
-                textList = (!options.letterRendering && /^(left|right|justify|auto)$/.test(textAlign) && noLetterSpacing(getCSS(el, "letterSpacing"))) ?
-                    textNode.nodeValue.split(/(\b| )/) : textNode.nodeValue.split("");
-
-                metrics = setTextVariables(ctx, el, textDecoration, color);
-
-                if (options.chinese) {
-                    textList.forEach(function(word, index) {
-                        if (/.*[\u4E00-\u9FA5].*$/.test(word)) {
-                            word = word.split("");
-                            word.unshift(index, 1);
-                            textList.splice.apply(textList, word);
-                        }
-                    });
-                }
-
-                textList.forEach(function(text, index) {
-                    var bounds = getTextBounds(state, text, textDecoration, (index < textList.length - 1), stack.transform.matrix);
-                    if (bounds) {
-                        drawText(text, bounds.left, bounds.bottom, ctx);
-                        renderTextDecoration(ctx, textDecoration, bounds, metrics, color);
-                    }
-                });
-            }
-        }
-
-        function listPosition(element, val) {
-            var boundElement = doc.createElement("boundelement"),
-                originalType,
-                bounds;
-
-            boundElement.style.display = "inline";
-
-            originalType = element.style.listStyleType;
-            element.style.listStyleType = "none";
-
-            boundElement.appendChild(doc.createTextNode(val));
-
-            element.insertBefore(boundElement, element.firstChild);
-
-            bounds = Util.Bounds(boundElement);
-            element.removeChild(boundElement);
-            element.style.listStyleType = originalType;
-            return bounds;
-        }
-
-        function elementIndex(el) {
-            var i = -1,
-                count = 1,
-                childs = el.parentNode.childNodes;
-
-            if (el.parentNode) {
-                while (childs[++i] !== el) {
-                    if (childs[i].nodeType === 1) {
-                        count++;
+                        numParen--;
                     }
                 }
-                return count;
-            } else {
-                return -1;
-            }
-        }
-
-        function listItemText(element, type) {
-            var currentIndex = elementIndex(element),
-                text;
-            switch (type) {
-                case "decimal":
-                    text = currentIndex;
-                    break;
-                case "decimal-leading-zero":
-                    text = (currentIndex.toString().length === 1) ? currentIndex = "0" + currentIndex.toString() : currentIndex.toString();
-                    break;
-                case "upper-roman":
-                    text = _html2canvas.Generate.ListRoman(currentIndex);
-                    break;
-                case "lower-roman":
-                    text = _html2canvas.Generate.ListRoman(currentIndex).toLowerCase();
-                    break;
-                case "lower-alpha":
-                    text = _html2canvas.Generate.ListAlpha(currentIndex).toLowerCase();
-                    break;
-                case "upper-alpha":
-                    text = _html2canvas.Generate.ListAlpha(currentIndex);
-                    break;
-            }
-
-            return text + ". ";
-        }
-
-        function renderListItem(element, stack, elBounds) {
-            var x,
-                text,
-                ctx = stack.ctx,
-                type = getCSS(element, "listStyleType"),
-                listBounds;
-
-            if (/^(decimal|decimal-leading-zero|upper-alpha|upper-latin|upper-roman|lower-alpha|lower-greek|lower-latin|lower-roman)$/i.test(type)) {
-                text = listItemText(element, type);
-                listBounds = listPosition(element, text);
-                setTextVariables(ctx, element, "none", getCSS(element, "color"));
-
-                if (getCSS(element, "listStylePosition") === "inside") {
-                    ctx.setVariable("textAlign", "left");
-                    x = elBounds.left;
-                } else {
-                    return;
-                }
-
-                drawText(text, x, listBounds.bottom, ctx);
-            }
-        }
-
-        function loadImage(src) {
-            var img = images[src];
-            return (img && img.succeeded === true) ? img.img : false;
-        }
-
-        function clipBounds(src, dst) {
-            var x = Math.max(src.left, dst.left),
-                y = Math.max(src.top, dst.top),
-                x2 = Math.min((src.left + src.width), (dst.left + dst.width)),
-                y2 = Math.min((src.top + src.height), (dst.top + dst.height));
-
-            return {
-                left: x,
-                top: y,
-                width: x2 - x,
-                height: y2 - y
-            };
-        }
-
-        function setZ(element, stack, parentStack) {
-            var newContext,
-                isPositioned = stack.cssPosition !== 'static',
-                zIndex = isPositioned ? getCSS(element, 'zIndex') : 'auto',
-                opacity = getCSS(element, 'opacity'),
-                isFloated = getCSS(element, 'cssFloat') !== 'none';
-
-            // https://developer.mozilla.org/en-US/docs/Web/Guide/CSS/Understanding_z_index/The_stacking_context
-            // When a new stacking context should be created:
-            // the root element (HTML),
-            // positioned (absolutely or relatively) with a z-index value other than "auto",
-            // elements with an opacity value less than 1. (See the specification for opacity),
-            // on mobile WebKit and Chrome 22+, position: fixed always creates a new stacking context, even when z-index is "auto" (See this post)
-
-            stack.zIndex = newContext = h2czContext(zIndex);
-            newContext.isPositioned = isPositioned;
-            newContext.isFloated = isFloated;
-            newContext.opacity = opacity;
-            newContext.ownStacking = (zIndex !== 'auto' || opacity < 1);
-            newContext.depth = parentStack ? (parentStack.zIndex.depth + 1) : 0;
-
-            if (parentStack) {
-                parentStack.zIndex.children.push(stack);
-            }
-        }
-
-        function h2czContext(zindex) {
-            return {
-                depth: 0,
-                zindex: zindex,
-                children: []
-            };
-        }
-
-        function renderImage(ctx, element, image, bounds, borders) {
-
-            var paddingLeft = getCSSInt(element, 'paddingLeft'),
-                paddingTop = getCSSInt(element, 'paddingTop'),
-                paddingRight = getCSSInt(element, 'paddingRight'),
-                paddingBottom = getCSSInt(element, 'paddingBottom');
-
-            drawImage(
-                ctx,
-                image,
-                0, //sx
-                0, //sy
-                image.width, //sw
-                image.height, //sh
-                bounds.left + paddingLeft + borders[3].width, //dx
-                bounds.top + paddingTop + borders[0].width, // dy
-                bounds.width - (borders[1].width + borders[3].width + paddingLeft + paddingRight), //dw
-                bounds.height - (borders[0].width + borders[2].width + paddingTop + paddingBottom) //dh
-            );
-        }
-
-        function getBorderData(element) {
-            return ["Top", "Right", "Bottom", "Left"].map(function(side) {
-                return {
-                    width: getCSSInt(element, 'border' + side + 'Width'),
-                    color: getCSS(element, 'border' + side + 'Color')
-                };
-            });
-        }
-
-        function getBorderRadiusData(element) {
-            return ["TopLeft", "TopRight", "BottomRight", "BottomLeft"].map(function(side) {
-                return getCSS(element, 'border' + side + 'Radius');
-            });
-        }
-
-        function getCurvePoints(x, y, r1, r2) {
-            var kappa = 4 * ((Math.sqrt(2) - 1) / 3);
-            var ox = (r1) * kappa, // control point offset horizontal
-                oy = (r2) * kappa, // control point offset vertical
-                xm = x + r1, // x-middle
-                ym = y + r2; // y-middle
-            return {
-                topLeft: bezierCurve({
-                    x: x,
-                    y: ym
-                }, {
-                    x: x,
-                    y: ym - oy
-                }, {
-                    x: xm - ox,
-                    y: y
-                }, {
-                    x: xm,
-                    y: y
-                }),
-                topRight: bezierCurve({
-                    x: x,
-                    y: y
-                }, {
-                    x: x + ox,
-                    y: y
-                }, {
-                    x: xm,
-                    y: ym - oy
-                }, {
-                    x: xm,
-                    y: ym
-                }),
-                bottomRight: bezierCurve({
-                    x: xm,
-                    y: y
-                }, {
-                    x: xm,
-                    y: y + oy
-                }, {
-                    x: x + ox,
-                    y: ym
-                }, {
-                    x: x,
-                    y: ym
-                }),
-                bottomLeft: bezierCurve({
-                    x: xm,
-                    y: ym
-                }, {
-                    x: xm - ox,
-                    y: ym
-                }, {
-                    x: x,
-                    y: y + oy
-                }, {
-                    x: x,
-                    y: y
-                })
-            };
-        }
-
-        function bezierCurve(start, startControl, endControl, end) {
-
-            var lerp = function(a, b, t) {
-                return {
-                    x: a.x + (b.x - a.x) * t,
-                    y: a.y + (b.y - a.y) * t
-                };
-            };
-
-            return {
-                start: start,
-                startControl: startControl,
-                endControl: endControl,
-                end: end,
-                subdivide: function(t) {
-                    var ab = lerp(start, startControl, t),
-                        bc = lerp(startControl, endControl, t),
-                        cd = lerp(endControl, end, t),
-                        abbc = lerp(ab, bc, t),
-                        bccd = lerp(bc, cd, t),
-                        dest = lerp(abbc, bccd, t);
-                    return [bezierCurve(start, ab, abbc, dest), bezierCurve(dest, bccd, cd, end)];
-                },
-                curveTo: function(borderArgs) {
-                    borderArgs.push(["bezierCurve", startControl.x, startControl.y, endControl.x, endControl.y, end.x, end.y]);
-                },
-                curveToReversed: function(borderArgs) {
-                    borderArgs.push(["bezierCurve", endControl.x, endControl.y, startControl.x, startControl.y, start.x, start.y]);
-                }
-            };
-        }
-
-        function parseCorner(borderArgs, radius1, radius2, corner1, corner2, x, y) {
-            if (radius1[0] > 0 || radius1[1] > 0) {
-                borderArgs.push(["line", corner1[0].start.x, corner1[0].start.y]);
-                corner1[0].curveTo(borderArgs);
-                corner1[1].curveTo(borderArgs);
-            } else {
-                borderArgs.push(["line", x, y]);
-            }
-
-            if (radius2[0] > 0 || radius2[1] > 0) {
-                borderArgs.push(["line", corner2[0].start.x, corner2[0].start.y]);
-            }
-        }
-
-        function drawSide(borderData, radius1, radius2, outer1, inner1, outer2, inner2) {
-            var borderArgs = [];
-
-            if (radius1[0] > 0 || radius1[1] > 0) {
-                borderArgs.push(["line", outer1[1].start.x, outer1[1].start.y]);
-                outer1[1].curveTo(borderArgs);
-            } else {
-                borderArgs.push(["line", borderData.c1[0], borderData.c1[1]]);
-            }
-
-            if (radius2[0] > 0 || radius2[1] > 0) {
-                borderArgs.push(["line", outer2[0].start.x, outer2[0].start.y]);
-                outer2[0].curveTo(borderArgs);
-                borderArgs.push(["line", inner2[0].end.x, inner2[0].end.y]);
-                inner2[0].curveToReversed(borderArgs);
-            } else {
-                borderArgs.push(["line", borderData.c2[0], borderData.c2[1]]);
-                borderArgs.push(["line", borderData.c3[0], borderData.c3[1]]);
-            }
-
-            if (radius1[0] > 0 || radius1[1] > 0) {
-                borderArgs.push(["line", inner1[1].end.x, inner1[1].end.y]);
-                inner1[1].curveToReversed(borderArgs);
-            } else {
-                borderArgs.push(["line", borderData.c4[0], borderData.c4[1]]);
-            }
-
-            return borderArgs;
-        }
-
-        function calculateCurvePoints(bounds, borderRadius, borders) {
-
-            var x = bounds.left,
-                y = bounds.top,
-                width = bounds.width,
-                height = bounds.height,
-
-                tlh = borderRadius[0][0],
-                tlv = borderRadius[0][1],
-                trh = borderRadius[1][0],
-                trv = borderRadius[1][1],
-                brh = borderRadius[2][0],
-                brv = borderRadius[2][1],
-                blh = borderRadius[3][0],
-                blv = borderRadius[3][1];
-
-            var halfHeight = Math.floor(height / 2);
-            tlh = tlh > halfHeight ? halfHeight : tlh;
-            tlv = tlv > halfHeight ? halfHeight : tlv;
-            trh = trh > halfHeight ? halfHeight : trh;
-            trv = trv > halfHeight ? halfHeight : trv;
-            brh = brh > halfHeight ? halfHeight : brh;
-            brv = brv > halfHeight ? halfHeight : brv;
-            blh = blh > halfHeight ? halfHeight : blh;
-            blv = blv > halfHeight ? halfHeight : blv;
-
-            var topWidth = width - trh,
-                rightHeight = height - brv,
-                bottomWidth = width - brh,
-                leftHeight = height - blv;
-
-            return {
-                topLeftOuter: getCurvePoints(
-                    x,
-                    y,
-                    tlh,
-                    tlv
-                ).topLeft.subdivide(0.5),
-
-                topLeftInner: getCurvePoints(
-                    x + borders[3].width,
-                    y + borders[0].width,
-                    Math.max(0, tlh - borders[3].width),
-                    Math.max(0, tlv - borders[0].width)
-                ).topLeft.subdivide(0.5),
-
-                topRightOuter: getCurvePoints(
-                    x + topWidth,
-                    y,
-                    trh,
-                    trv
-                ).topRight.subdivide(0.5),
-
-                topRightInner: getCurvePoints(
-                    x + Math.min(topWidth, width + borders[3].width),
-                    y + borders[0].width, (topWidth > width + borders[3].width) ? 0 : trh - borders[3].width,
-                    trv - borders[0].width
-                ).topRight.subdivide(0.5),
-
-                bottomRightOuter: getCurvePoints(
-                    x + bottomWidth,
-                    y + rightHeight,
-                    brh,
-                    brv
-                ).bottomRight.subdivide(0.5),
-
-                bottomRightInner: getCurvePoints(
-                    x + Math.min(bottomWidth, width + borders[3].width),
-                    y + Math.min(rightHeight, height + borders[0].width),
-                    Math.max(0, brh - borders[1].width),
-                    Math.max(0, brv - borders[2].width)
-                ).bottomRight.subdivide(0.5),
-
-                bottomLeftOuter: getCurvePoints(
-                    x,
-                    y + leftHeight,
-                    blh,
-                    blv
-                ).bottomLeft.subdivide(0.5),
-
-                bottomLeftInner: getCurvePoints(
-                    x + borders[3].width,
-                    y + leftHeight,
-                    Math.max(0, blh - borders[3].width),
-                    Math.max(0, blv - borders[2].width)
-                ).bottomLeft.subdivide(0.5)
-            };
-        }
-
-        function getBorderClip(element, borderPoints, borders, radius, bounds) {
-            var backgroundClip = getCSS(element, 'backgroundClip'),
-                borderArgs = [];
-
-            switch (backgroundClip) {
-                case "content-box":
-                case "padding-box":
-                    parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftInner, borderPoints.topRightInner, bounds.left + borders[3].width, bounds.top + borders[0].width);
-                    parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightInner, borderPoints.bottomRightInner, bounds.left + bounds.width - borders[1].width, bounds.top + borders[0].width);
-                    parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightInner, borderPoints.bottomLeftInner, bounds.left + bounds.width - borders[1].width, bounds.top + bounds.height - borders[2].width);
-                    parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftInner, borderPoints.topLeftInner, bounds.left + borders[3].width, bounds.top + bounds.height - borders[2].width);
-                    break;
-
-                default:
-                    parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftOuter, borderPoints.topRightOuter, bounds.left, bounds.top);
-                    parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightOuter, borderPoints.bottomRightOuter, bounds.left + bounds.width, bounds.top);
-                    parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightOuter, borderPoints.bottomLeftOuter, bounds.left + bounds.width, bounds.top + bounds.height);
-                    parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftOuter, borderPoints.topLeftOuter, bounds.left, bounds.top + bounds.height);
-                    break;
-            }
-
-            return borderArgs;
-        }
-
-        function parseBorders(element, bounds, borders) {
-            var x = bounds.left,
-                y = bounds.top,
-                width = bounds.width,
-                height = bounds.height,
-                borderSide,
-                bx,
-                by,
-                bw,
-                bh,
-                borderArgs,
-                // http://www.w3.org/TR/css3-background/#the-border-radius
-                borderRadius = getBorderRadiusData(element),
-                borderPoints = calculateCurvePoints(bounds, borderRadius, borders),
-                borderData = {
-                    clip: getBorderClip(element, borderPoints, borders, borderRadius, bounds),
-                    borders: []
-                };
-
-            for (borderSide = 0; borderSide < 4; borderSide++) {
-
-                if (borders[borderSide].width > 0) {
-                    bx = x;
-                    by = y;
-                    bw = width;
-                    bh = height - (borders[2].width);
-
-                    switch (borderSide) {
-                        case 0:
-                            // top border
-                            bh = borders[0].width;
-
-                            borderArgs = drawSide({
-                                    c1: [bx, by],
-                                    c2: [bx + bw, by],
-                                    c3: [bx + bw - borders[1].width, by + bh],
-                                    c4: [bx + borders[3].width, by + bh]
-                                }, borderRadius[0], borderRadius[1],
-                                borderPoints.topLeftOuter, borderPoints.topLeftInner, borderPoints.topRightOuter, borderPoints.topRightInner);
-                            break;
-                        case 1:
-                            // right border
-                            bx = x + width - (borders[1].width);
-                            bw = borders[1].width;
-
-                            borderArgs = drawSide({
-                                    c1: [bx + bw, by],
-                                    c2: [bx + bw, by + bh + borders[2].width],
-                                    c3: [bx, by + bh],
-                                    c4: [bx, by + borders[0].width]
-                                }, borderRadius[1], borderRadius[2],
-                                borderPoints.topRightOuter, borderPoints.topRightInner, borderPoints.bottomRightOuter, borderPoints.bottomRightInner);
-                            break;
-                        case 2:
-                            // bottom border
-                            by = (by + height) - (borders[2].width);
-                            bh = borders[2].width;
-
-                            borderArgs = drawSide({
-                                    c1: [bx + bw, by + bh],
-                                    c2: [bx, by + bh],
-                                    c3: [bx + borders[3].width, by],
-                                    c4: [bx + bw - borders[3].width, by]
-                                }, borderRadius[2], borderRadius[3],
-                                borderPoints.bottomRightOuter, borderPoints.bottomRightInner, borderPoints.bottomLeftOuter, borderPoints.bottomLeftInner);
-                            break;
-                        case 3:
-                            // left border
-                            bw = borders[3].width;
-
-                            borderArgs = drawSide({
-                                    c1: [bx, by + bh + borders[2].width],
-                                    c2: [bx, by],
-                                    c3: [bx + bw, by + borders[0].width],
-                                    c4: [bx + bw, by + bh]
-                                }, borderRadius[3], borderRadius[0],
-                                borderPoints.bottomLeftOuter, borderPoints.bottomLeftInner, borderPoints.topLeftOuter, borderPoints.topLeftInner);
-                            break;
-                    }
-
-                    borderData.borders.push({
-                        args: borderArgs,
-                        color: borders[borderSide].color
-                    });
-
-                }
-            }
-
-            return borderData;
-        }
-
-        function createShape(ctx, args) {
-            var shape = ctx.drawShape();
-            args.forEach(function(border, index) {
-                shape[(index === 0) ? "moveTo" : border[0] + "To"].apply(null, border.slice(1));
-            });
-            return shape;
-        }
-
-        function renderBorders(ctx, borderArgs, color) {
-            if (color !== "transparent") {
-                ctx.setVariable("fillStyle", color);
-                createShape(ctx, borderArgs);
-                ctx.fill();
-                numDraws += 1;
-            }
-        }
-
-        function renderFormValue(el, bounds, stack) {
-
-            var valueWrap = doc.createElement('valuewrap'),
-                cssPropertyArray = ['lineHeight', 'textAlign', 'fontFamily', 'color', 'fontSize', 'paddingLeft', 'paddingTop', 'width', 'height', 'border', 'borderLeftWidth', 'borderTopWidth'],
-                textValue,
-                textNode;
-
-            cssPropertyArray.forEach(function(property) {
-                try {
-                    valueWrap.style[property] = getCSS(el, property);
-                } catch (e) {
-                    // Older IE has issues with "border"
-                    Util.log("html2canvas: Parse: Exception caught in renderFormValue: " + e.message);
-                }
-            });
-
-            valueWrap.style.borderColor = "black";
-            valueWrap.style.borderStyle = "solid";
-            valueWrap.style.display = "block";
-            valueWrap.style.position = "absolute";
-
-            if (/^(submit|reset|button|text|password)$/.test(el.type) || el.nodeName === "SELECT") {
-                valueWrap.style.lineHeight = getCSS(el, "height");
-            }
-
-            valueWrap.style.top = bounds.top + "px";
-            valueWrap.style.left = bounds.left + "px";
-
-            textValue = (el.nodeName === "SELECT") ? (el.options[el.selectedIndex] || 0).text : el.value;
-            if (!textValue) {
-                textValue = el.placeholder;
-            }
-
-            textNode = doc.createTextNode(textValue);
-
-            valueWrap.appendChild(textNode);
-            body.appendChild(valueWrap);
-
-            renderText(el, textNode, stack);
-            body.removeChild(valueWrap);
-        }
-
-        function drawImage(ctx) {
-            ctx.drawImage.apply(ctx, Array.prototype.slice.call(arguments, 1));
-            numDraws += 1;
-        }
-
-        function getPseudoElement(el, which) {
-            var elStyle = window.getComputedStyle(el, which);
-            var parentStyle = window.getComputedStyle(el);
-            // If no content attribute is present, the pseudo element is hidden,
-            // or the parent has a content property equal to the content on the pseudo element,
-            // move along.
-            if (!elStyle || !elStyle.content || elStyle.content === "none" || elStyle.content === "-moz-alt-content" ||
-                elStyle.display === "none" || parentStyle.content === elStyle.content) {
-                return;
-            }
-            var content = elStyle.content + '';
-
-            // Strip inner quotes
-            if (content[0] === "'" || content[0] === "\"") {
-                content = content.replace(/(^['"])|(['"]$)/g, '');
-            }
-
-            var isImage = content.substr(0, 3) === 'url',
-                elps = document.createElement(isImage ? 'img' : 'span');
-
-            elps.className = pseudoHide + "-element ";
-
-            Object.keys(elStyle).filter(indexedProperty).forEach(function(prop) {
-                // Prevent assigning of read only CSS Rules, ex. length, parentRule
-                try {
-                    elps.style[prop] = elStyle[prop];
-                } catch (e) {
-                    Util.log(['Tried to assign readonly property ', prop, 'Error:', e]);
-                }
-            });
-
-            if (isImage) {
-                elps.src = Util.parseBackgroundImage(content)[0].args[0];
-            } else {
-                elps.innerHTML = content;
-            }
-            return elps;
-        }
-
-        function indexedProperty(property) {
-            return (isNaN(window.parseInt(property, 10)));
-        }
-
-        function renderBackgroundRepeat(ctx, image, backgroundPosition, bounds) {
-            var offsetX = Math.round(bounds.left + backgroundPosition.left),
-                offsetY = Math.round(bounds.top + backgroundPosition.top);
-
-            ctx.createPattern(image);
-            ctx.translate(offsetX, offsetY);
-            ctx.fill();
-            ctx.translate(-offsetX, -offsetY);
-        }
-
-        function backgroundRepeatShape(ctx, image, backgroundPosition, bounds, left, top, width, height) {
-            var args = [];
-            args.push(["line", Math.round(left), Math.round(top)]);
-            args.push(["line", Math.round(left + width), Math.round(top)]);
-            args.push(["line", Math.round(left + width), Math.round(height + top)]);
-            args.push(["line", Math.round(left), Math.round(height + top)]);
-            createShape(ctx, args);
-            ctx.save();
-            ctx.clip();
-            renderBackgroundRepeat(ctx, image, backgroundPosition, bounds);
-            ctx.restore();
-        }
-
-        function renderBackgroundColor(ctx, backgroundBounds, bgcolor) {
-            renderRect(
-                ctx,
-                backgroundBounds.left,
-                backgroundBounds.top,
-                backgroundBounds.width,
-                backgroundBounds.height,
-                bgcolor
-            );
-        }
-
-        function renderBackgroundRepeating(el, bounds, ctx, image, imageIndex) {
-            var backgroundSize = Util.BackgroundSize(el, bounds, image, imageIndex),
-                backgroundPosition = Util.BackgroundPosition(el, bounds, image, imageIndex, backgroundSize),
-                backgroundRepeat = Util.BackgroundRepeat(el, imageIndex);
-
-            image = resizeImage(image, backgroundSize);
-
-            switch (backgroundRepeat) {
-                case "repeat-x":
-                case "repeat no-repeat":
-                    backgroundRepeatShape(ctx, image, backgroundPosition, bounds,
-                        bounds.left, bounds.top + backgroundPosition.top, 99999, image.height);
-                    break;
-                case "repeat-y":
-                case "no-repeat repeat":
-                    backgroundRepeatShape(ctx, image, backgroundPosition, bounds,
-                        bounds.left + backgroundPosition.left, bounds.top, image.width, 99999);
-                    break;
-                case "no-repeat":
-                    backgroundRepeatShape(ctx, image, backgroundPosition, bounds,
-                        bounds.left + backgroundPosition.left, bounds.top + backgroundPosition.top, image.width, image.height);
-                    break;
-                default:
-                    renderBackgroundRepeat(ctx, image, backgroundPosition, {
-                        top: bounds.top,
-                        left: bounds.left,
-                        width: image.width,
-                        height: image.height
-                    });
-                    break;
-            }
-        }
-
-        function renderBackgroundImage(element, bounds, ctx) {
-            var backgroundImage = getCSS(element, "backgroundImage"),
-                backgroundImages = Util.parseBackgroundImage(backgroundImage),
-                image,
-                imageIndex = backgroundImages.length;
-
-            while (imageIndex--) {
-                backgroundImage = backgroundImages[imageIndex];
-
-                if (!backgroundImage.args || backgroundImage.args.length === 0) {
+                break;
+
+            case ',':
+                if(quote) { break; }
+                else if(mode === 0) {
+                    appendResult();
                     continue;
                 }
-
-                var key = backgroundImage.method === 'url' ?
-                    backgroundImage.args[0] :
-                    backgroundImage.value;
-
-                image = loadImage(key);
-
-                // TODO add support for background-origin
-                if (image) {
-                    renderBackgroundRepeating(element, bounds, ctx, image, imageIndex);
-                } else {
-                    Util.log("html2canvas: Error loading background:", backgroundImage);
-                }
-            }
-        }
-
-        function resizeImage(image, bounds) {
-            if (image.width === bounds.width && image.height === bounds.height) {
-                return image;
-            }
-
-            var ctx, canvas = doc.createElement('canvas');
-            canvas.width = bounds.width;
-            canvas.height = bounds.height;
-            ctx = canvas.getContext("2d");
-            drawImage(ctx, image, 0, 0, image.width, image.height, 0, 0, bounds.width, bounds.height);
-            return canvas;
-        }
-
-        function setOpacity(ctx, element, parentStack) {
-            return ctx.setVariable("globalAlpha", getCSS(element, "opacity") * ((parentStack) ? parentStack.opacity : 1));
-        }
-
-        function removePx(str) {
-            return str.replace("px", "");
-        }
-
-        function getTransform(element, parentStack) {
-            var transformRegExp = /(matrix)\((.+)\)/;
-            var transform = getCSS(element, "transform") || getCSS(element, "-webkit-transform") || getCSS(element, "-moz-transform") || getCSS(element, "-ms-transform") || getCSS(element, "-o-transform");
-            var transformOrigin = getCSS(element, "transform-origin") || getCSS(element, "-webkit-transform-origin") || getCSS(element, "-moz-transform-origin") || getCSS(element, "-ms-transform-origin") || getCSS(element, "-o-transform-origin") || "0px 0px";
-
-            transformOrigin = transformOrigin.split(" ").map(removePx).map(Util.asFloat);
-
-            var matrix;
-            if (transform && transform !== "none") {
-                var match = transform.match(transformRegExp);
-                if (match) {
-                    switch (match[1]) {
-                        case "matrix":
-                            matrix = match[2].split(",").map(Util.trimText).map(Util.asFloat);
-                            break;
+                else if (mode === 1) {
+                    if(numParen === 0 && !method.match(/^url$/i)) {
+                        args.push(definition);
+                        definition = '';
+                        block += c;
+                        continue;
                     }
                 }
-            }
-
-            return {
-                origin: transformOrigin,
-                matrix: matrix
-            };
+                break;
         }
 
-        function createStack(element, parentStack, bounds, transform) {
-            var ctx = h2cRenderContext((!parentStack) ? documentWidth() : bounds.width, (!parentStack) ? documentHeight() : bounds.height),
-                stack = {
-                    ctx: ctx,
-                    opacity: setOpacity(ctx, element, parentStack),
-                    cssPosition: getCSS(element, "position"),
-                    borders: getBorderData(element),
-                    transform: transform,
-                    clip: (parentStack && parentStack.clip) ? Util.Extend({}, parentStack.clip) : null
-                };
+        block += c;
+        if(mode === 0) { method += c; }
+        else { definition += c; }
+    }
+    appendResult();
 
-            setZ(element, stack, parentStack);
+    return results;
+};
 
-            // TODO correct overflow for absolute content residing under a static position
-            if (options.useOverflow === true && /(hidden|scroll|auto)/.test(getCSS(element, "overflow")) === true && /(BODY)/i.test(element.nodeName) === false) {
-                stack.clip = (stack.clip) ? clipBounds(stack.clip, bounds) : bounds;
-            }
+_html2canvas.Util.Bounds = function (element) {
+  var clientRect, bounds = {};
 
-            return stack;
+  if (element.getBoundingClientRect){
+    clientRect = element.getBoundingClientRect();
+
+    // TODO add scroll position to bounds, so no scrolling of window necessary
+    bounds.top = clientRect.top;
+    bounds.bottom = clientRect.bottom || (clientRect.top + clientRect.height);
+    bounds.left = clientRect.left;
+
+    bounds.width = element.offsetWidth;
+    bounds.height = element.offsetHeight;
+  }
+
+  return bounds;
+};
+
+// TODO ideally, we'd want everything to go through this function instead of Util.Bounds,
+// but would require further work to calculate the correct positions for elements with offsetParents
+_html2canvas.Util.OffsetBounds = function (element) {
+  var parent = element.offsetParent ? _html2canvas.Util.OffsetBounds(element.offsetParent) : {top: 0, left: 0};
+
+  return {
+    top: element.offsetTop + parent.top,
+    bottom: element.offsetTop + element.offsetHeight + parent.top,
+    left: element.offsetLeft + parent.left,
+    width: element.offsetWidth,
+    height: element.offsetHeight
+  };
+};
+
+function toPX(element, attribute, value ) {
+    var rsLeft = element.runtimeStyle && element.runtimeStyle[attribute],
+        left,
+        style = element.style;
+
+    // Check if we are not dealing with pixels, (Opera has issues with this)
+    // Ported from jQuery css.js
+    // From the awesome hack by Dean Edwards
+    // http://erik.eae.net/archives/2007/07/27/18.54.15/#comment-102291
+
+    // If we're not dealing with a regular pixel number
+    // but a number that has a weird ending, we need to convert it to pixels
+
+    if ( !/^-?[0-9]+\.?[0-9]*(?:px)?$/i.test( value ) && /^-?\d/.test(value) ) {
+        // Remember the original values
+        left = style.left;
+
+        // Put in the new values to get a computed value out
+        if (rsLeft) {
+            element.runtimeStyle.left = element.currentStyle.left;
         }
+        style.left = attribute === "fontSize" ? "1em" : (value || 0);
+        value = style.pixelLeft + "px";
 
-        function getBackgroundBounds(borders, bounds, clip) {
-            var backgroundBounds = {
-                left: bounds.left + borders[3].width,
-                top: bounds.top + borders[0].width,
-                width: bounds.width - (borders[1].width + borders[3].width),
-                height: bounds.height - (borders[0].width + borders[2].width)
-            };
-
-            if (clip) {
-                backgroundBounds = clipBounds(backgroundBounds, clip);
-            }
-
-            return backgroundBounds;
+        // Revert the changed values
+        style.left = left;
+        if (rsLeft) {
+            element.runtimeStyle.left = rsLeft;
         }
+    }
 
-        function getBounds(element, transform) {
-            var bounds = (transform.matrix) ? Util.OffsetBounds(element) : Util.Bounds(element);
-            transform.origin[0] += bounds.left;
-            transform.origin[1] += bounds.top;
-            return bounds;
-        }
+    if (!/^(thin|medium|thick)$/i.test(value)) {
+        return Math.round(parseFloat(value)) + "px";
+    }
 
-        function renderElement(element, parentStack, ignoreBackground) {
-            var transform = getTransform(element, parentStack),
-                bounds = getBounds(element, transform),
-                image,
-                stack = createStack(element, parentStack, bounds, transform),
-                borders = stack.borders,
-                ctx = stack.ctx,
-                backgroundBounds = getBackgroundBounds(borders, bounds, stack.clip),
-                borderData = parseBorders(element, bounds, borders),
-                backgroundColor = (ignoreElementsRegExp.test(element.nodeName)) ? "#efefef" : getCSS(element, "backgroundColor");
+    return value;
+}
 
+function asInt(val) {
+    return parseInt(val, 10);
+}
 
-            createShape(ctx, borderData.clip);
+function parseBackgroundSizePosition(value, element, attribute, index) {
+    value = (value || '').split(',');
+    value = value[index || 0] || value[0] || 'auto';
+    value = _html2canvas.Util.trimText(value).split(' ');
 
-            ctx.save();
-            ctx.clip();
-
-            if (backgroundBounds.height > 0 && backgroundBounds.width > 0 && !ignoreBackground) {
-                renderBackgroundColor(ctx, bounds, backgroundColor);
-                renderBackgroundImage(element, backgroundBounds, ctx);
-            } else if (ignoreBackground) {
-                stack.backgroundColor = backgroundColor;
-            }
-
-            ctx.restore();
-
-            borderData.borders.forEach(function(border) {
-                renderBorders(ctx, border.args, border.color);
-            });
-
-            switch (element.nodeName) {
-                case "IMG":
-                    if ((image = loadImage(element.getAttribute('src')))) {
-                        renderImage(ctx, element, image, bounds, borders);
-                    } else {
-                        Util.log("html2canvas: Error loading <img>:" + element.getAttribute('src'));
-                    }
-                    break;
-                case "INPUT":
-                    // TODO add all relevant type's, i.e. HTML5 new stuff
-                    // todo add support for placeholder attribute for browsers which support it
-                    if (/^(text|url|email|submit|button|reset)$/.test(element.type) && (element.value || element.placeholder || "").length > 0) {
-                        renderFormValue(element, bounds, stack);
-                    }
-                    break;
-                case "TEXTAREA":
-                    if ((element.value || element.placeholder || "").length > 0) {
-                        renderFormValue(element, bounds, stack);
-                    }
-                    break;
-                case "SELECT":
-                    if ((element.options || element.placeholder || "").length > 0) {
-                        renderFormValue(element, bounds, stack);
-                    }
-                    break;
-                case "LI":
-                    renderListItem(element, stack, backgroundBounds);
-                    break;
-                case "CANVAS":
-                    renderImage(ctx, element, element, bounds, borders);
-                    break;
-            }
-
-            return stack;
-        }
-
-        function isElementVisible(element) {
-            return (getCSS(element, 'display') !== "none" && getCSS(element, 'visibility') !== "hidden" && !element.hasAttribute("data-html2canvas-ignore"));
-        }
-
-        function parseElement(element, stack, cb) {
-            if (!cb) {
-                cb = function() {};
-            }
-            if (isElementVisible(element)) {
-                stack = renderElement(element, stack, false) || stack;
-                if (!ignoreElementsRegExp.test(element.nodeName)) {
-                    return parseChildren(element, stack, cb);
-                }
-            }
-            cb();
-        }
-
-        function parseChildren(element, stack, cb) {
-            var children = Util.Children(element);
-            // After all nodes have processed, finished() will call the cb.
-            // We add one and kick it off so this will still work when children.length === 0.
-            // Note that unless async is true, this will happen synchronously, just will callbacks.
-            var jobs = children.length + 1;
-            finished();
-
-            if (options.async) {
-                children.forEach(function(node) {
-                    // Don't block the page from rendering
-                    setTimeout(function() {
-                        parseNode(node);
-                    }, 0);
-                });
+    if(attribute === 'backgroundSize' && (!value[0] || value[0].match(/cover|contain|auto/))) {
+        //these values will be handled in the parent function
+    } else {
+        value[0] = (value[0].indexOf( "%" ) === -1) ? toPX(element, attribute + "X", value[0]) : value[0];
+        if(value[1] === undefined) {
+            if(attribute === 'backgroundSize') {
+                value[1] = 'auto';
+                return value;
             } else {
-                children.forEach(parseNode);
-            }
-
-            function parseNode(node) {
-                if (node.nodeType === node.ELEMENT_NODE) {
-                    parseElement(node, stack, finished);
-                } else if (node.nodeType === node.TEXT_NODE) {
-                    renderText(element, node, stack);
-                    finished();
-                } else {
-                    finished();
-                }
-            }
-
-            function finished(el) {
-                if (--jobs <= 0) {
-                    Util.log("finished rendering " + children.length + " children.");
-                    cb();
-                }
+                // IE 9 doesn't return double digit always
+                value[1] = value[0];
             }
         }
-    };
-    _html2canvas.Preload = function(options) {
+        value[1] = (value[1].indexOf("%") === -1) ? toPX(element, attribute + "Y", value[1]) : value[1];
+    }
+    return value;
+}
 
-        var images = {
-            numLoaded: 0, // also failed are counted here
-            numFailed: 0,
-            numTotal: 0,
-            cleanupDone: false
+_html2canvas.Util.getCSS = function (element, attribute, index) {
+    if (previousElement !== element) {
+      computedCSS = document.defaultView.getComputedStyle(element, null);
+    }
+
+    var value = computedCSS[attribute];
+
+    if (/^background(Size|Position)$/.test(attribute)) {
+        return parseBackgroundSizePosition(value, element, attribute, index);
+    } else if (/border(Top|Bottom)(Left|Right)Radius/.test(attribute)) {
+      var arr = value.split(" ");
+      if (arr.length <= 1) {
+          arr[1] = arr[0];
+      }
+      return arr.map(asInt);
+    }
+
+  return value;
+};
+
+_html2canvas.Util.resizeBounds = function( current_width, current_height, target_width, target_height, stretch_mode ){
+  var target_ratio = target_width / target_height,
+    current_ratio = current_width / current_height,
+    output_width, output_height;
+
+  if(!stretch_mode || stretch_mode === 'auto') {
+    output_width = target_width;
+    output_height = target_height;
+  } else if(target_ratio < current_ratio ^ stretch_mode === 'contain') {
+    output_height = target_height;
+    output_width = target_height * current_ratio;
+  } else {
+    output_width = target_width;
+    output_height = target_width / current_ratio;
+  }
+
+  return {
+    width: output_width,
+    height: output_height
+  };
+};
+
+function backgroundBoundsFactory( prop, el, bounds, image, imageIndex, backgroundSize ) {
+    var bgposition =  _html2canvas.Util.getCSS( el, prop, imageIndex ) ,
+    topPos,
+    left,
+    percentage,
+    val;
+
+    if (bgposition.length === 1){
+      val = bgposition[0];
+
+      bgposition = [];
+
+      bgposition[0] = val;
+      bgposition[1] = val;
+    }
+
+    if (bgposition[0].toString().indexOf("%") !== -1){
+      percentage = (parseFloat(bgposition[0])/100);
+      left = bounds.width * percentage;
+      if(prop !== 'backgroundSize') {
+        left -= (backgroundSize || image).width*percentage;
+      }
+    } else {
+      if(prop === 'backgroundSize') {
+        if(bgposition[0] === 'auto') {
+          left = image.width;
+        } else {
+          if (/contain|cover/.test(bgposition[0])) {
+            var resized = _html2canvas.Util.resizeBounds(image.width, image.height, bounds.width, bounds.height, bgposition[0]);
+            left = resized.width;
+            topPos = resized.height;
+          } else {
+            left = parseInt(bgposition[0], 10);
+          }
+        }
+      } else {
+        left = parseInt( bgposition[0], 10);
+      }
+    }
+
+
+    if(bgposition[1] === 'auto') {
+      topPos = left / image.width * image.height;
+    } else if (bgposition[1].toString().indexOf("%") !== -1){
+      percentage = (parseFloat(bgposition[1])/100);
+      topPos =  bounds.height * percentage;
+      if(prop !== 'backgroundSize') {
+        topPos -= (backgroundSize || image).height * percentage;
+      }
+
+    } else {
+      topPos = parseInt(bgposition[1],10);
+    }
+
+    return [left, topPos];
+}
+
+_html2canvas.Util.BackgroundPosition = function( el, bounds, image, imageIndex, backgroundSize ) {
+    var result = backgroundBoundsFactory( 'backgroundPosition', el, bounds, image, imageIndex, backgroundSize );
+    return { left: result[0], top: result[1] };
+};
+
+_html2canvas.Util.BackgroundSize = function( el, bounds, image, imageIndex ) {
+    var result = backgroundBoundsFactory( 'backgroundSize', el, bounds, image, imageIndex );
+    return { width: result[0], height: result[1] };
+};
+
+_html2canvas.Util.Extend = function (options, defaults) {
+  for (var key in options) {
+    if (options.hasOwnProperty(key)) {
+      defaults[key] = options[key];
+    }
+  }
+  return defaults;
+};
+
+
+/*
+ * Derived from jQuery.contents()
+ * Copyright 2010, John Resig
+ * Dual licensed under the MIT or GPL Version 2 licenses.
+ * http://jquery.org/license
+ */
+_html2canvas.Util.Children = function( elem ) {
+  var children;
+  try {
+    children = (elem.nodeName && elem.nodeName.toUpperCase() === "IFRAME") ? elem.contentDocument || elem.contentWindow.document : (function(array) {
+      var ret = [];
+      if (array !== null) {
+        (function(first, second ) {
+          var i = first.length,
+          j = 0;
+
+          if (typeof second.length === "number") {
+            for (var l = second.length; j < l; j++) {
+              first[i++] = second[j];
+            }
+          } else {
+            while (second[j] !== undefined) {
+              first[i++] = second[j++];
+            }
+          }
+
+          first.length = i;
+
+          return first;
+        })(ret, array);
+      }
+      return ret;
+    })(elem.childNodes);
+
+  } catch (ex) {
+    _html2canvas.Util.log("html2canvas.Util.Children failed with exception: " + ex.message);
+    children = [];
+  }
+  return children;
+};
+
+_html2canvas.Util.isTransparent = function(backgroundColor) {
+  return (backgroundColor === "transparent" || backgroundColor === "rgba(0, 0, 0, 0)");
+};
+_html2canvas.Util.Font = (function () {
+
+  var fontData = {};
+
+  return function(font, fontSize, doc) {
+    if (fontData[font + "-" + fontSize] !== undefined) {
+      return fontData[font + "-" + fontSize];
+    }
+
+    var container = doc.createElement('div'),
+    img = doc.createElement('img'),
+    span = doc.createElement('span'),
+    sampleText = 'Hidden Text',
+    baseline,
+    middle,
+    metricsObj;
+
+    container.style.visibility = "hidden";
+    container.style.fontFamily = font;
+    container.style.fontSize = fontSize;
+    container.style.margin = 0;
+    container.style.padding = 0;
+
+    doc.body.appendChild(container);
+
+    // http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever (handtinywhite.gif)
+    img.src = "data:image/gif;base64,R0lGODlhAQABAIABAP///wAAACwAAAAAAQABAAACAkQBADs=";
+    img.width = 1;
+    img.height = 1;
+
+    img.style.margin = 0;
+    img.style.padding = 0;
+    img.style.verticalAlign = "baseline";
+
+    span.style.fontFamily = font;
+    span.style.fontSize = fontSize;
+    span.style.margin = 0;
+    span.style.padding = 0;
+
+    span.appendChild(doc.createTextNode(sampleText));
+    container.appendChild(span);
+    container.appendChild(img);
+    baseline = (img.offsetTop - span.offsetTop) + 1;
+
+    container.removeChild(span);
+    container.appendChild(doc.createTextNode(sampleText));
+
+    container.style.lineHeight = "normal";
+    img.style.verticalAlign = "super";
+
+    middle = (img.offsetTop-container.offsetTop) + 1;
+    metricsObj = {
+      baseline: baseline,
+      lineWidth: 1,
+      middle: middle
+    };
+
+    fontData[font + "-" + fontSize] = metricsObj;
+
+    doc.body.removeChild(container);
+
+    return metricsObj;
+  };
+})();
+
+(function(){
+  var Util = _html2canvas.Util,
+    Generate = {};
+
+  _html2canvas.Generate = Generate;
+
+  var reGradients = [
+  /^(-webkit-linear-gradient)\(([a-z\s]+)([\w\d\.\s,%\(\)]+)\)$/,
+  /^(-o-linear-gradient)\(([a-z\s]+)([\w\d\.\s,%\(\)]+)\)$/,
+  /^(-webkit-gradient)\((linear|radial),\s((?:\d{1,3}%?)\s(?:\d{1,3}%?),\s(?:\d{1,3}%?)\s(?:\d{1,3}%?))([\w\d\.\s,%\(\)\-]+)\)$/,
+  /^(-moz-linear-gradient)\(((?:\d{1,3}%?)\s(?:\d{1,3}%?))([\w\d\.\s,%\(\)]+)\)$/,
+  /^(-webkit-radial-gradient)\(((?:\d{1,3}%?)\s(?:\d{1,3}%?)),\s(\w+)\s([a-z\-]+)([\w\d\.\s,%\(\)]+)\)$/,
+  /^(-moz-radial-gradient)\(((?:\d{1,3}%?)\s(?:\d{1,3}%?)),\s(\w+)\s?([a-z\-]*)([\w\d\.\s,%\(\)]+)\)$/,
+  /^(-o-radial-gradient)\(((?:\d{1,3}%?)\s(?:\d{1,3}%?)),\s(\w+)\s([a-z\-]+)([\w\d\.\s,%\(\)]+)\)$/
+  ];
+
+  /*
+ * TODO: Add IE10 vendor prefix (-ms) support
+ * TODO: Add W3C gradient (linear-gradient) support
+ * TODO: Add old Webkit -webkit-gradient(radial, ...) support
+ * TODO: Maybe some RegExp optimizations are possible ;o)
+ */
+  Generate.parseGradient = function(css, bounds) {
+    var gradient, i, len = reGradients.length, m1, stop, m2, m2Len, step, m3, tl,tr,br,bl;
+
+    for(i = 0; i < len; i+=1){
+      m1 = css.match(reGradients[i]);
+      if(m1) {
+        break;
+      }
+    }
+
+    if(m1) {
+      switch(m1[1]) {
+        case '-webkit-linear-gradient':
+        case '-o-linear-gradient':
+
+          gradient = {
+            type: 'linear',
+            x0: null,
+            y0: null,
+            x1: null,
+            y1: null,
+            colorStops: []
+          };
+
+          // get coordinates
+          m2 = m1[2].match(/\w+/g);
+          if(m2){
+            m2Len = m2.length;
+            for(i = 0; i < m2Len; i+=1){
+              switch(m2[i]) {
+                case 'top':
+                  gradient.y0 = 0;
+                  gradient.y1 = bounds.height;
+                  break;
+
+                case 'right':
+                  gradient.x0 = bounds.width;
+                  gradient.x1 = 0;
+                  break;
+
+                case 'bottom':
+                  gradient.y0 = bounds.height;
+                  gradient.y1 = 0;
+                  break;
+
+                case 'left':
+                  gradient.x0 = 0;
+                  gradient.x1 = bounds.width;
+                  break;
+              }
+            }
+          }
+          if(gradient.x0 === null && gradient.x1 === null){ // center
+            gradient.x0 = gradient.x1 = bounds.width / 2;
+          }
+          if(gradient.y0 === null && gradient.y1 === null){ // center
+            gradient.y0 = gradient.y1 = bounds.height / 2;
+          }
+
+          // get colors and stops
+          m2 = m1[3].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\)(?:\s\d{1,3}(?:%|px))?)+/g);
+          if(m2){
+            m2Len = m2.length;
+            step = 1 / Math.max(m2Len - 1, 1);
+            for(i = 0; i < m2Len; i+=1){
+              m3 = m2[i].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/);
+              if(m3[2]){
+                stop = parseFloat(m3[2]);
+                if(m3[3] === '%'){
+                  stop /= 100;
+                } else { // px - stupid opera
+                  stop /= bounds.width;
+                }
+              } else {
+                stop = i * step;
+              }
+              gradient.colorStops.push({
+                color: m3[1],
+                stop: stop
+              });
+            }
+          }
+          break;
+
+        case '-webkit-gradient':
+
+          gradient = {
+            type: m1[2] === 'radial' ? 'circle' : m1[2], // TODO: Add radial gradient support for older mozilla definitions
+            x0: 0,
+            y0: 0,
+            x1: 0,
+            y1: 0,
+            colorStops: []
+          };
+
+          // get coordinates
+          m2 = m1[3].match(/(\d{1,3})%?\s(\d{1,3})%?,\s(\d{1,3})%?\s(\d{1,3})%?/);
+          if(m2){
+            gradient.x0 = (m2[1] * bounds.width) / 100;
+            gradient.y0 = (m2[2] * bounds.height) / 100;
+            gradient.x1 = (m2[3] * bounds.width) / 100;
+            gradient.y1 = (m2[4] * bounds.height) / 100;
+          }
+
+          // get colors and stops
+          m2 = m1[4].match(/((?:from|to|color-stop)\((?:[0-9\.]+,\s)?(?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\)\))+/g);
+          if(m2){
+            m2Len = m2.length;
+            for(i = 0; i < m2Len; i+=1){
+              m3 = m2[i].match(/(from|to|color-stop)\(([0-9\.]+)?(?:,\s)?((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\)/);
+              stop = parseFloat(m3[2]);
+              if(m3[1] === 'from') {
+                stop = 0.0;
+              }
+              if(m3[1] === 'to') {
+                stop = 1.0;
+              }
+              gradient.colorStops.push({
+                color: m3[3],
+                stop: stop
+              });
+            }
+          }
+          break;
+
+        case '-moz-linear-gradient':
+
+          gradient = {
+            type: 'linear',
+            x0: 0,
+            y0: 0,
+            x1: 0,
+            y1: 0,
+            colorStops: []
+          };
+
+          // get coordinates
+          m2 = m1[2].match(/(\d{1,3})%?\s(\d{1,3})%?/);
+
+          // m2[1] == 0%   -> left
+          // m2[1] == 50%  -> center
+          // m2[1] == 100% -> right
+
+          // m2[2] == 0%   -> top
+          // m2[2] == 50%  -> center
+          // m2[2] == 100% -> bottom
+
+          if(m2){
+            gradient.x0 = (m2[1] * bounds.width) / 100;
+            gradient.y0 = (m2[2] * bounds.height) / 100;
+            gradient.x1 = bounds.width - gradient.x0;
+            gradient.y1 = bounds.height - gradient.y0;
+          }
+
+          // get colors and stops
+          m2 = m1[3].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\)(?:\s\d{1,3}%)?)+/g);
+          if(m2){
+            m2Len = m2.length;
+            step = 1 / Math.max(m2Len - 1, 1);
+            for(i = 0; i < m2Len; i+=1){
+              m3 = m2[i].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%)?/);
+              if(m3[2]){
+                stop = parseFloat(m3[2]);
+                if(m3[3]){ // percentage
+                  stop /= 100;
+                }
+              } else {
+                stop = i * step;
+              }
+              gradient.colorStops.push({
+                color: m3[1],
+                stop: stop
+              });
+            }
+          }
+          break;
+
+        case '-webkit-radial-gradient':
+        case '-moz-radial-gradient':
+        case '-o-radial-gradient':
+
+          gradient = {
+            type: 'circle',
+            x0: 0,
+            y0: 0,
+            x1: bounds.width,
+            y1: bounds.height,
+            cx: 0,
+            cy: 0,
+            rx: 0,
+            ry: 0,
+            colorStops: []
+          };
+
+          // center
+          m2 = m1[2].match(/(\d{1,3})%?\s(\d{1,3})%?/);
+          if(m2){
+            gradient.cx = (m2[1] * bounds.width) / 100;
+            gradient.cy = (m2[2] * bounds.height) / 100;
+          }
+
+          // size
+          m2 = m1[3].match(/\w+/);
+          m3 = m1[4].match(/[a-z\-]*/);
+          if(m2 && m3){
+            switch(m3[0]){
+              case 'farthest-corner':
+              case 'cover': // is equivalent to farthest-corner
+              case '': // mozilla removes "cover" from definition :(
+                tl = Math.sqrt(Math.pow(gradient.cx, 2) + Math.pow(gradient.cy, 2));
+                tr = Math.sqrt(Math.pow(gradient.cx, 2) + Math.pow(gradient.y1 - gradient.cy, 2));
+                br = Math.sqrt(Math.pow(gradient.x1 - gradient.cx, 2) + Math.pow(gradient.y1 - gradient.cy, 2));
+                bl = Math.sqrt(Math.pow(gradient.x1 - gradient.cx, 2) + Math.pow(gradient.cy, 2));
+                gradient.rx = gradient.ry = Math.max(tl, tr, br, bl);
+                break;
+              case 'closest-corner':
+                tl = Math.sqrt(Math.pow(gradient.cx, 2) + Math.pow(gradient.cy, 2));
+                tr = Math.sqrt(Math.pow(gradient.cx, 2) + Math.pow(gradient.y1 - gradient.cy, 2));
+                br = Math.sqrt(Math.pow(gradient.x1 - gradient.cx, 2) + Math.pow(gradient.y1 - gradient.cy, 2));
+                bl = Math.sqrt(Math.pow(gradient.x1 - gradient.cx, 2) + Math.pow(gradient.cy, 2));
+                gradient.rx = gradient.ry = Math.min(tl, tr, br, bl);
+                break;
+              case 'farthest-side':
+                if(m2[0] === 'circle'){
+                  gradient.rx = gradient.ry = Math.max(
+                    gradient.cx,
+                    gradient.cy,
+                    gradient.x1 - gradient.cx,
+                    gradient.y1 - gradient.cy
+                    );
+                } else { // ellipse
+
+                  gradient.type = m2[0];
+
+                  gradient.rx = Math.max(
+                    gradient.cx,
+                    gradient.x1 - gradient.cx
+                    );
+                  gradient.ry = Math.max(
+                    gradient.cy,
+                    gradient.y1 - gradient.cy
+                    );
+                }
+                break;
+              case 'closest-side':
+              case 'contain': // is equivalent to closest-side
+                if(m2[0] === 'circle'){
+                  gradient.rx = gradient.ry = Math.min(
+                    gradient.cx,
+                    gradient.cy,
+                    gradient.x1 - gradient.cx,
+                    gradient.y1 - gradient.cy
+                    );
+                } else { // ellipse
+
+                  gradient.type = m2[0];
+
+                  gradient.rx = Math.min(
+                    gradient.cx,
+                    gradient.x1 - gradient.cx
+                    );
+                  gradient.ry = Math.min(
+                    gradient.cy,
+                    gradient.y1 - gradient.cy
+                    );
+                }
+                break;
+
+            // TODO: add support for "30px 40px" sizes (webkit only)
+            }
+          }
+
+          // color stops
+          m2 = m1[5].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\)(?:\s\d{1,3}(?:%|px))?)+/g);
+          if(m2){
+            m2Len = m2.length;
+            step = 1 / Math.max(m2Len - 1, 1);
+            for(i = 0; i < m2Len; i+=1){
+              m3 = m2[i].match(/((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/);
+              if(m3[2]){
+                stop = parseFloat(m3[2]);
+                if(m3[3] === '%'){
+                  stop /= 100;
+                } else { // px - stupid opera
+                  stop /= bounds.width;
+                }
+              } else {
+                stop = i * step;
+              }
+              gradient.colorStops.push({
+                color: m3[1],
+                stop: stop
+              });
+            }
+          }
+          break;
+      }
+    }
+
+    return gradient;
+  };
+
+  function addScrollStops(grad) {
+    return function(colorStop) {
+      try {
+        grad.addColorStop(colorStop.stop, colorStop.color);
+      }
+      catch(e) {
+        Util.log(['failed to add color stop: ', e, '; tried to add: ', colorStop]);
+      }
+    };
+  }
+
+  Generate.Gradient = function(src, bounds) {
+    if(bounds.width === 0 || bounds.height === 0) {
+      return;
+    }
+
+    var canvas = document.createElement('canvas'),
+    ctx = canvas.getContext('2d'),
+    gradient, grad;
+
+    canvas.width = bounds.width;
+    canvas.height = bounds.height;
+
+    // TODO: add support for multi defined background gradients
+    gradient = _html2canvas.Generate.parseGradient(src, bounds);
+
+    if(gradient) {
+      switch(gradient.type) {
+        case 'linear':
+          grad = ctx.createLinearGradient(gradient.x0, gradient.y0, gradient.x1, gradient.y1);
+          gradient.colorStops.forEach(addScrollStops(grad));
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, bounds.width, bounds.height);
+          break;
+
+        case 'circle':
+          grad = ctx.createRadialGradient(gradient.cx, gradient.cy, 0, gradient.cx, gradient.cy, gradient.rx);
+          gradient.colorStops.forEach(addScrollStops(grad));
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, bounds.width, bounds.height);
+          break;
+
+        case 'ellipse':
+          var canvasRadial = document.createElement('canvas'),
+            ctxRadial = canvasRadial.getContext('2d'),
+            ri = Math.max(gradient.rx, gradient.ry),
+            di = ri * 2;
+
+          canvasRadial.width = canvasRadial.height = di;
+
+          grad = ctxRadial.createRadialGradient(gradient.rx, gradient.ry, 0, gradient.rx, gradient.ry, ri);
+          gradient.colorStops.forEach(addScrollStops(grad));
+
+          ctxRadial.fillStyle = grad;
+          ctxRadial.fillRect(0, 0, di, di);
+
+          ctx.fillStyle = gradient.colorStops[gradient.colorStops.length - 1].color;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(canvasRadial, gradient.cx - gradient.rx, gradient.cy - gradient.ry, 2 * gradient.rx, 2 * gradient.ry);
+          break;
+      }
+    }
+
+    return canvas;
+  };
+
+  Generate.ListAlpha = function(number) {
+    var tmp = "",
+    modulus;
+
+    do {
+      modulus = number % 26;
+      tmp = String.fromCharCode((modulus) + 64) + tmp;
+      number = number / 26;
+    }while((number*26) > 26);
+
+    return tmp;
+  };
+
+  Generate.ListRoman = function(number) {
+    var romanArray = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"],
+    decimal = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1],
+    roman = "",
+    v,
+    len = romanArray.length;
+
+    if (number <= 0 || number >= 4000) {
+      return number;
+    }
+
+    for (v=0; v < len; v+=1) {
+      while (number >= decimal[v]) {
+        number -= decimal[v];
+        roman += romanArray[v];
+      }
+    }
+
+    return roman;
+  };
+})();
+function h2cRenderContext(width, height) {
+  var storage = [];
+  return {
+    storage: storage,
+    width: width,
+    height: height,
+    clip: function() {
+      storage.push({
+        type: "function",
+        name: "clip",
+        'arguments': arguments
+      });
+    },
+    translate: function() {
+      storage.push({
+        type: "function",
+        name: "translate",
+        'arguments': arguments
+      });
+    },
+    fill: function() {
+      storage.push({
+        type: "function",
+        name: "fill",
+        'arguments': arguments
+      });
+    },
+    save: function() {
+      storage.push({
+        type: "function",
+        name: "save",
+        'arguments': arguments
+      });
+    },
+    restore: function() {
+      storage.push({
+        type: "function",
+        name: "restore",
+        'arguments': arguments
+      });
+    },
+    fillRect: function () {
+      storage.push({
+        type: "function",
+        name: "fillRect",
+        'arguments': arguments
+      });
+    },
+    createPattern: function() {
+      storage.push({
+        type: "function",
+        name: "createPattern",
+        'arguments': arguments
+      });
+    },
+    drawShape: function() {
+
+      var shape = [];
+
+      storage.push({
+        type: "function",
+        name: "drawShape",
+        'arguments': shape
+      });
+
+      return {
+        moveTo: function() {
+          shape.push({
+            name: "moveTo",
+            'arguments': arguments
+          });
         },
-            pageOrigin,
-            Util = _html2canvas.Util,
-            methods,
-            i,
-            count = 0,
-            element = options.elements[0] || document.body,
-            doc = element.ownerDocument,
-            domImages = element.getElementsByTagName('img'), // Fetch images of the present element only
-            imgLen = domImages.length,
-            link = doc.createElement("a"),
-            supportCORS = (function(img) {
-                return (img.crossOrigin !== undefined);
-            })(new Image()),
-            timeoutTimer;
-
-        link.href = window.location.href;
-        pageOrigin = link.protocol + link.host;
-
-        function isSameOrigin(url) {
-            link.href = url;
-            link.href = link.href; // YES, BELIEVE IT OR NOT, that is required for IE9 - http://jsfiddle.net/niklasvh/2e48b/
-            var origin = link.protocol + link.host;
-            return (origin === pageOrigin);
+        lineTo: function() {
+          shape.push({
+            name: "lineTo",
+            'arguments': arguments
+          });
+        },
+        arcTo: function() {
+          shape.push({
+            name: "arcTo",
+            'arguments': arguments
+          });
+        },
+        bezierCurveTo: function() {
+          shape.push({
+            name: "bezierCurveTo",
+            'arguments': arguments
+          });
+        },
+        quadraticCurveTo: function() {
+          shape.push({
+            name: "quadraticCurveTo",
+            'arguments': arguments
+          });
         }
+      };
 
-        function start() {
-            Util.log("html2canvas: start: images: " + images.numLoaded + " / " + images.numTotal + " (failed: " + images.numFailed + ")");
-            if (!images.firstRun && images.numLoaded >= images.numTotal) {
-                Util.log("Finished loading images: # " + images.numTotal + " (failed: " + images.numFailed + ")");
+    },
+    drawImage: function () {
+      storage.push({
+        type: "function",
+        name: "drawImage",
+        'arguments': arguments
+      });
+    },
+    fillText: function () {
+      storage.push({
+        type: "function",
+        name: "fillText",
+        'arguments': arguments
+      });
+    },
+    setVariable: function (variable, value) {
+      storage.push({
+        type: "variable",
+        name: variable,
+        'arguments': value
+      });
+      return value;
+    }
+  };
+}
+_html2canvas.Parse = function (images, options) {
+  window.scroll(0,0);
 
-                if (typeof options.complete === "function") {
-                    options.complete(images);
-                }
+  var element = (( options.elements === undefined ) ? document.body : options.elements[0]), // select body by default
+  numDraws = 0,
+  doc = element.ownerDocument,
+  Util = _html2canvas.Util,
+  support = Util.Support(options, doc),
+  ignoreElementsRegExp = new RegExp("(" + options.ignoreElements + ")"),
+  body = doc.body,
+  getCSS = Util.getCSS,
+  pseudoHide = "___html2canvas___pseudoelement",
+  hidePseudoElements = doc.createElement('style');
 
-            }
-        }
+  hidePseudoElements.innerHTML = '.' + pseudoHide + '-before:before { content: "" !important; display: none !important; }' +
+  '.' + pseudoHide + '-after:after { content: "" !important; display: none !important; }';
 
-        // TODO modify proxy to serve images with CORS enabled, where available
-        function proxyGetImage(url, img, imageObj) {
-            var callback_name,
-                scriptUrl = options.proxy,
-                script;
+  body.appendChild(hidePseudoElements);
 
-            link.href = url;
-            url = link.href; // work around for pages with base href="" set - WARNING: this may change the url
+  images = images || {};
 
-            callback_name = 'html2canvas_' + (count++);
-            imageObj.callbackname = callback_name;
+  function documentWidth () {
+    return Math.max(
+      Math.max(doc.body.scrollWidth, doc.documentElement.scrollWidth),
+      Math.max(doc.body.offsetWidth, doc.documentElement.offsetWidth),
+      Math.max(doc.body.clientWidth, doc.documentElement.clientWidth)
+      );
+  }
 
-            if (scriptUrl.indexOf("?") > -1) {
-                scriptUrl += "&";
-            } else {
-                scriptUrl += "?";
-            }
-            scriptUrl += 'url=' + encodeURIComponent(url) + '&callback=' + callback_name;
-            script = doc.createElement("script");
+  function documentHeight () {
+    return Math.max(
+      Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight),
+      Math.max(doc.body.offsetHeight, doc.documentElement.offsetHeight),
+      Math.max(doc.body.clientHeight, doc.documentElement.clientHeight)
+      );
+  }
 
-            window[callback_name] = function(a) {
-                if (a.substring(0, 6) === "error:") {
-                    imageObj.succeeded = false;
-                    images.numLoaded++;
-                    images.numFailed++;
-                    start();
-                } else {
-                    setImageLoadHandlers(img, imageObj);
-                    img.src = a;
-                }
-                window[callback_name] = undefined; // to work with IE<9  // NOTE: that the undefined callback property-name still exists on the window object (for IE<9)
-                try {
-                    delete window[callback_name]; // for all browser that support this
-                } catch (ex) {}
-                script.parentNode.removeChild(script);
-                script = null;
-                delete imageObj.script;
-                delete imageObj.callbackname;
-            };
+  function getCSSInt(element, attribute) {
+    var val = parseInt(getCSS(element, attribute), 10);
+    return (isNaN(val)) ? 0 : val; // borders in old IE are throwing 'medium' for demo.html
+  }
 
-            script.setAttribute("type", "text/javascript");
-            script.setAttribute("src", scriptUrl);
-            imageObj.script = script;
-            window.document.body.appendChild(script);
+  function renderRect (ctx, x, y, w, h, bgcolor) {
+    if (bgcolor !== "transparent"){
+      ctx.setVariable("fillStyle", bgcolor);
+      ctx.fillRect(x, y, w, h);
+      numDraws+=1;
+    }
+  }
 
-        }
+  function capitalize(m, p1, p2) {
+    if (m.length > 0) {
+      return p1 + p2.toUpperCase();
+    }
+  }
 
-        function loadPseudoElement(element, type) {
-            var style = window.getComputedStyle(element, type),
-                content = style.content;
-            if (content.substr(0, 3) === 'url') {
-                methods.loadImage(_html2canvas.Util.parseBackgroundImage(content)[0].args[0]);
-            }
-            loadBackgroundImages(style.backgroundImage, element);
-        }
+  function textTransform (text, transform) {
+    switch(transform){
+      case "lowercase":
+        return text.toLowerCase();
+      case "capitalize":
+        return text.replace( /(^|\s|:|-|\(|\))([a-z])/g, capitalize);
+      case "uppercase":
+        return text.toUpperCase();
+      default:
+        return text;
+    }
+  }
 
-        function loadPseudoElementImages(element) {
-            loadPseudoElement(element, ":before");
-            loadPseudoElement(element, ":after");
-        }
+  function noLetterSpacing(letter_spacing) {
+    return (/^(normal|none|0px)$/.test(letter_spacing));
+  }
 
-        function loadGradientImage(backgroundImage, bounds) {
-            var img = _html2canvas.Generate.Gradient(backgroundImage, bounds);
+  function drawText(currentText, x, y, ctx){
+    if (currentText !== null && Util.trimText(currentText).length > 0) {
+      ctx.fillText(currentText, x, y);
+      numDraws+=1;
+    }
+  }
 
-            if (img !== undefined) {
-                images[backgroundImage] = {
-                    img: img,
-                    succeeded: true
-                };
-                images.numTotal++;
-                images.numLoaded++;
-                start();
-            }
-        }
+  function setTextVariables(ctx, el, text_decoration, color) {
+    var align = false,
+    bold = getCSS(el, "fontWeight"),
+    family = getCSS(el, "fontFamily"),
+    size = getCSS(el, "fontSize"),
+    shadows = Util.parseTextShadows(getCSS(el, "textShadow"));
 
-        function invalidBackgrounds(background_image) {
-            return (background_image && background_image.method && background_image.args && background_image.args.length > 0);
-        }
+    switch(parseInt(bold, 10)){
+      case 401:
+        bold = "bold";
+        break;
+      case 400:
+        bold = "normal";
+        break;
+    }
 
-        function loadBackgroundImages(background_image, el) {
-            var bounds;
+    ctx.setVariable("fillStyle", color);
+    ctx.setVariable("font", [getCSS(el, "fontStyle"), getCSS(el, "fontVariant"), bold, size, family].join(" "));
+    ctx.setVariable("textAlign", (align) ? "right" : "left");
 
-            _html2canvas.Util.parseBackgroundImage(background_image).filter(invalidBackgrounds).forEach(function(background_image) {
-                if (background_image.method === 'url') {
-                    methods.loadImage(background_image.args[0]);
-                } else if (background_image.method.match(/\-?gradient$/)) {
-                    if (bounds === undefined) {
-                        bounds = _html2canvas.Util.Bounds(el);
-                    }
-                    loadGradientImage(background_image.value, bounds);
-                }
-            });
-        }
+    if (shadows.length) {
+      // TODO: support multiple text shadows
+      // apply the first text shadow
+      ctx.setVariable("shadowColor", shadows[0].color);
+      ctx.setVariable("shadowOffsetX", shadows[0].offsetX);
+      ctx.setVariable("shadowOffsetY", shadows[0].offsetY);
+      ctx.setVariable("shadowBlur", shadows[0].blur);
+    }
 
-        function getImages(el) {
-            var elNodeType = false;
+    if (text_decoration !== "none"){
+      return Util.Font(family, size, doc);
+    }
+  }
 
-            // Firefox fails with permission denied on pages with iframes
-            try {
-                Util.Children(el).forEach(getImages);
-            } catch (e) {}
+  function renderTextDecoration(ctx, text_decoration, bounds, metrics, color) {
+    switch(text_decoration) {
+      case "underline":
+        // Draws a line at the baseline of the font
+        // TODO As some browsers display the line as more than 1px if the font-size is big, need to take that into account both in position and size
+        renderRect(ctx, bounds.left, Math.round(bounds.top + metrics.baseline + metrics.lineWidth), bounds.width, 1, color);
+        break;
+      case "overline":
+        renderRect(ctx, bounds.left, Math.round(bounds.top), bounds.width, 1, color);
+        break;
+      case "line-through":
+        // TODO try and find exact position for line-through
+        renderRect(ctx, bounds.left, Math.ceil(bounds.top + metrics.middle + metrics.lineWidth), bounds.width, 1, color);
+        break;
+    }
+  }
 
-            try {
-                elNodeType = el.nodeType;
-            } catch (ex) {
-                elNodeType = false;
-                Util.log("html2canvas: failed to access some element's nodeType - Exception: " + ex.message);
-            }
+  function getTextBounds(state, text, textDecoration, isLast, transform) {
+    var bounds;
+    if (support.rangeBounds && !transform) {
+      if (textDecoration !== "none" || Util.trimText(text).length !== 0) {
+        bounds = textRangeBounds(text, state.node, state.textOffset);
+      }
+      state.textOffset += text.length;
+    } else if (state.node && typeof state.node.nodeValue === "string" ){
+      var newTextNode = (isLast) ? state.node.splitText(text.length) : null;
+      bounds = textWrapperBounds(state.node, transform);
+      state.node = newTextNode;
+    }
+    return bounds;
+  }
 
-            if (elNodeType === 1 || elNodeType === undefined) {
-                loadPseudoElementImages(el);
-                try {
-                    loadBackgroundImages(Util.getCSS(el, 'backgroundImage'), el);
-                } catch (e) {
-                    Util.log("html2canvas: failed to get background-image - Exception: " + e.message);
-                }
-                loadBackgroundImages(el);
-            }
-        }
+  function textRangeBounds(text, textNode, textOffset) {
+    var range = doc.createRange();
+    range.setStart(textNode, textOffset);
+    range.setEnd(textNode, textOffset + text.length);
+    return range.getBoundingClientRect();
+  }
 
-        function setImageLoadHandlers(img, imageObj) {
-            img.onload = function() {
-                if (imageObj.timer !== undefined) {
-                    // CORS succeeded
-                    window.clearTimeout(imageObj.timer);
-                }
+  function textWrapperBounds(oldTextNode, transform) {
+    var parent = oldTextNode.parentNode,
+    wrapElement = doc.createElement('wrapper'),
+    backupText = oldTextNode.cloneNode(true);
 
-                images.numLoaded++;
-                imageObj.succeeded = true;
-                img.onerror = img.onload = null;
-                start();
-            };
-            img.onerror = function() {
-                if (img.crossOrigin === "anonymous") {
-                    // CORS failed
-                    window.clearTimeout(imageObj.timer);
+    wrapElement.appendChild(oldTextNode.cloneNode(true));
+    parent.replaceChild(wrapElement, oldTextNode);
 
-                    // let's try with proxy instead
-                    if (options.proxy) {
-                        var src = img.src;
-                        img = new Image();
-                        imageObj.img = img;
-                        img.src = src;
+    var bounds = transform ? Util.OffsetBounds(wrapElement) : Util.Bounds(wrapElement);
+    parent.replaceChild(backupText, wrapElement);
+    return bounds;
+  }
 
-                        proxyGetImage(img.src, img, imageObj);
-                        return;
-                    }
-                }
-
-                images.numLoaded++;
-                images.numFailed++;
-                imageObj.succeeded = false;
-                img.onerror = img.onload = null;
-                start();
-            };
-        }
-
-        methods = {
-            loadImage: function(src) {
-                var img, imageObj;
-                if (src && images[src] === undefined) {
-                    img = new Image();
-                    if (src.match(/data:image\/.*;base64,/i)) {
-                        img.src = src.replace(/url\(['"]{0,}|['"]{0,}\)$/ig, '');
-                        imageObj = images[src] = {
-                            img: img
-                        };
-                        images.numTotal++;
-                        setImageLoadHandlers(img, imageObj);
-                    } else if (isSameOrigin(src) || options.allowTaint === true) {
-                        imageObj = images[src] = {
-                            img: img
-                        };
-                        images.numTotal++;
-                        setImageLoadHandlers(img, imageObj);
-                        img.src = src;
-                    } else if (supportCORS && !options.allowTaint && options.useCORS) {
-                        // attempt to load with CORS
-
-                        img.crossOrigin = "anonymous";
-                        imageObj = images[src] = {
-                            img: img
-                        };
-                        images.numTotal++;
-                        setImageLoadHandlers(img, imageObj);
-                        img.src = src;
-                    } else if (options.proxy) {
-                        imageObj = images[src] = {
-                            img: img
-                        };
-                        images.numTotal++;
-                        proxyGetImage(src, img, imageObj);
-                    }
-                }
-
-            },
-            cleanupDOM: function(cause) {
-                var img, src;
-                if (!images.cleanupDone) {
-                    if (cause && typeof cause === "string") {
-                        Util.log("html2canvas: Cleanup because: " + cause);
-                    } else {
-                        Util.log("html2canvas: Cleanup after timeout: " + options.timeout + " ms.");
-                    }
-
-                    for (src in images) {
-                        if (images.hasOwnProperty(src)) {
-                            img = images[src];
-                            if (typeof img === "object" && img.callbackname && img.succeeded === undefined) {
-                                // cancel proxy image request
-                                window[img.callbackname] = undefined; // to work with IE<9  // NOTE: that the undefined callback property-name still exists on the window object (for IE<9)
-                                try {
-                                    delete window[img.callbackname]; // for all browser that support this
-                                } catch (ex) {}
-                                if (img.script && img.script.parentNode) {
-                                    img.script.setAttribute("src", "about:blank"); // try to cancel running request
-                                    img.script.parentNode.removeChild(img.script);
-                                }
-                                images.numLoaded++;
-                                images.numFailed++;
-                                Util.log("html2canvas: Cleaned up failed img: '" + src + "' Steps: " + images.numLoaded + " / " + images.numTotal);
-                            }
-                        }
-                    }
-
-                    // cancel any pending requests
-                    if (window.stop !== undefined) {
-                        window.stop();
-                    } else if (document.execCommand !== undefined) {
-                        document.execCommand("Stop", false);
-                    }
-                    if (document.close !== undefined) {
-                        document.close();
-                    }
-                    images.cleanupDone = true;
-                    if (!(cause && typeof cause === "string")) {
-                        start();
-                    }
-                }
-            },
-
-            renderingDone: function() {
-                if (timeoutTimer) {
-                    window.clearTimeout(timeoutTimer);
-                }
-            }
-        };
-
-        if (options.timeout > 0) {
-            timeoutTimer = window.setTimeout(methods.cleanupDOM, options.timeout);
-        }
-
-        Util.log('html2canvas: Preload starts: finding background-images');
-        images.firstRun = true;
-
-        getImages(element);
-
-        Util.log('html2canvas: Preload: Finding images');
-        // load <img> images
-        for (i = 0; i < imgLen; i += 1) {
-            methods.loadImage(domImages[i].getAttribute("src"));
-        }
-
-        images.firstRun = false;
-        Util.log('html2canvas: Preload: Done.');
-        if (images.numTotal === images.numLoaded) {
-            start();
-        }
-
-        return methods;
+  function renderText(el, textNode, stack) {
+    var ctx = stack.ctx,
+    color = getCSS(el, "color"),
+    textDecoration = getCSS(el, "textDecoration"),
+    textAlign = getCSS(el, "textAlign"),
+    metrics,
+    textList,
+    state = {
+      node: textNode,
+      textOffset: 0
     };
 
-    _html2canvas.Renderer = function(parseQueue, options) {
-        function sortZindex(a, b) {
-            if (a === 'children') {
-                return -1;
-            } else if (b === 'children') {
-                return 1;
-            } else {
-                return a - b;
-            }
+    if (Util.trimText(textNode.nodeValue).length > 0) {
+      textNode.nodeValue = textTransform(textNode.nodeValue, getCSS(el, "textTransform"));
+      textAlign = textAlign.replace(["-webkit-auto"],["auto"]);
+
+      textList = (!options.letterRendering && /^(left|right|justify|auto)$/.test(textAlign) && noLetterSpacing(getCSS(el, "letterSpacing"))) ?
+      textNode.nodeValue.split(/(\b| )/)
+      : textNode.nodeValue.split("");
+
+      metrics = setTextVariables(ctx, el, textDecoration, color);
+
+      if (options.chinese) {
+        textList.forEach(function(word, index) {
+          if (/.*[\u4E00-\u9FA5].*$/.test(word)) {
+            word = word.split("");
+            word.unshift(index, 1);
+            textList.splice.apply(textList, word);
+          }
+        });
+      }
+
+      textList.forEach(function(text, index) {
+        var bounds = getTextBounds(state, text, textDecoration, (index < textList.length - 1), stack.transform.matrix);
+        if (bounds) {
+          drawText(text, bounds.left, bounds.bottom, ctx);
+          renderTextDecoration(ctx, textDecoration, bounds, metrics, color);
         }
+      });
+    }
+  }
 
-        // http://www.w3.org/TR/CSS21/zindex.html
-        function createRenderQueue(parseQueue) {
-            var queue = [],
-                rootContext;
+  function listPosition (element, val) {
+    var boundElement = doc.createElement( "boundelement" ),
+    originalType,
+    bounds;
 
-            rootContext = (function buildStackingContext(rootNode) {
-                var rootContext = {};
+    boundElement.style.display = "inline";
 
-                function insert(context, node, specialParent) {
-                    var zi = (node.zIndex.zindex === 'auto') ? 0 : Number(node.zIndex.zindex),
-                        contextForChildren = context, // the stacking context for children
-                        isPositioned = node.zIndex.isPositioned,
-                        isFloated = node.zIndex.isFloated,
-                        stub = {
-                            node: node
-                        },
-                        childrenDest = specialParent; // where children without z-index should be pushed into
+    originalType = element.style.listStyleType;
+    element.style.listStyleType = "none";
 
-                    if (node.zIndex.ownStacking) {
-                        contextForChildren = stub.context = {
-                            children: [{
-                                node: node,
-                                children: []
-                            }]
-                        };
-                        childrenDest = undefined;
-                    } else if (isPositioned || isFloated) {
-                        childrenDest = stub.children = [];
-                    }
+    boundElement.appendChild(doc.createTextNode(val));
 
-                    if (zi === 0 && specialParent) {
-                        specialParent.push(stub);
-                    } else {
-                        if (!context[zi]) {
-                            context[zi] = [];
-                        }
-                        context[zi].push(stub);
-                    }
+    element.insertBefore(boundElement, element.firstChild);
 
-                    node.zIndex.children.forEach(function(childNode) {
-                        insert(contextForChildren, childNode, childrenDest);
-                    });
-                }
-                insert(rootContext, rootNode);
-                return rootContext;
-            })(parseQueue);
+    bounds = Util.Bounds(boundElement);
+    element.removeChild(boundElement);
+    element.style.listStyleType = originalType;
+    return bounds;
+  }
 
-            function sortZ(context) {
-                Object.keys(context).sort(sortZindex).forEach(function(zi) {
-                    var nonPositioned = [],
-                        floated = [],
-                        positioned = [],
-                        list = [];
+  function elementIndex(el) {
+    var i = -1,
+    count = 1,
+    childs = el.parentNode.childNodes;
 
-                    // positioned after static
-                    context[zi].forEach(function(v) {
-                        if (v.node.zIndex.isPositioned || v.node.zIndex.opacity < 1) {
-                            // http://www.w3.org/TR/css3-color/#transparency
-                            // non-positioned element with opactiy < 1 should be stacked as if it were a positioned element with ‘z-index: 0’ and ‘opacity: 1’.
-                            positioned.push(v);
-                        } else if (v.node.zIndex.isFloated) {
-                            floated.push(v);
-                        } else {
-                            nonPositioned.push(v);
-                        }
-                    });
-
-                    (function walk(arr) {
-                        arr.forEach(function(v) {
-                            list.push(v);
-                            if (v.children) {
-                                walk(v.children);
-                            }
-                        });
-                    })(nonPositioned.concat(floated, positioned));
-
-                    list.forEach(function(v) {
-                        if (v.context) {
-                            sortZ(v.context);
-                        } else {
-                            queue.push(v.node);
-                        }
-                    });
-                });
-            }
-
-            sortZ(rootContext);
-
-            return queue;
+    if (el.parentNode) {
+      while(childs[++i] !== el) {
+        if (childs[i].nodeType === 1) {
+          count++;
         }
+      }
+      return count;
+    } else {
+      return -1;
+    }
+  }
 
-        function getRenderer(rendererName) {
-            var renderer;
+  function listItemText(element, type) {
+    var currentIndex = elementIndex(element), text;
+    switch(type){
+      case "decimal":
+        text = currentIndex;
+        break;
+      case "decimal-leading-zero":
+        text = (currentIndex.toString().length === 1) ? currentIndex = "0" + currentIndex.toString() : currentIndex.toString();
+        break;
+      case "upper-roman":
+        text = _html2canvas.Generate.ListRoman( currentIndex );
+        break;
+      case "lower-roman":
+        text = _html2canvas.Generate.ListRoman( currentIndex ).toLowerCase();
+        break;
+      case "lower-alpha":
+        text = _html2canvas.Generate.ListAlpha( currentIndex ).toLowerCase();
+        break;
+      case "upper-alpha":
+        text = _html2canvas.Generate.ListAlpha( currentIndex );
+        break;
+    }
 
-            if (typeof options.renderer === "string" && _html2canvas.Renderer[rendererName] !== undefined) {
-                renderer = _html2canvas.Renderer[rendererName](options);
-            } else if (typeof rendererName === "function") {
-                renderer = rendererName(options);
-            } else {
-                throw new Error("Unknown renderer");
-            }
+    return text + ". ";
+  }
 
-            if (typeof renderer !== "function") {
-                throw new Error("Invalid renderer defined");
-            }
-            return renderer;
-        }
+  function renderListItem(element, stack, elBounds) {
+    var x,
+    text,
+    ctx = stack.ctx,
+    type = getCSS(element, "listStyleType"),
+    listBounds;
 
-        return getRenderer(options.renderer)(parseQueue, options, document, createRenderQueue(parseQueue.stack), _html2canvas);
+    if (/^(decimal|decimal-leading-zero|upper-alpha|upper-latin|upper-roman|lower-alpha|lower-greek|lower-latin|lower-roman)$/i.test(type)) {
+      text = listItemText(element, type);
+      listBounds = listPosition(element, text);
+      setTextVariables(ctx, element, "none", getCSS(element, "color"));
+
+      if (getCSS(element, "listStylePosition") === "inside") {
+        ctx.setVariable("textAlign", "left");
+        x = elBounds.left;
+      } else {
+        return;
+      }
+
+      drawText(text, x, listBounds.bottom, ctx);
+    }
+  }
+
+  function loadImage (src){
+    var img = images[src];
+    return (img && img.succeeded === true) ? img.img : false;
+  }
+
+  function clipBounds(src, dst){
+    var x = Math.max(src.left, dst.left),
+    y = Math.max(src.top, dst.top),
+    x2 = Math.min((src.left + src.width), (dst.left + dst.width)),
+    y2 = Math.min((src.top + src.height), (dst.top + dst.height));
+
+    return {
+      left:x,
+      top:y,
+      width:x2-x,
+      height:y2-y
+    };
+  }
+
+  function setZ(element, stack, parentStack){
+    var newContext,
+    isPositioned = stack.cssPosition !== 'static',
+    zIndex = isPositioned ? getCSS(element, 'zIndex') : 'auto',
+    opacity = getCSS(element, 'opacity'),
+    isFloated = getCSS(element, 'cssFloat') !== 'none';
+
+    // https://developer.mozilla.org/en-US/docs/Web/Guide/CSS/Understanding_z_index/The_stacking_context
+    // When a new stacking context should be created:
+    // the root element (HTML),
+    // positioned (absolutely or relatively) with a z-index value other than "auto",
+    // elements with an opacity value less than 1. (See the specification for opacity),
+    // on mobile WebKit and Chrome 22+, position: fixed always creates a new stacking context, even when z-index is "auto" (See this post)
+
+    stack.zIndex = newContext = h2czContext(zIndex);
+    newContext.isPositioned = isPositioned;
+    newContext.isFloated = isFloated;
+    newContext.opacity = opacity;
+    newContext.ownStacking = (zIndex !== 'auto' || opacity < 1);
+
+    if (parentStack) {
+      parentStack.zIndex.children.push(stack);
+    }
+  }
+
+  function renderImage(ctx, element, image, bounds, borders) {
+
+    var paddingLeft = getCSSInt(element, 'paddingLeft'),
+    paddingTop = getCSSInt(element, 'paddingTop'),
+    paddingRight = getCSSInt(element, 'paddingRight'),
+    paddingBottom = getCSSInt(element, 'paddingBottom');
+
+    drawImage(
+      ctx,
+      image,
+      0, //sx
+      0, //sy
+      image.width, //sw
+      image.height, //sh
+      bounds.left + paddingLeft + borders[3].width, //dx
+      bounds.top + paddingTop + borders[0].width, // dy
+      bounds.width - (borders[1].width + borders[3].width + paddingLeft + paddingRight), //dw
+      bounds.height - (borders[0].width + borders[2].width + paddingTop + paddingBottom) //dh
+      );
+  }
+
+  function getBorderData(element) {
+    return ["Top", "Right", "Bottom", "Left"].map(function(side) {
+      return {
+        width: getCSSInt(element, 'border' + side + 'Width'),
+        color: getCSS(element, 'border' + side + 'Color')
+      };
+    });
+  }
+
+  function getBorderRadiusData(element) {
+    return ["TopLeft", "TopRight", "BottomRight", "BottomLeft"].map(function(side) {
+      return getCSS(element, 'border' + side + 'Radius');
+    });
+  }
+
+  var getCurvePoints = (function(kappa) {
+
+    return function(x, y, r1, r2) {
+      var ox = (r1) * kappa, // control point offset horizontal
+      oy = (r2) * kappa, // control point offset vertical
+      xm = x + r1, // x-middle
+      ym = y + r2; // y-middle
+      return {
+        topLeft: bezierCurve({
+          x:x,
+          y:ym
+        }, {
+          x:x,
+          y:ym - oy
+        }, {
+          x:xm - ox,
+          y:y
+        }, {
+          x:xm,
+          y:y
+        }),
+        topRight: bezierCurve({
+          x:x,
+          y:y
+        }, {
+          x:x + ox,
+          y:y
+        }, {
+          x:xm,
+          y:ym - oy
+        }, {
+          x:xm,
+          y:ym
+        }),
+        bottomRight: bezierCurve({
+          x:xm,
+          y:y
+        }, {
+          x:xm,
+          y:y + oy
+        }, {
+          x:x + ox,
+          y:ym
+        }, {
+          x:x,
+          y:ym
+        }),
+        bottomLeft: bezierCurve({
+          x:xm,
+          y:ym
+        }, {
+          x:xm - ox,
+          y:ym
+        }, {
+          x:x,
+          y:y + oy
+        }, {
+          x:x,
+          y:y
+        })
+      };
+    };
+  })(4 * ((Math.sqrt(2) - 1) / 3));
+
+  function bezierCurve(start, startControl, endControl, end) {
+
+    var lerp = function (a, b, t) {
+      return {
+        x:a.x + (b.x - a.x) * t,
+        y:a.y + (b.y - a.y) * t
+      };
     };
 
-    _html2canvas.Util.Support = function(options, doc) {
-
-        function supportSVGRendering() {
-            var img = new Image(),
-                canvas = doc.createElement("canvas"),
-                ctx = (canvas.getContext === undefined) ? false : canvas.getContext("2d");
-            if (ctx === false) {
-                return false;
-            }
-            canvas.width = canvas.height = 10;
-            img.src = [
-                "data:image/svg+xml,",
-                "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>",
-                "<foreignObject width='10' height='10'>",
-                "<div xmlns='http://www.w3.org/1999/xhtml' style='width:10;height:10;'>",
-                "sup",
-                "</div>",
-                "</foreignObject>",
-                "</svg>"
-            ].join("");
-            try {
-                ctx.drawImage(img, 0, 0);
-                canvas.toDataURL();
-            } catch (e) {
-                return false;
-            }
-            _html2canvas.Util.log('html2canvas: Parse: SVG powered rendering available');
-            return true;
-        }
-
-        // Test whether we can use ranges to measure bounding boxes
-        // Opera doesn't provide valid bounds.height/bottom even though it supports the method.
-
-        function supportRangeBounds() {
-            var r, testElement, rangeBounds, rangeHeight, support = false;
-
-            if (doc.createRange) {
-                r = doc.createRange();
-                if (r.getBoundingClientRect) {
-                    testElement = doc.createElement('boundtest');
-                    testElement.style.height = "123px";
-                    testElement.style.display = "block";
-                    doc.body.appendChild(testElement);
-
-                    r.selectNode(testElement);
-                    rangeBounds = r.getBoundingClientRect();
-                    rangeHeight = rangeBounds.height;
-
-                    if (rangeHeight === 123) {
-                        support = true;
-                    }
-                    doc.body.removeChild(testElement);
-                }
-            }
-
-            return support;
-        }
-
-        return {
-            rangeBounds: supportRangeBounds(),
-            svgRendering: options.svgRendering && supportSVGRendering()
-        };
+    return {
+      start: start,
+      startControl: startControl,
+      endControl: endControl,
+      end: end,
+      subdivide: function(t) {
+        var ab = lerp(start, startControl, t),
+        bc = lerp(startControl, endControl, t),
+        cd = lerp(endControl, end, t),
+        abbc = lerp(ab, bc, t),
+        bccd = lerp(bc, cd, t),
+        dest = lerp(abbc, bccd, t);
+        return [bezierCurve(start, ab, abbc, dest), bezierCurve(dest, bccd, cd, end)];
+      },
+      curveTo: function(borderArgs) {
+        borderArgs.push(["bezierCurve", startControl.x, startControl.y, endControl.x, endControl.y, end.x, end.y]);
+      },
+      curveToReversed: function(borderArgs) {
+        borderArgs.push(["bezierCurve", endControl.x, endControl.y, startControl.x, startControl.y, start.x, start.y]);
+      }
     };
-    window.html2canvas = function(elements, opts) {
-        elements = (elements.length) ? elements : [elements];
-        var queue,
-            canvas,
-            options = {
-                // general
-                logging: false,
-                elements: elements,
-                background: "#fff",
+  }
 
-                // preload options
-                proxy: null,
-                timeout: 0, // no timeout
-                useCORS: false, // try to load images as CORS (where available), before falling back to proxy
-                allowTaint: false, // whether to allow images to taint the canvas, won't need proxy if set to true
+  function parseCorner(borderArgs, radius1, radius2, corner1, corner2, x, y) {
+    if (radius1[0] > 0 || radius1[1] > 0) {
+      borderArgs.push(["line", corner1[0].start.x, corner1[0].start.y]);
+      corner1[0].curveTo(borderArgs);
+      corner1[1].curveTo(borderArgs);
+    } else {
+      borderArgs.push(["line", x, y]);
+    }
 
-                // parse options
-                svgRendering: false, // use svg powered rendering where available (FF11+)
-                ignoreElements: "IFRAME|OBJECT|PARAM",
-                useOverflow: true,
-                letterRendering: false,
-                chinese: false,
-                async: false, // If true, parsing will not block, but if the user scrolls during parse the image can get weird
+    if (radius2[0] > 0 || radius2[1] > 0) {
+      borderArgs.push(["line", corner2[0].start.x, corner2[0].start.y]);
+    }
+  }
 
-                // render options
-                width: null,
-                height: null,
-                taintTest: true, // do a taint test with all images before applying to canvas
-                renderer: "Canvas"
-            };
+  function drawSide(borderData, radius1, radius2, outer1, inner1, outer2, inner2) {
+    var borderArgs = [];
 
-        options = _html2canvas.Util.Extend(opts, options);
+    if (radius1[0] > 0 || radius1[1] > 0) {
+      borderArgs.push(["line", outer1[1].start.x, outer1[1].start.y]);
+      outer1[1].curveTo(borderArgs);
+    } else {
+      borderArgs.push([ "line", borderData.c1[0], borderData.c1[1]]);
+    }
 
-        _html2canvas.logging = options.logging;
-        options.complete = function(images) {
+    if (radius2[0] > 0 || radius2[1] > 0) {
+      borderArgs.push(["line", outer2[0].start.x, outer2[0].start.y]);
+      outer2[0].curveTo(borderArgs);
+      borderArgs.push(["line", inner2[0].end.x, inner2[0].end.y]);
+      inner2[0].curveToReversed(borderArgs);
+    } else {
+      borderArgs.push([ "line", borderData.c2[0], borderData.c2[1]]);
+      borderArgs.push([ "line", borderData.c3[0], borderData.c3[1]]);
+    }
 
-            if (typeof options.onpreloaded === "function") {
-                if (options.onpreloaded(images) === false) {
-                    return;
-                }
-            }
-            _html2canvas.Parse(images, options, function(queue) {
-                if (typeof options.onparsed === "function") {
-                    if (options.onparsed(queue) === false) {
-                        return;
-                    }
-                }
+    if (radius1[0] > 0 || radius1[1] > 0) {
+      borderArgs.push(["line", inner1[1].end.x, inner1[1].end.y]);
+      inner1[1].curveToReversed(borderArgs);
+    } else {
+      borderArgs.push([ "line", borderData.c4[0], borderData.c4[1]]);
+    }
 
-                canvas = _html2canvas.Renderer(queue, options);
+    return borderArgs;
+  }
 
-                if (typeof options.onrendered === "function") {
-                    options.onrendered(canvas);
-                }
-            });
-        };
+  function calculateCurvePoints(bounds, borderRadius, borders) {
 
-        // for pages without images, we still want this to be async, i.e. return methods before executing
-        window.setTimeout(function() {
-            _html2canvas.Preload(options);
-        }, 0);
+    var x = bounds.left,
+    y = bounds.top,
+    width = bounds.width,
+    height = bounds.height,
 
-        return {
-            render: function(queue, opts) {
-                return _html2canvas.Renderer(queue, _html2canvas.Util.Extend(opts, options));
-            },
-            parse: function(images, opts) {
-                return _html2canvas.Parse(images, _html2canvas.Util.Extend(opts, options));
-            },
-            preload: function(opts) {
-                return _html2canvas.Preload(_html2canvas.Util.Extend(opts, options));
-            },
-            log: _html2canvas.Util.log
-        };
+    tlh = borderRadius[0][0],
+    tlv = borderRadius[0][1],
+    trh = borderRadius[1][0],
+    trv = borderRadius[1][1],
+    brh = borderRadius[2][0],
+    brv = borderRadius[2][1],
+    blh = borderRadius[3][0],
+    blv = borderRadius[3][1],
+
+    topWidth = width - trh,
+    rightHeight = height - brv,
+    bottomWidth = width - brh,
+    leftHeight = height - blv;
+
+    return {
+      topLeftOuter: getCurvePoints(
+        x,
+        y,
+        tlh,
+        tlv
+        ).topLeft.subdivide(0.5),
+
+      topLeftInner: getCurvePoints(
+        x + borders[3].width,
+        y + borders[0].width,
+        Math.max(0, tlh - borders[3].width),
+        Math.max(0, tlv - borders[0].width)
+        ).topLeft.subdivide(0.5),
+
+      topRightOuter: getCurvePoints(
+        x + topWidth,
+        y,
+        trh,
+        trv
+        ).topRight.subdivide(0.5),
+
+      topRightInner: getCurvePoints(
+        x + Math.min(topWidth, width + borders[3].width),
+        y + borders[0].width,
+        (topWidth > width + borders[3].width) ? 0 :trh - borders[3].width,
+        trv - borders[0].width
+        ).topRight.subdivide(0.5),
+
+      bottomRightOuter: getCurvePoints(
+        x + bottomWidth,
+        y + rightHeight,
+        brh,
+        brv
+        ).bottomRight.subdivide(0.5),
+
+      bottomRightInner: getCurvePoints(
+        x + Math.min(bottomWidth, width + borders[3].width),
+        y + Math.min(rightHeight, height + borders[0].width),
+        Math.max(0, brh - borders[1].width),
+        Math.max(0, brv - borders[2].width)
+        ).bottomRight.subdivide(0.5),
+
+      bottomLeftOuter: getCurvePoints(
+        x,
+        y + leftHeight,
+        blh,
+        blv
+        ).bottomLeft.subdivide(0.5),
+
+      bottomLeftInner: getCurvePoints(
+        x + borders[3].width,
+        y + leftHeight,
+        Math.max(0, blh - borders[3].width),
+        Math.max(0, blv - borders[2].width)
+        ).bottomLeft.subdivide(0.5)
     };
+  }
 
-    window.html2canvas.log = _html2canvas.Util.log; // for renderers
-    window.html2canvas.Renderer = {
-        Canvas: undefined // We are assuming this will be used
-    };
-    _html2canvas.Renderer.Canvas = function(options) {
-        options = options || {};
+  function getBorderClip(element, borderPoints, borders, radius, bounds) {
+    var backgroundClip = getCSS(element, 'backgroundClip'),
+    borderArgs = [];
 
-        var doc = document,
-            safeImages = [],
-            testCanvas = document.createElement("canvas"),
-            testctx = testCanvas.getContext("2d"),
-            Util = _html2canvas.Util,
-            canvas = options.canvas || doc.createElement('canvas');
+    switch(backgroundClip) {
+      case "content-box":
+      case "padding-box":
+        parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftInner, borderPoints.topRightInner, bounds.left + borders[3].width, bounds.top + borders[0].width);
+        parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightInner, borderPoints.bottomRightInner, bounds.left + bounds.width - borders[1].width, bounds.top + borders[0].width);
+        parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightInner, borderPoints.bottomLeftInner, bounds.left + bounds.width - borders[1].width, bounds.top + bounds.height - borders[2].width);
+        parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftInner, borderPoints.topLeftInner, bounds.left + borders[3].width, bounds.top + bounds.height - borders[2].width);
+        break;
 
-        function createShape(ctx, args) {
-            ctx.beginPath();
-            args.forEach(function(arg) {
-                ctx[arg.name].apply(ctx, arg['arguments']);
-            });
-            ctx.closePath();
-        }
+      default:
+        parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftOuter, borderPoints.topRightOuter, bounds.left, bounds.top);
+        parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightOuter, borderPoints.bottomRightOuter, bounds.left + bounds.width, bounds.top);
+        parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightOuter, borderPoints.bottomLeftOuter, bounds.left + bounds.width, bounds.top + bounds.height);
+        parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftOuter, borderPoints.topLeftOuter, bounds.left, bounds.top + bounds.height);
+        break;
+    }
 
-        function safeImage(item) {
-            if (safeImages.indexOf(item['arguments'][0].src) === -1) {
-                testctx.drawImage(item['arguments'][0], 0, 0);
-                try {
-                    testctx.getImageData(0, 0, 1, 1);
-                } catch (e) {
-                    testCanvas = doc.createElement("canvas");
-                    testctx = testCanvas.getContext("2d");
-                    return false;
-                }
-                safeImages.push(item['arguments'][0].src);
-            }
-            return true;
-        }
+    return borderArgs;
+  }
 
-        function renderItem(ctx, item) {
-            switch (item.type) {
-                case "variable":
-                    ctx[item.name] = item['arguments'];
-                    break;
-                case "function":
-                    switch (item.name) {
-                        case "createPattern":
-                            if (item['arguments'][0].width > 0 && item['arguments'][0].height > 0) {
-                                try {
-                                    ctx.fillStyle = ctx.createPattern(item['arguments'][0], "repeat");
-                                } catch (e) {
-                                    Util.log("html2canvas: Renderer: Error creating pattern", e.message);
-                                }
-                            }
-                            break;
-                        case "drawShape":
-                            createShape(ctx, item['arguments']);
-                            break;
-                        case "drawImage":
-                            if (item['arguments'][8] > 0 && item['arguments'][7] > 0) {
-                                if (!options.taintTest || (options.taintTest && safeImage(item))) {
-                                    ctx.drawImage.apply(ctx, item['arguments']);
-                                }
-                            }
-                            break;
-                        default:
-                            ctx[item.name].apply(ctx, item['arguments']);
-                    }
-                    break;
-            }
-        }
-
-        return function(parsedData, options, document, queue, _html2canvas) {
-            var ctx = canvas.getContext("2d"),
-                newCanvas,
-                bounds,
-                fstyle,
-                zStack = parsedData.stack;
-
-            canvas.width = canvas.style.width = options.width || zStack.ctx.width;
-            canvas.height = canvas.style.height = options.height || zStack.ctx.height;
-
-            fstyle = ctx.fillStyle;
-            ctx.fillStyle = (Util.isTransparent(parsedData.backgroundColor) && options.background !== undefined) ? options.background : parsedData.backgroundColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = fstyle;
-            queue.forEach(function(storageContext) {
-                // set common settings for canvas
-                ctx.textBaseline = "bottom";
-                ctx.save();
-
-                if (storageContext.transform.matrix) {
-                    ctx.translate(storageContext.transform.origin[0], storageContext.transform.origin[1]);
-                    ctx.transform.apply(ctx, storageContext.transform.matrix);
-                    ctx.translate(-storageContext.transform.origin[0], -storageContext.transform.origin[1]);
-                }
-
-                if (storageContext.clip) {
-                    ctx.beginPath();
-                    ctx.rect(storageContext.clip.left, storageContext.clip.top, storageContext.clip.width, storageContext.clip.height);
-                    ctx.clip();
-                }
-
-                if (storageContext.ctx.storage) {
-                    storageContext.ctx.storage.forEach(function(item) {
-                        renderItem(ctx, item);
-                    });
-                }
-
-                ctx.restore();
-            });
-
-            Util.log("html2canvas: Renderer: Canvas renderer done - returning canvas obj");
-
-            if (options.elements.length === 1) {
-                if (typeof options.elements[0] === "object" && options.elements[0].nodeName !== "BODY") {
-                    // crop image to the bounds of selected (single) element
-                    bounds = _html2canvas.Util.Bounds(options.elements[0]);
-                    newCanvas = document.createElement('canvas');
-                    newCanvas.width = Math.ceil(bounds.width);
-                    newCanvas.height = Math.ceil(bounds.height);
-                    ctx = newCanvas.getContext("2d");
-
-                    var imgData = canvas.getContext("2d").getImageData(bounds.left, bounds.top, bounds.width, bounds.height);
-                    ctx.putImageData(imgData, 0, 0);
-
-                    canvas = null;
-                    return newCanvas;
-                }
-            }
-
-            return canvas;
-        };
+  function parseBorders(element, bounds, borders){
+    var x = bounds.left,
+    y = bounds.top,
+    width = bounds.width,
+    height = bounds.height,
+    borderSide,
+    bx,
+    by,
+    bw,
+    bh,
+    borderArgs,
+    // http://www.w3.org/TR/css3-background/#the-border-radius
+    borderRadius = getBorderRadiusData(element),
+    borderPoints = calculateCurvePoints(bounds, borderRadius, borders),
+    borderData = {
+      clip: getBorderClip(element, borderPoints, borders, borderRadius, bounds),
+      borders: []
     };
 
-})(window, document);
+    for (borderSide = 0; borderSide < 4; borderSide++) {
+
+      if (borders[borderSide].width > 0) {
+        bx = x;
+        by = y;
+        bw = width;
+        bh = height - (borders[2].width);
+
+        switch(borderSide) {
+          case 0:
+            // top border
+            bh = borders[0].width;
+
+            borderArgs = drawSide({
+              c1: [bx, by],
+              c2: [bx + bw, by],
+              c3: [bx + bw - borders[1].width, by + bh],
+              c4: [bx + borders[3].width, by + bh]
+            }, borderRadius[0], borderRadius[1],
+            borderPoints.topLeftOuter, borderPoints.topLeftInner, borderPoints.topRightOuter, borderPoints.topRightInner);
+            break;
+          case 1:
+            // right border
+            bx = x + width - (borders[1].width);
+            bw = borders[1].width;
+
+            borderArgs = drawSide({
+              c1: [bx + bw, by],
+              c2: [bx + bw, by + bh + borders[2].width],
+              c3: [bx, by + bh],
+              c4: [bx, by + borders[0].width]
+            }, borderRadius[1], borderRadius[2],
+            borderPoints.topRightOuter, borderPoints.topRightInner, borderPoints.bottomRightOuter, borderPoints.bottomRightInner);
+            break;
+          case 2:
+            // bottom border
+            by = (by + height) - (borders[2].width);
+            bh = borders[2].width;
+
+            borderArgs = drawSide({
+              c1: [bx + bw, by + bh],
+              c2: [bx, by + bh],
+              c3: [bx + borders[3].width, by],
+              c4: [bx + bw - borders[3].width, by]
+            }, borderRadius[2], borderRadius[3],
+            borderPoints.bottomRightOuter, borderPoints.bottomRightInner, borderPoints.bottomLeftOuter, borderPoints.bottomLeftInner);
+            break;
+          case 3:
+            // left border
+            bw = borders[3].width;
+
+            borderArgs = drawSide({
+              c1: [bx, by + bh + borders[2].width],
+              c2: [bx, by],
+              c3: [bx + bw, by + borders[0].width],
+              c4: [bx + bw, by + bh]
+            }, borderRadius[3], borderRadius[0],
+            borderPoints.bottomLeftOuter, borderPoints.bottomLeftInner, borderPoints.topLeftOuter, borderPoints.topLeftInner);
+            break;
+        }
+
+        borderData.borders.push({
+          args: borderArgs,
+          color: borders[borderSide].color
+        });
+
+      }
+    }
+
+    return borderData;
+  }
+
+  function createShape(ctx, args) {
+    var shape = ctx.drawShape();
+    args.forEach(function(border, index) {
+      shape[(index === 0) ? "moveTo" : border[0] + "To" ].apply(null, border.slice(1));
+    });
+    return shape;
+  }
+
+  function renderBorders(ctx, borderArgs, color) {
+    if (color !== "transparent") {
+      ctx.setVariable( "fillStyle", color);
+      createShape(ctx, borderArgs);
+      ctx.fill();
+      numDraws+=1;
+    }
+  }
+
+  function renderFormValue (el, bounds, stack){
+
+    var valueWrap = doc.createElement('valuewrap'),
+    cssPropertyArray = ['lineHeight','textAlign','fontFamily','color','fontSize','paddingLeft','paddingTop','width','height','border','borderLeftWidth','borderTopWidth'],
+    textValue,
+    textNode;
+
+    cssPropertyArray.forEach(function(property) {
+      try {
+        valueWrap.style[property] = getCSS(el, property);
+      } catch(e) {
+        // Older IE has issues with "border"
+        Util.log("html2canvas: Parse: Exception caught in renderFormValue: " + e.message);
+      }
+    });
+
+    valueWrap.style.borderColor = "black";
+    valueWrap.style.borderStyle = "solid";
+    valueWrap.style.display = "block";
+    valueWrap.style.position = "absolute";
+
+    if (/^(submit|reset|button|text|password)$/.test(el.type) || el.nodeName === "SELECT"){
+      valueWrap.style.lineHeight = getCSS(el, "height");
+    }
+
+    valueWrap.style.top = bounds.top + "px";
+    valueWrap.style.left = bounds.left + "px";
+
+    textValue = (el.nodeName === "SELECT") ? (el.options[el.selectedIndex] || 0).text : el.value;
+    if(!textValue) {
+      textValue = el.placeholder;
+    }
+
+    textNode = doc.createTextNode(textValue);
+
+    valueWrap.appendChild(textNode);
+    body.appendChild(valueWrap);
+
+    renderText(el, textNode, stack);
+    body.removeChild(valueWrap);
+  }
+
+  function drawImage (ctx) {
+    ctx.drawImage.apply(ctx, Array.prototype.slice.call(arguments, 1));
+    numDraws+=1;
+  }
+
+  function getPseudoElement(el, which) {
+    var elStyle = window.getComputedStyle(el, which);
+    if(!elStyle || !elStyle.content || elStyle.content === "none" || elStyle.content === "-moz-alt-content" || elStyle.display === "none") {
+      return;
+    }
+    var content = elStyle.content + '',
+    first = content.substr( 0, 1 );
+    //strips quotes
+    if(first === content.substr( content.length - 1 ) && first.match(/'|"/)) {
+      content = content.substr( 1, content.length - 2 );
+    }
+
+    var isImage = content.substr( 0, 3 ) === 'url',
+    elps = document.createElement( isImage ? 'img' : 'span' );
+
+    elps.className = pseudoHide + "-before " + pseudoHide + "-after";
+
+    Object.keys(elStyle).filter(indexedProperty).forEach(function(prop) {
+      // Prevent assigning of read only CSS Rules, ex. length, parentRule
+      try {
+        elps.style[prop] = elStyle[prop];
+      } catch (e) {
+        Util.log(['Tried to assign readonly property ', prop, 'Error:', e]);
+      }
+    });
+
+    if(isImage) {
+      elps.src = Util.parseBackgroundImage(content)[0].args[0];
+    } else {
+      elps.innerHTML = content;
+    }
+    return elps;
+  }
+
+  function indexedProperty(property) {
+    return (isNaN(window.parseInt(property, 10)));
+  }
+
+  function injectPseudoElements(el, stack) {
+    var before = getPseudoElement(el, ':before'),
+    after = getPseudoElement(el, ':after');
+    if(!before && !after) {
+      return;
+    }
+
+    if(before) {
+      el.className += " " + pseudoHide + "-before";
+      el.parentNode.insertBefore(before, el);
+      parseElement(before, stack, true);
+      el.parentNode.removeChild(before);
+      el.className = el.className.replace(pseudoHide + "-before", "").trim();
+    }
+
+    if (after) {
+      el.className += " " + pseudoHide + "-after";
+      el.appendChild(after);
+      parseElement(after, stack, true);
+      el.removeChild(after);
+      el.className = el.className.replace(pseudoHide + "-after", "").trim();
+    }
+
+  }
+
+  function renderBackgroundRepeat(ctx, image, backgroundPosition, bounds) {
+    var offsetX = Math.round(bounds.left + backgroundPosition.left),
+    offsetY = Math.round(bounds.top + backgroundPosition.top);
+
+    ctx.createPattern(image);
+    ctx.translate(offsetX, offsetY);
+    ctx.fill();
+    ctx.translate(-offsetX, -offsetY);
+  }
+
+  function backgroundRepeatShape(ctx, image, backgroundPosition, bounds, left, top, width, height) {
+    var args = [];
+    args.push(["line", Math.round(left), Math.round(top)]);
+    args.push(["line", Math.round(left + width), Math.round(top)]);
+    args.push(["line", Math.round(left + width), Math.round(height + top)]);
+    args.push(["line", Math.round(left), Math.round(height + top)]);
+    createShape(ctx, args);
+    ctx.save();
+    ctx.clip();
+    renderBackgroundRepeat(ctx, image, backgroundPosition, bounds);
+    ctx.restore();
+  }
+
+  function renderBackgroundColor(ctx, backgroundBounds, bgcolor) {
+    renderRect(
+      ctx,
+      backgroundBounds.left,
+      backgroundBounds.top,
+      backgroundBounds.width,
+      backgroundBounds.height,
+      bgcolor
+      );
+  }
+
+  function renderBackgroundRepeating(el, bounds, ctx, image, imageIndex) {
+    var backgroundSize = Util.BackgroundSize(el, bounds, image, imageIndex),
+    backgroundPosition = Util.BackgroundPosition(el, bounds, image, imageIndex, backgroundSize),
+    backgroundRepeat = getCSS(el, "backgroundRepeat").split(",").map(Util.trimText);
+
+    image = resizeImage(image, backgroundSize);
+
+    backgroundRepeat = backgroundRepeat[imageIndex] || backgroundRepeat[0];
+
+    switch (backgroundRepeat) {
+      case "repeat-x":
+        backgroundRepeatShape(ctx, image, backgroundPosition, bounds,
+          bounds.left, bounds.top + backgroundPosition.top, 99999, image.height);
+        break;
+
+      case "repeat-y":
+        backgroundRepeatShape(ctx, image, backgroundPosition, bounds,
+          bounds.left + backgroundPosition.left, bounds.top, image.width, 99999);
+        break;
+
+      case "no-repeat":
+        backgroundRepeatShape(ctx, image, backgroundPosition, bounds,
+          bounds.left + backgroundPosition.left, bounds.top + backgroundPosition.top, image.width, image.height);
+        break;
+
+      default:
+        renderBackgroundRepeat(ctx, image, backgroundPosition, {
+          top: bounds.top,
+          left: bounds.left,
+          width: image.width,
+          height: image.height
+        });
+        break;
+    }
+  }
+
+  function renderBackgroundImage(element, bounds, ctx) {
+    var backgroundImage = getCSS(element, "backgroundImage"),
+    backgroundImages = Util.parseBackgroundImage(backgroundImage),
+    image,
+    imageIndex = backgroundImages.length;
+
+    while(imageIndex--) {
+      backgroundImage = backgroundImages[imageIndex];
+
+      if (!backgroundImage.args || backgroundImage.args.length === 0) {
+        continue;
+      }
+
+      var key = backgroundImage.method === 'url' ?
+      backgroundImage.args[0] :
+      backgroundImage.value;
+
+      image = loadImage(key);
+
+      // TODO add support for background-origin
+      if (image) {
+        renderBackgroundRepeating(element, bounds, ctx, image, imageIndex);
+      } else {
+        Util.log("html2canvas: Error loading background:", backgroundImage);
+      }
+    }
+  }
+
+  function resizeImage(image, bounds) {
+    if(image.width === bounds.width && image.height === bounds.height) {
+      return image;
+    }
+
+    var ctx, canvas = doc.createElement('canvas');
+    canvas.width = bounds.width;
+    canvas.height = bounds.height;
+    ctx = canvas.getContext("2d");
+    drawImage(ctx, image, 0, 0, image.width, image.height, 0, 0, bounds.width, bounds.height );
+    return canvas;
+  }
+
+  function setOpacity(ctx, element, parentStack) {
+    return ctx.setVariable("globalAlpha", getCSS(element, "opacity") * ((parentStack) ? parentStack.opacity : 1));
+  }
+
+  function removePx(str) {
+    return str.replace("px", "");
+  }
+
+  var transformRegExp = /(matrix)\((.+)\)/;
+
+  function getTransform(element, parentStack) {
+    var transform = getCSS(element, "transform") || getCSS(element, "-webkit-transform") || getCSS(element, "-moz-transform") || getCSS(element, "-ms-transform") || getCSS(element, "-o-transform");
+    var transformOrigin = getCSS(element, "transform-origin") || getCSS(element, "-webkit-transform-origin") || getCSS(element, "-moz-transform-origin") || getCSS(element, "-ms-transform-origin") || getCSS(element, "-o-transform-origin") || "0px 0px";
+
+    transformOrigin = transformOrigin.split(" ").map(removePx).map(Util.asFloat);
+
+    var matrix;
+    if (transform && transform !== "none") {
+      var match = transform.match(transformRegExp);
+      if (match) {
+        switch(match[1]) {
+          case "matrix":
+            matrix = match[2].split(",").map(Util.trimText).map(Util.asFloat);
+            break;
+        }
+      }
+    }
+
+    return {
+      origin: transformOrigin,
+      matrix: matrix
+    };
+  }
+
+  function createStack(element, parentStack, bounds, transform) {
+    var ctx = h2cRenderContext((!parentStack) ? documentWidth() : bounds.width , (!parentStack) ? documentHeight() : bounds.height),
+    stack = {
+      ctx: ctx,
+      opacity: setOpacity(ctx, element, parentStack),
+      cssPosition: getCSS(element, "position"),
+      borders: getBorderData(element),
+      transform: transform,
+      clip: (parentStack && parentStack.clip) ? Util.Extend( {}, parentStack.clip ) : null
+    };
+
+    setZ(element, stack, parentStack);
+
+    // TODO correct overflow for absolute content residing under a static position
+    if (options.useOverflow === true && /(hidden|scroll|auto)/.test(getCSS(element, "overflow")) === true && /(BODY)/i.test(element.nodeName) === false){
+      stack.clip = (stack.clip) ? clipBounds(stack.clip, bounds) : bounds;
+    }
+
+    return stack;
+  }
+
+  function getBackgroundBounds(borders, bounds, clip) {
+    var backgroundBounds = {
+      left: bounds.left + borders[3].width,
+      top: bounds.top + borders[0].width,
+      width: bounds.width - (borders[1].width + borders[3].width),
+      height: bounds.height - (borders[0].width + borders[2].width)
+    };
+
+    if (clip) {
+      backgroundBounds = clipBounds(backgroundBounds, clip);
+    }
+
+    return backgroundBounds;
+  }
+
+  function getBounds(element, transform) {
+    var bounds = (transform.matrix) ? Util.OffsetBounds(element) : Util.Bounds(element);
+    transform.origin[0] += bounds.left;
+    transform.origin[1] += bounds.top;
+    return bounds;
+  }
+
+  function renderElement(element, parentStack, pseudoElement, ignoreBackground) {
+    var transform = getTransform(element, parentStack),
+    bounds = getBounds(element, transform),
+    image,
+    stack = createStack(element, parentStack, bounds, transform),
+    borders = stack.borders,
+    ctx = stack.ctx,
+    backgroundBounds = getBackgroundBounds(borders, bounds, stack.clip),
+    borderData = parseBorders(element, bounds, borders),
+    backgroundColor = (ignoreElementsRegExp.test(element.nodeName)) ? "#efefef" : getCSS(element, "backgroundColor");
+
+
+    createShape(ctx, borderData.clip);
+
+    ctx.save();
+    ctx.clip();
+
+    if (backgroundBounds.height > 0 && backgroundBounds.width > 0 && !ignoreBackground) {
+      renderBackgroundColor(ctx, bounds, backgroundColor);
+      renderBackgroundImage(element, backgroundBounds, ctx);
+    } else if (ignoreBackground) {
+      stack.backgroundColor =  backgroundColor;
+    }
+
+    ctx.restore();
+
+    borderData.borders.forEach(function(border) {
+      renderBorders(ctx, border.args, border.color);
+    });
+
+    if (!pseudoElement) {
+      injectPseudoElements(element, stack);
+    }
+
+    switch(element.nodeName){
+      case "IMG":
+        if ((image = loadImage(element.getAttribute('src')))) {
+          renderImage(ctx, element, image, bounds, borders);
+        } else {
+          Util.log("html2canvas: Error loading <img>:" + element.getAttribute('src'));
+        }
+        break;
+      case "INPUT":
+        // TODO add all relevant type's, i.e. HTML5 new stuff
+        // todo add support for placeholder attribute for browsers which support it
+        if (/^(text|url|email|submit|button|reset)$/.test(element.type) && (element.value || element.placeholder || "").length > 0){
+          renderFormValue(element, bounds, stack);
+        }
+        break;
+      case "TEXTAREA":
+        if ((element.value || element.placeholder || "").length > 0){
+          renderFormValue(element, bounds, stack);
+        }
+        break;
+      case "SELECT":
+        if ((element.options||element.placeholder || "").length > 0){
+          renderFormValue(element, bounds, stack);
+        }
+        break;
+      case "LI":
+        renderListItem(element, stack, backgroundBounds);
+        break;
+      case "CANVAS":
+        renderImage(ctx, element, element, bounds, borders);
+        break;
+    }
+
+    return stack;
+  }
+
+  function isElementVisible(element) {
+    return (getCSS(element, 'display') !== "none" && getCSS(element, 'visibility') !== "hidden" && !element.hasAttribute("data-html2canvas-ignore"));
+  }
+
+  function parseElement (element, stack, pseudoElement) {
+    if (isElementVisible(element)) {
+      stack = renderElement(element, stack, pseudoElement, false) || stack;
+      if (!ignoreElementsRegExp.test(element.nodeName)) {
+        parseChildren(element, stack, pseudoElement);
+      }
+    }
+  }
+
+  function parseChildren(element, stack, pseudoElement) {
+    Util.Children(element).forEach(function(node) {
+      if (node.nodeType === node.ELEMENT_NODE) {
+        parseElement(node, stack, pseudoElement);
+      } else if (node.nodeType === node.TEXT_NODE) {
+        renderText(element, node, stack);
+      }
+    });
+  }
+
+  function init() {
+    var background = getCSS(document.documentElement, "backgroundColor"),
+      transparentBackground = (Util.isTransparent(background) && element === document.body),
+      stack = renderElement(element, null, false, transparentBackground);
+    parseChildren(element, stack);
+
+    if (transparentBackground) {
+      background = stack.backgroundColor;
+    }
+
+    body.removeChild(hidePseudoElements);
+    return {
+      backgroundColor: background,
+      stack: stack
+    };
+  }
+
+  return init();
+};
+
+function h2czContext(zindex) {
+  return {
+    zindex: zindex,
+    children: []
+  };
+}
+
+_html2canvas.Preload = function( options ) {
+
+  var images = {
+    numLoaded: 0,   // also failed are counted here
+    numFailed: 0,
+    numTotal: 0,
+    cleanupDone: false
+  },
+  pageOrigin,
+  Util = _html2canvas.Util,
+  methods,
+  i,
+  count = 0,
+  element = options.elements[0] || document.body,
+  doc = element.ownerDocument,
+  domImages = element.getElementsByTagName('img'), // Fetch images of the present element only
+  imgLen = domImages.length,
+  link = doc.createElement("a"),
+  supportCORS = (function( img ){
+    return (img.crossOrigin !== undefined);
+  })(new Image()),
+  timeoutTimer;
+
+  link.href = window.location.href;
+  pageOrigin  = link.protocol + link.host;
+
+  function isSameOrigin(url){
+    link.href = url;
+    link.href = link.href; // YES, BELIEVE IT OR NOT, that is required for IE9 - http://jsfiddle.net/niklasvh/2e48b/
+    var origin = link.protocol + link.host;
+    return (origin === pageOrigin);
+  }
+
+  function start(){
+    Util.log("html2canvas: start: images: " + images.numLoaded + " / " + images.numTotal + " (failed: " + images.numFailed + ")");
+    if (!images.firstRun && images.numLoaded >= images.numTotal){
+      Util.log("Finished loading images: # " + images.numTotal + " (failed: " + images.numFailed + ")");
+
+      if (typeof options.complete === "function"){
+        options.complete(images);
+      }
+
+    }
+  }
+
+  // TODO modify proxy to serve images with CORS enabled, where available
+  function proxyGetImage(url, img, imageObj){
+    var callback_name,
+    scriptUrl = options.proxy,
+    script;
+
+    link.href = url;
+    url = link.href; // work around for pages with base href="" set - WARNING: this may change the url
+
+    callback_name = 'html2canvas_' + (count++);
+    imageObj.callbackname = callback_name;
+
+    if (scriptUrl.indexOf("?") > -1) {
+      scriptUrl += "&";
+    } else {
+      scriptUrl += "?";
+    }
+    scriptUrl += 'url=' + encodeURIComponent(url) + '&callback=' + callback_name;
+    script = doc.createElement("script");
+
+    window[callback_name] = function(a){
+      if (a.substring(0,6) === "error:"){
+        imageObj.succeeded = false;
+        images.numLoaded++;
+        images.numFailed++;
+        start();
+      } else {
+        setImageLoadHandlers(img, imageObj);
+        img.src = a;
+      }
+      window[callback_name] = undefined; // to work with IE<9  // NOTE: that the undefined callback property-name still exists on the window object (for IE<9)
+      try {
+        delete window[callback_name];  // for all browser that support this
+      } catch(ex) {}
+      script.parentNode.removeChild(script);
+      script = null;
+      delete imageObj.script;
+      delete imageObj.callbackname;
+    };
+
+    script.setAttribute("type", "text/javascript");
+    script.setAttribute("src", scriptUrl);
+    imageObj.script = script;
+    window.document.body.appendChild(script);
+
+  }
+
+  function loadPseudoElement(element, type) {
+    var style = window.getComputedStyle(element, type),
+    content = style.content;
+    if (content.substr(0, 3) === 'url') {
+      methods.loadImage(_html2canvas.Util.parseBackgroundImage(content)[0].args[0]);
+    }
+    loadBackgroundImages(style.backgroundImage, element);
+  }
+
+  function loadPseudoElementImages(element) {
+    loadPseudoElement(element, ":before");
+    loadPseudoElement(element, ":after");
+  }
+
+  function loadGradientImage(backgroundImage, bounds) {
+    var img = _html2canvas.Generate.Gradient(backgroundImage, bounds);
+
+    if (img !== undefined){
+      images[backgroundImage] = {
+        img: img,
+        succeeded: true
+      };
+      images.numTotal++;
+      images.numLoaded++;
+      start();
+    }
+  }
+
+  function invalidBackgrounds(background_image) {
+    return (background_image && background_image.method && background_image.args && background_image.args.length > 0 );
+  }
+
+  function loadBackgroundImages(background_image, el) {
+    var bounds;
+
+    _html2canvas.Util.parseBackgroundImage(background_image).filter(invalidBackgrounds).forEach(function(background_image) {
+      if (background_image.method === 'url') {
+        methods.loadImage(background_image.args[0]);
+      } else if(background_image.method.match(/\-?gradient$/)) {
+        if(bounds === undefined) {
+          bounds = _html2canvas.Util.Bounds(el);
+        }
+        loadGradientImage(background_image.value, bounds);
+      }
+    });
+  }
+
+  function getImages (el) {
+    var elNodeType = false;
+
+    // Firefox fails with permission denied on pages with iframes
+    try {
+      Util.Children(el).forEach(getImages);
+    }
+    catch( e ) {}
+
+    try {
+      elNodeType = el.nodeType;
+    } catch (ex) {
+      elNodeType = false;
+      Util.log("html2canvas: failed to access some element's nodeType - Exception: " + ex.message);
+    }
+
+    if (elNodeType === 1 || elNodeType === undefined) {
+      loadPseudoElementImages(el);
+      try {
+        loadBackgroundImages(Util.getCSS(el, 'backgroundImage'), el);
+      } catch(e) {
+        Util.log("html2canvas: failed to get background-image - Exception: " + e.message);
+      }
+      loadBackgroundImages(el);
+    }
+  }
+
+  function setImageLoadHandlers(img, imageObj) {
+    img.onload = function() {
+      if ( imageObj.timer !== undefined ) {
+        // CORS succeeded
+        window.clearTimeout( imageObj.timer );
+      }
+
+      images.numLoaded++;
+      imageObj.succeeded = true;
+      img.onerror = img.onload = null;
+      start();
+    };
+    img.onerror = function() {
+      if (img.crossOrigin === "anonymous") {
+        // CORS failed
+        window.clearTimeout( imageObj.timer );
+
+        // let's try with proxy instead
+        if ( options.proxy ) {
+          var src = img.src;
+          img = new Image();
+          imageObj.img = img;
+          img.src = src;
+
+          proxyGetImage( img.src, img, imageObj );
+          return;
+        }
+      }
+
+      images.numLoaded++;
+      images.numFailed++;
+      imageObj.succeeded = false;
+      img.onerror = img.onload = null;
+      start();
+    };
+  }
+
+  methods = {
+    loadImage: function( src ) {
+      var img, imageObj;
+      if ( src && images[src] === undefined ) {
+        img = new Image();
+        if ( src.match(/data:image\/.*;base64,/i) ) {
+          img.src = src.replace(/url\(['"]{0,}|['"]{0,}\)$/ig, '');
+          imageObj = images[src] = {
+            img: img
+          };
+          images.numTotal++;
+          setImageLoadHandlers(img, imageObj);
+        } else if ( isSameOrigin( src ) || options.allowTaint ===  true ) {
+          imageObj = images[src] = {
+            img: img
+          };
+          images.numTotal++;
+          setImageLoadHandlers(img, imageObj);
+          img.src = src;
+        } else if ( supportCORS && !options.allowTaint && options.useCORS ) {
+          // attempt to load with CORS
+
+          img.crossOrigin = "anonymous";
+          imageObj = images[src] = {
+            img: img
+          };
+          images.numTotal++;
+          setImageLoadHandlers(img, imageObj);
+          img.src = src;
+        } else if ( options.proxy ) {
+          imageObj = images[src] = {
+            img: img
+          };
+          images.numTotal++;
+          proxyGetImage( src, img, imageObj );
+        }
+      }
+
+    },
+    cleanupDOM: function(cause) {
+      var img, src;
+      if (!images.cleanupDone) {
+        if (cause && typeof cause === "string") {
+          Util.log("html2canvas: Cleanup because: " + cause);
+        } else {
+          Util.log("html2canvas: Cleanup after timeout: " + options.timeout + " ms.");
+        }
+
+        for (src in images) {
+          if (images.hasOwnProperty(src)) {
+            img = images[src];
+            if (typeof img === "object" && img.callbackname && img.succeeded === undefined) {
+              // cancel proxy image request
+              window[img.callbackname] = undefined; // to work with IE<9  // NOTE: that the undefined callback property-name still exists on the window object (for IE<9)
+              try {
+                delete window[img.callbackname];  // for all browser that support this
+              } catch(ex) {}
+              if (img.script && img.script.parentNode) {
+                img.script.setAttribute("src", "about:blank");  // try to cancel running request
+                img.script.parentNode.removeChild(img.script);
+              }
+              images.numLoaded++;
+              images.numFailed++;
+              Util.log("html2canvas: Cleaned up failed img: '" + src + "' Steps: " + images.numLoaded + " / " + images.numTotal);
+            }
+          }
+        }
+
+        // cancel any pending requests
+        if(window.stop !== undefined) {
+          window.stop();
+        } else if(document.execCommand !== undefined) {
+          document.execCommand("Stop", false);
+        }
+        if (document.close !== undefined) {
+          document.close();
+        }
+        images.cleanupDone = true;
+        if (!(cause && typeof cause === "string")) {
+          start();
+        }
+      }
+    },
+
+    renderingDone: function() {
+      if (timeoutTimer) {
+        window.clearTimeout(timeoutTimer);
+      }
+    }
+  };
+
+  if (options.timeout > 0) {
+    timeoutTimer = window.setTimeout(methods.cleanupDOM, options.timeout);
+  }
+
+  Util.log('html2canvas: Preload starts: finding background-images');
+  images.firstRun = true;
+
+  getImages(element);
+
+  Util.log('html2canvas: Preload: Finding images');
+  // load <img> images
+  for (i = 0; i < imgLen; i+=1){
+    methods.loadImage( domImages[i].getAttribute( "src" ) );
+  }
+
+  images.firstRun = false;
+  Util.log('html2canvas: Preload: Done.');
+  if (images.numTotal === images.numLoaded) {
+    start();
+  }
+
+  return methods;
+};
+
+_html2canvas.Renderer = function(parseQueue, options){
+
+  // http://www.w3.org/TR/CSS21/zindex.html
+  function createRenderQueue(parseQueue) {
+    var queue = [],
+    rootContext;
+
+    rootContext = (function buildStackingContext(rootNode) {
+      var rootContext = {};
+      function insert(context, node, specialParent) {
+        var zi = (node.zIndex.zindex === 'auto') ? 0 : Number(node.zIndex.zindex),
+        contextForChildren = context, // the stacking context for children
+        isPositioned = node.zIndex.isPositioned,
+        isFloated = node.zIndex.isFloated,
+        stub = {node: node},
+        childrenDest = specialParent; // where children without z-index should be pushed into
+
+        if (node.zIndex.ownStacking) {
+          // '!' comes before numbers in sorted array
+          contextForChildren = stub.context = { '!': [{node:node, children: []}]};
+          childrenDest = undefined;
+        } else if (isPositioned || isFloated) {
+          childrenDest = stub.children = [];
+        }
+
+        if (zi === 0 && specialParent) {
+          specialParent.push(stub);
+        } else {
+          if (!context[zi]) { context[zi] = []; }
+          context[zi].push(stub);
+        }
+
+        node.zIndex.children.forEach(function(childNode) {
+          insert(contextForChildren, childNode, childrenDest);
+        });
+      }
+      insert(rootContext, rootNode);
+      return rootContext;
+    })(parseQueue);
+
+    function sortZ(context) {
+      Object.keys(context).sort().forEach(function(zi) {
+        var nonPositioned = [],
+        floated = [],
+        positioned = [],
+        list = [];
+
+        // positioned after static
+        context[zi].forEach(function(v) {
+          if (v.node.zIndex.isPositioned || v.node.zIndex.opacity < 1) {
+            // http://www.w3.org/TR/css3-color/#transparency
+            // non-positioned element with opactiy < 1 should be stacked as if it were a positioned element with ‘z-index: 0’ and ‘opacity: 1’.
+            positioned.push(v);
+          } else if (v.node.zIndex.isFloated) {
+            floated.push(v);
+          } else {
+            nonPositioned.push(v);
+          }
+        });
+
+        (function walk(arr) {
+          arr.forEach(function(v) {
+            list.push(v);
+            if (v.children) { walk(v.children); }
+          });
+        })(nonPositioned.concat(floated, positioned));
+
+        list.forEach(function(v) {
+          if (v.context) {
+            sortZ(v.context);
+          } else {
+            queue.push(v.node);
+          }
+        });
+      });
+    }
+
+    sortZ(rootContext);
+
+    return queue;
+  }
+
+  function getRenderer(rendererName) {
+    var renderer;
+
+    if (typeof options.renderer === "string" && _html2canvas.Renderer[rendererName] !== undefined) {
+      renderer = _html2canvas.Renderer[rendererName](options);
+    } else if (typeof rendererName === "function") {
+      renderer = rendererName(options);
+    } else {
+      throw new Error("Unknown renderer");
+    }
+
+    if ( typeof renderer !== "function" ) {
+      throw new Error("Invalid renderer defined");
+    }
+    return renderer;
+  }
+
+  return getRenderer(options.renderer)(parseQueue, options, document, createRenderQueue(parseQueue.stack), _html2canvas);
+};
+
+_html2canvas.Util.Support = function (options, doc) {
+
+  function supportSVGRendering() {
+    var img = new Image(),
+    canvas = doc.createElement("canvas"),
+    ctx = (canvas.getContext === undefined) ? false : canvas.getContext("2d");
+    if (ctx === false) {
+      return false;
+    }
+    canvas.width = canvas.height = 10;
+    img.src = [
+    "data:image/svg+xml,",
+    "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>",
+    "<foreignObject width='10' height='10'>",
+    "<div xmlns='http://www.w3.org/1999/xhtml' style='width:10;height:10;'>",
+    "sup",
+    "</div>",
+    "</foreignObject>",
+    "</svg>"
+    ].join("");
+    try {
+      ctx.drawImage(img, 0, 0);
+      canvas.toDataURL();
+    } catch(e) {
+      return false;
+    }
+    _html2canvas.Util.log('html2canvas: Parse: SVG powered rendering available');
+    return true;
+  }
+
+  // Test whether we can use ranges to measure bounding boxes
+  // Opera doesn't provide valid bounds.height/bottom even though it supports the method.
+
+  function supportRangeBounds() {
+    var r, testElement, rangeBounds, rangeHeight, support = false;
+
+    if (doc.createRange) {
+      r = doc.createRange();
+      if (r.getBoundingClientRect) {
+        testElement = doc.createElement('boundtest');
+        testElement.style.height = "123px";
+        testElement.style.display = "block";
+        doc.body.appendChild(testElement);
+
+        r.selectNode(testElement);
+        rangeBounds = r.getBoundingClientRect();
+        rangeHeight = rangeBounds.height;
+
+        if (rangeHeight === 123) {
+          support = true;
+        }
+        doc.body.removeChild(testElement);
+      }
+    }
+
+    return support;
+  }
+
+  return {
+    rangeBounds: supportRangeBounds(),
+    svgRendering: options.svgRendering && supportSVGRendering()
+  };
+};
+window.html2canvas = function(elements, opts) {
+  elements = (elements.length) ? elements : [elements];
+  var queue,
+  canvas,
+  options = {
+    // general
+    logging: false,
+    elements: elements,
+    background: "#fff",
+
+    // preload options
+    proxy: null,
+    timeout: 0,    // no timeout
+    useCORS: false, // try to load images as CORS (where available), before falling back to proxy
+    allowTaint: false, // whether to allow images to taint the canvas, won't need proxy if set to true
+
+    // parse options
+    svgRendering: false, // use svg powered rendering where available (FF11+)
+    ignoreElements: "IFRAME|OBJECT|PARAM",
+    useOverflow: true,
+    letterRendering: false,
+    chinese: false,
+
+    // render options
+
+    width: null,
+    height: null,
+    taintTest: true, // do a taint test with all images before applying to canvas
+    renderer: "Canvas"
+  };
+
+  options = _html2canvas.Util.Extend(opts, options);
+
+  _html2canvas.logging = options.logging;
+  options.complete = function( images ) {
+
+    if (typeof options.onpreloaded === "function") {
+      if ( options.onpreloaded( images ) === false ) {
+        return;
+      }
+    }
+    queue = _html2canvas.Parse( images, options );
+
+    if (typeof options.onparsed === "function") {
+      if ( options.onparsed( queue ) === false ) {
+        return;
+      }
+    }
+
+    canvas = _html2canvas.Renderer( queue, options );
+
+    if (typeof options.onrendered === "function") {
+      options.onrendered( canvas );
+    }
+
+
+  };
+
+  // for pages without images, we still want this to be async, i.e. return methods before executing
+  window.setTimeout( function(){
+    _html2canvas.Preload( options );
+  }, 0 );
+
+  return {
+    render: function( queue, opts ) {
+      return _html2canvas.Renderer( queue, _html2canvas.Util.Extend(opts, options) );
+    },
+    parse: function( images, opts ) {
+      return _html2canvas.Parse( images, _html2canvas.Util.Extend(opts, options) );
+    },
+    preload: function( opts ) {
+      return _html2canvas.Preload( _html2canvas.Util.Extend(opts, options) );
+    },
+    log: _html2canvas.Util.log
+  };
+};
+
+window.html2canvas.log = _html2canvas.Util.log; // for renderers
+window.html2canvas.Renderer = {
+  Canvas: undefined // We are assuming this will be used
+};
+_html2canvas.Renderer.Canvas = function(options) {
+  options = options || {};
+
+  var doc = document,
+  safeImages = [],
+  testCanvas = document.createElement("canvas"),
+  testctx = testCanvas.getContext("2d"),
+  Util = _html2canvas.Util,
+  canvas = options.canvas || doc.createElement('canvas');
+
+  function createShape(ctx, args) {
+    ctx.beginPath();
+    args.forEach(function(arg) {
+      ctx[arg.name].apply(ctx, arg['arguments']);
+    });
+    ctx.closePath();
+  }
+
+  function safeImage(item) {
+    if (safeImages.indexOf(item['arguments'][0].src ) === -1) {
+      testctx.drawImage(item['arguments'][0], 0, 0);
+      try {
+        testctx.getImageData(0, 0, 1, 1);
+      } catch(e) {
+        testCanvas = doc.createElement("canvas");
+        testctx = testCanvas.getContext("2d");
+        return false;
+      }
+      safeImages.push(item['arguments'][0].src);
+    }
+    return true;
+  }
+
+  function renderItem(ctx, item) {
+    switch(item.type){
+      case "variable":
+        ctx[item.name] = item['arguments'];
+        break;
+      case "function":
+        switch(item.name) {
+          case "createPattern":
+            if (item['arguments'][0].width > 0 && item['arguments'][0].height > 0) {
+              try {
+                ctx.fillStyle = ctx.createPattern(item['arguments'][0], "repeat");
+              }
+              catch(e) {
+                Util.log("html2canvas: Renderer: Error creating pattern", e.message);
+              }
+            }
+            break;
+          case "drawShape":
+            createShape(ctx, item['arguments']);
+            break;
+          case "drawImage":
+            if (item['arguments'][8] > 0 && item['arguments'][7] > 0) {
+              if (!options.taintTest || (options.taintTest && safeImage(item))) {
+                ctx.drawImage.apply( ctx, item['arguments'] );
+              }
+            }
+            break;
+          default:
+            ctx[item.name].apply(ctx, item['arguments']);
+        }
+        break;
+    }
+  }
+
+  return function(parsedData, options, document, queue, _html2canvas) {
+    var ctx = canvas.getContext("2d"),
+    newCanvas,
+    bounds,
+    fstyle,
+    zStack = parsedData.stack;
+
+    canvas.width = canvas.style.width =  options.width || zStack.ctx.width;
+    canvas.height = canvas.style.height = options.height || zStack.ctx.height;
+
+    fstyle = ctx.fillStyle;
+    ctx.fillStyle = (Util.isTransparent(zStack.backgroundColor) && options.background !== undefined) ? options.background : parsedData.backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = fstyle;
+
+    queue.forEach(function(storageContext) {
+      // set common settings for canvas
+      ctx.textBaseline = "bottom";
+      ctx.save();
+
+      if (storageContext.transform.matrix) {
+        ctx.translate(storageContext.transform.origin[0], storageContext.transform.origin[1]);
+        ctx.transform.apply(ctx, storageContext.transform.matrix);
+        ctx.translate(-storageContext.transform.origin[0], -storageContext.transform.origin[1]);
+      }
+
+      if (storageContext.clip){
+        ctx.beginPath();
+        ctx.rect(storageContext.clip.left, storageContext.clip.top, storageContext.clip.width, storageContext.clip.height);
+        ctx.clip();
+      }
+
+      if (storageContext.ctx.storage) {
+        storageContext.ctx.storage.forEach(function(item) {
+          renderItem(ctx, item);
+        });
+      }
+
+      ctx.restore();
+    });
+
+    Util.log("html2canvas: Renderer: Canvas renderer done - returning canvas obj");
+
+    if (options.elements.length === 1) {
+      if (typeof options.elements[0] === "object" && options.elements[0].nodeName !== "BODY") {
+        // crop image to the bounds of selected (single) element
+        bounds = _html2canvas.Util.Bounds(options.elements[0]);
+        newCanvas = document.createElement('canvas');
+        newCanvas.width = Math.ceil(bounds.width);
+        newCanvas.height = Math.ceil(bounds.height);
+        ctx = newCanvas.getContext("2d");
+
+        ctx.drawImage(canvas, bounds.left, bounds.top, bounds.width, bounds.height, 0, 0, bounds.width, bounds.height);
+        canvas = null;
+        return newCanvas;
+      }
+    }
+
+    return canvas;
+  };
+};
+})(window,document);
+/*global self, document, DOMException */
+
+/*! @source http://purl.eligrey.com/github/classList.js/blob/master/classList.js */
+
+// Full polyfill for browsers with no classList support
+if (!("classList" in document.createElement("_"))) {
+  (function (view) {
+
+  "use strict";
+
+  if (!('Element' in view)) return;
+
+  var
+      classListProp = "classList"
+    , protoProp = "prototype"
+    , elemCtrProto = view.Element[protoProp]
+    , objCtr = Object
+    , strTrim = String[protoProp].trim || function () {
+      return this.replace(/^\s+|\s+$/g, "");
+    }
+    , arrIndexOf = Array[protoProp].indexOf || function (item) {
+      var
+          i = 0
+        , len = this.length
+      ;
+      for (; i < len; i++) {
+        if (i in this && this[i] === item) {
+          return i;
+        }
+      }
+      return -1;
+    }
+    // Vendors: please allow content code to instantiate DOMExceptions
+    , DOMEx = function (type, message) {
+      this.name = type;
+      this.code = DOMException[type];
+      this.message = message;
+    }
+    , checkTokenAndGetIndex = function (classList, token) {
+      if (token === "") {
+        throw new DOMEx(
+            "SYNTAX_ERR"
+          , "An invalid or illegal string was specified"
+        );
+      }
+      if (/\s/.test(token)) {
+        throw new DOMEx(
+            "INVALID_CHARACTER_ERR"
+          , "String contains an invalid character"
+        );
+      }
+      return arrIndexOf.call(classList, token);
+    }
+    , ClassList = function (elem) {
+      var
+          trimmedClasses = strTrim.call(elem.getAttribute("class") || "")
+        , classes = trimmedClasses ? trimmedClasses.split(/\s+/) : []
+        , i = 0
+        , len = classes.length
+      ;
+      for (; i < len; i++) {
+        this.push(classes[i]);
+      }
+      this._updateClassName = function () {
+        elem.setAttribute("class", this.toString());
+      };
+    }
+    , classListProto = ClassList[protoProp] = []
+    , classListGetter = function () {
+      return new ClassList(this);
+    }
+  ;
+  // Most DOMException implementations don't allow calling DOMException's toString()
+  // on non-DOMExceptions. Error's toString() is sufficient here.
+  DOMEx[protoProp] = Error[protoProp];
+  classListProto.item = function (i) {
+    return this[i] || null;
+  };
+  classListProto.contains = function (token) {
+    token += "";
+    return checkTokenAndGetIndex(this, token) !== -1;
+  };
+  classListProto.add = function () {
+    var
+        tokens = arguments
+      , i = 0
+      , l = tokens.length
+      , token
+      , updated = false
+    ;
+    do {
+      token = tokens[i] + "";
+      if (checkTokenAndGetIndex(this, token) === -1) {
+        this.push(token);
+        updated = true;
+      }
+    }
+    while (++i < l);
+
+    if (updated) {
+      this._updateClassName();
+    }
+  };
+  classListProto.remove = function () {
+    var
+        tokens = arguments
+      , i = 0
+      , l = tokens.length
+      , token
+      , updated = false
+      , index
+    ;
+    do {
+      token = tokens[i] + "";
+      index = checkTokenAndGetIndex(this, token);
+      while (index !== -1) {
+        this.splice(index, 1);
+        updated = true;
+        index = checkTokenAndGetIndex(this, token);
+      }
+    }
+    while (++i < l);
+
+    if (updated) {
+      this._updateClassName();
+    }
+  };
+  classListProto.toggle = function (token, force) {
+    token += "";
+
+    var
+        result = this.contains(token)
+      , method = result ?
+        force !== true && "remove"
+      :
+        force !== false && "add"
+    ;
+
+    if (method) {
+      this[method](token);
+    }
+
+    if (force === true || force === false) {
+      return force;
+    } else {
+      return !result;
+    }
+  };
+  classListProto.toString = function () {
+    return this.join(" ");
+  };
+
+  if (objCtr.defineProperty) {
+    var classListPropDesc = {
+        get: classListGetter
+      , enumerable: true
+      , configurable: true
+    };
+    try {
+      objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
+    } catch (ex) { // IE 8 doesn't support enumerable:true
+      if (ex.number === -0x7FF5EC54) {
+        classListPropDesc.enumerable = false;
+        objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
+      }
+    }
+  } else if (objCtr[protoProp].__defineGetter__) {
+    elemCtrProto.__defineGetter__(classListProp, classListGetter);
+  }
+
+  }(self));
+}
+
+/* Blob.js
+ * A Blob implementation.
+ * 2014-07-24
+ *
+ * By Eli Grey, http://eligrey.com
+ * By Devin Samarin, https://github.com/dsamarin
+ * License: X11/MIT
+ *   See https://github.com/eligrey/Blob.js/blob/master/LICENSE.md
+ */
+
+/*global self, unescape */
+/*jslint bitwise: true, regexp: true, confusion: true, es5: true, vars: true, white: true,
+  plusplus: true */
+
+/*! @source http://purl.eligrey.com/github/Blob.js/blob/master/Blob.js */
+
+(function (view) {
+  "use strict";
+
+  view.URL = view.URL || view.webkitURL;
+
+  if (view.Blob && view.URL) {
+    try {
+      new Blob;
+      return;
+    } catch (e) {}
+  }
+
+  // Internally we use a BlobBuilder implementation to base Blob off of
+  // in order to support older browsers that only have BlobBuilder
+  var BlobBuilder = view.BlobBuilder || view.WebKitBlobBuilder || view.MozBlobBuilder || (function(view) {
+    var
+        get_class = function(object) {
+        return Object.prototype.toString.call(object).match(/^\[object\s(.*)\]$/)[1];
+      }
+      , FakeBlobBuilder = function BlobBuilder() {
+        this.data = [];
+      }
+      , FakeBlob = function Blob(data, type, encoding) {
+        this.data = data;
+        this.size = data.length;
+        this.type = type;
+        this.encoding = encoding;
+      }
+      , FBB_proto = FakeBlobBuilder.prototype
+      , FB_proto = FakeBlob.prototype
+      , FileReaderSync = view.FileReaderSync
+      , FileException = function(type) {
+        this.code = this[this.name = type];
+      }
+      , file_ex_codes = (
+          "NOT_FOUND_ERR SECURITY_ERR ABORT_ERR NOT_READABLE_ERR ENCODING_ERR "
+        + "NO_MODIFICATION_ALLOWED_ERR INVALID_STATE_ERR SYNTAX_ERR"
+      ).split(" ")
+      , file_ex_code = file_ex_codes.length
+      , real_URL = view.URL || view.webkitURL || view
+      , real_create_object_URL = real_URL.createObjectURL
+      , real_revoke_object_URL = real_URL.revokeObjectURL
+      , URL = real_URL
+      , btoa = view.btoa
+      , atob = view.atob
+
+      , ArrayBuffer = view.ArrayBuffer
+      , Uint8Array = view.Uint8Array
+
+      , origin = /^[\w-]+:\/*\[?[\w\.:-]+\]?(?::[0-9]+)?/
+    ;
+    FakeBlob.fake = FB_proto.fake = true;
+    while (file_ex_code--) {
+      FileException.prototype[file_ex_codes[file_ex_code]] = file_ex_code + 1;
+    }
+    // Polyfill URL
+    if (!real_URL.createObjectURL) {
+      URL = view.URL = function(uri) {
+        var
+            uri_info = document.createElementNS("http://www.w3.org/1999/xhtml", "a")
+          , uri_origin
+        ;
+        uri_info.href = uri;
+        if (!("origin" in uri_info)) {
+          if (uri_info.protocol.toLowerCase() === "data:") {
+            uri_info.origin = null;
+          } else {
+            uri_origin = uri.match(origin);
+            uri_info.origin = uri_origin && uri_origin[1];
+          }
+        }
+        return uri_info;
+      };
+    }
+    URL.createObjectURL = function(blob) {
+      var
+          type = blob.type
+        , data_URI_header
+      ;
+      if (type === null) {
+        type = "application/octet-stream";
+      }
+      if (blob instanceof FakeBlob) {
+        data_URI_header = "data:" + type;
+        if (blob.encoding === "base64") {
+          return data_URI_header + ";base64," + blob.data;
+        } else if (blob.encoding === "URI") {
+          return data_URI_header + "," + decodeURIComponent(blob.data);
+        } if (btoa) {
+          return data_URI_header + ";base64," + btoa(blob.data);
+        } else {
+          return data_URI_header + "," + encodeURIComponent(blob.data);
+        }
+      } else if (real_create_object_URL) {
+        return real_create_object_URL.call(real_URL, blob);
+      }
+    };
+    URL.revokeObjectURL = function(object_URL) {
+      if (object_URL.substring(0, 5) !== "data:" && real_revoke_object_URL) {
+        real_revoke_object_URL.call(real_URL, object_URL);
+      }
+    };
+    FBB_proto.append = function(data/*, endings*/) {
+      var bb = this.data;
+      // decode data to a binary string
+      if (Uint8Array && (data instanceof ArrayBuffer || data instanceof Uint8Array)) {
+        var
+            str = ""
+          , buf = new Uint8Array(data)
+          , i = 0
+          , buf_len = buf.length
+        ;
+        for (; i < buf_len; i++) {
+          str += String.fromCharCode(buf[i]);
+        }
+        bb.push(str);
+      } else if (get_class(data) === "Blob" || get_class(data) === "File") {
+        if (FileReaderSync) {
+          var fr = new FileReaderSync;
+          bb.push(fr.readAsBinaryString(data));
+        } else {
+          // async FileReader won't work as BlobBuilder is sync
+          throw new FileException("NOT_READABLE_ERR");
+        }
+      } else if (data instanceof FakeBlob) {
+        if (data.encoding === "base64" && atob) {
+          bb.push(atob(data.data));
+        } else if (data.encoding === "URI") {
+          bb.push(decodeURIComponent(data.data));
+        } else if (data.encoding === "raw") {
+          bb.push(data.data);
+        }
+      } else {
+        if (typeof data !== "string") {
+          data += ""; // convert unsupported types to strings
+        }
+        // decode UTF-16 to binary string
+        bb.push(unescape(encodeURIComponent(data)));
+      }
+    };
+    FBB_proto.getBlob = function(type) {
+      if (!arguments.length) {
+        type = null;
+      }
+      return new FakeBlob(this.data.join(""), type, "raw");
+    };
+    FBB_proto.toString = function() {
+      return "[object BlobBuilder]";
+    };
+    FB_proto.slice = function(start, end, type) {
+      var args = arguments.length;
+      if (args < 3) {
+        type = null;
+      }
+      return new FakeBlob(
+          this.data.slice(start, args > 1 ? end : this.data.length)
+        , type
+        , this.encoding
+      );
+    };
+    FB_proto.toString = function() {
+      return "[object Blob]";
+    };
+    FB_proto.close = function() {
+      this.size = 0;
+      delete this.data;
+    };
+    return FakeBlobBuilder;
+  }(view));
+
+  view.Blob = function(blobParts, options) {
+    var type = options ? (options.type || "") : "";
+    var builder = new BlobBuilder();
+    if (blobParts) {
+      for (var i = 0, len = blobParts.length; i < len; i++) {
+        if (Uint8Array && blobParts[i] instanceof Uint8Array) {
+          builder.append(blobParts[i].buffer);
+        }
+        else {
+          builder.append(blobParts[i]);
+        }
+      }
+    }
+    var blob = builder.getBlob(type);
+    if (!blob.slice && blob.webkitSlice) {
+      blob.slice = blob.webkitSlice;
+    }
+    return blob;
+  };
+
+  var getPrototypeOf = Object.getPrototypeOf || function(object) {
+    return object.__proto__;
+  };
+  view.Blob.prototype = getPrototypeOf(new view.Blob());
+}(typeof self !== "undefined" && self || typeof window !== "undefined" && window || this.content || this));
+
+(function (root, factory) {
+    'use strict';
+    if (typeof module === 'object') {
+        module.exports = factory;
+    } else if (typeof define === 'function' && define.amd) {
+        define(function () {
+            return factory;
+        });
+    } else {
+        root.MediumEditor = factory;
+    }
+}(this, function () {
+
+    'use strict';
+
 function MediumEditor(elements, options) {
     'use strict';
     return this.init(elements, options);
 }
 
-if (typeof module === 'object') {
-    module.exports = MediumEditor;
-}
-
-(function (window, document) {
+MediumEditor.extensions = {};
+/*jshint unused: true */
+(function (window) {
     'use strict';
 
-    function extend(b, a) {
-        var prop;
-        if (b === undefined) {
-            return a;
-        }
-        for (prop in a) {
-            if (a.hasOwnProperty(prop) && b.hasOwnProperty(prop) === false) {
-                b[prop] = a[prop];
-            }
-        }
-        return b;
-    }
-
-    // http://stackoverflow.com/questions/5605401/insert-link-in-contenteditable-element
-    // by Tim Down
-    function saveSelection() {
-        var i,
-            len,
-            ranges,
-            sel = window.getSelection();
-        if (sel.getRangeAt && sel.rangeCount) {
-            ranges = [];
-            for (i = 0, len = sel.rangeCount; i < len; i += 1) {
-                ranges.push(sel.getRangeAt(i));
-            }
-            return ranges;
-        }
-        return null;
-    }
-
-    function restoreSelection(savedSel) {
-        var i,
-            len,
-            sel = window.getSelection();
-        if (savedSel) {
-            sel.removeAllRanges();
-            for (i = 0, len = savedSel.length; i < len; i += 1) {
-                sel.addRange(savedSel[i]);
-            }
-        }
-    }
-
-    // http://stackoverflow.com/questions/1197401/how-can-i-get-the-element-the-caret-is-in-with-javascript-when-using-contentedi
-    // by You
-    function getSelectionStart() {
-        var node = document.getSelection().anchorNode,
-            startNode = (node && node.nodeType === 3 ? node.parentNode : node);
-        return startNode;
-    }
-
-    // http://stackoverflow.com/questions/4176923/html-of-selected-text
-    // by Tim Down
-    function getSelectionHtml() {
-        var i,
-            html = '',
-            sel,
-            len,
-            container;
-        if (window.getSelection !== undefined) {
-            sel = window.getSelection();
-            if (sel.rangeCount) {
-                container = document.createElement('div');
-                for (i = 0, len = sel.rangeCount; i < len; i += 1) {
-                    container.appendChild(sel.getRangeAt(i).cloneContents());
+    function copyInto(overwrite, dest) {
+        var prop,
+            sources = Array.prototype.slice.call(arguments, 2);
+        dest = dest || {};
+        for (var i = 0; i < sources.length; i++) {
+            var source = sources[i];
+            if (source) {
+                for (prop in source) {
+                    if (source.hasOwnProperty(prop) &&
+                        typeof source[prop] !== 'undefined' &&
+                        (overwrite || dest.hasOwnProperty(prop) === false)) {
+                        dest[prop] = source[prop];
+                    }
                 }
-                html = container.innerHTML;
-            }
-        } else if (document.selection !== undefined) {
-            if (document.selection.type === 'Text') {
-                html = document.selection.createRange().htmlText;
             }
         }
-        return html;
+        return dest;
     }
 
-    // https://github.com/jashkenas/underscore
-    function isElement(obj) {
-        return !!(obj && obj.nodeType === 1);
-    }
+    // https://developer.mozilla.org/en-US/docs/Web/API/Node/contains
+    // Some browsers (including phantom) don't return true for Node.contains(child)
+    // if child is a text node.  Detect these cases here and use a fallback
+    // for calls to Util.isDescendant()
+    var nodeContainsWorksWithTextNodes = false;
+    try {
+        var testParent = document.createElement('div'),
+            testText = document.createTextNode(' ');
+        testParent.appendChild(testText);
+        nodeContainsWorksWithTextNodes = testParent.contains(testText);
+    } catch (exc) {}
 
-    MediumEditor.prototype = {
-        defaults: {
-            allowMultiParagraphSelection: true,
-            anchorInputPlaceholder: 'Paste or type a link',
-            anchorPreviewHideDelay: 500,
-            buttons: ['bold', 'italic', 'underline', 'anchor', 'header1', 'header2', 'quote'],
-            buttonLabels: false,
-            checkLinkFormat: false,
-            cleanPastedHTML: false,
-            delay: 0,
-            diffLeft: 0,
-            diffTop: -10,
-            disableReturn: false,
-            disableDoubleReturn: false,
-            disableToolbar: false,
-            disableEditing: false,
-            elementsContainer: false,
-            firstHeader: 'h3',
-            forcePlainText: true,
-            placeholder: 'Type your text',
-            secondHeader: 'h4',
-            targetBlank: false,
-            extensions: {},
-            activeButtonClass: 'medium-editor-button-active',
-            firstButtonClass: 'medium-editor-button-first',
-            lastButtonClass: 'medium-editor-button-last'
-        },
+    var Util = {
 
         // http://stackoverflow.com/questions/17907445/how-to-detect-ie11#comment30165888_17907562
         // by rg89
         isIE: ((navigator.appName === 'Microsoft Internet Explorer') || ((navigator.appName === 'Netscape') && (new RegExp('Trident/.*rv:([0-9]{1,}[.0-9]{0,})').exec(navigator.userAgent) !== null))),
 
-        init: function (elements, options) {
-            this.setElementSelection(elements);
-            if (this.elements.length === 0) {
+        // http://stackoverflow.com/a/11752084/569101
+        isMac: (window.navigator.platform.toUpperCase().indexOf('MAC') >= 0),
+
+        // https://github.com/jashkenas/underscore
+        keyCode: {
+            BACKSPACE: 8,
+            TAB: 9,
+            ENTER: 13,
+            ESCAPE: 27,
+            SPACE: 32,
+            DELETE: 46,
+            K: 75, // K keycode, and not k
+            M: 77
+        },
+
+        /**
+         * Returns true if it's metaKey on Mac, or ctrlKey on non-Mac.
+         * See #591
+         */
+        isMetaCtrlKey: function (event) {
+            if ((Util.isMac && event.metaKey) || (!Util.isMac && event.ctrlKey)) {
+                return true;
+            }
+
+            return false;
+        },
+
+        /**
+         * Returns true if the key associated to the event is inside keys array
+         *
+         * @see : https://github.com/jquery/jquery/blob/0705be475092aede1eddae01319ec931fb9c65fc/src/event.js#L473-L484
+         * @see : http://stackoverflow.com/q/4471582/569101
+         */
+        isKey: function (event, keys) {
+            var keyCode = Util.getKeyCode(event);
+
+            // it's not an array let's just compare strings!
+            if (false === Array.isArray(keys)) {
+                return keyCode === keys;
+            }
+
+            if (-1 === keys.indexOf(keyCode)) {
+                return false;
+            }
+
+            return true;
+        },
+
+        getKeyCode: function (event) {
+            var keyCode = event.which;
+
+            // getting the key code from event
+            if (null === keyCode) {
+                keyCode = event.charCode !== null ? event.charCode : event.keyCode;
+            }
+
+            return keyCode;
+        },
+
+        blockContainerElementNames: [
+            // elements our editor generates
+            'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'ul', 'li', 'ol',
+            // all other known block elements
+            'address', 'article', 'aside', 'audio', 'canvas', 'dd', 'dl', 'dt', 'fieldset',
+            'figcaption', 'figure', 'footer', 'form', 'header', 'hgroup', 'main', 'nav',
+            'noscript', 'output', 'section', 'video',
+            'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td'
+        ],
+
+        emptyElementNames: ['br', 'col', 'colgroup', 'hr', 'img', 'input', 'source', 'wbr'],
+
+        extend: function extend(/* dest, source1, source2, ...*/) {
+            var args = [true].concat(Array.prototype.slice.call(arguments));
+            return copyInto.apply(this, args);
+        },
+
+        defaults: function defaults(/*dest, source1, source2, ...*/) {
+            var args = [false].concat(Array.prototype.slice.call(arguments));
+            return copyInto.apply(this, args);
+        },
+
+        /*
+         * Create a link around the provided text nodes which must be adjacent to each other and all be
+         * descendants of the same closest block container. If the preconditions are not met, unexpected
+         * behavior will result.
+         */
+        createLink: function (document, textNodes, href, target) {
+            var anchor = document.createElement('a');
+            Util.moveTextRangeIntoElement(textNodes[0], textNodes[textNodes.length - 1], anchor);
+            anchor.setAttribute('href', href);
+            if (target) {
+                anchor.setAttribute('target', target);
+            }
+            return anchor;
+        },
+
+        /*
+         * Given the provided match in the format {start: 1, end: 2} where start and end are indices into the
+         * textContent of the provided element argument, modify the DOM inside element to ensure that the text
+         * identified by the provided match can be returned as text nodes that contain exactly that text, without
+         * any additional text at the beginning or end of the returned array of adjacent text nodes.
+         *
+         * The only DOM manipulation performed by this function is splitting the text nodes, non-text nodes are
+         * not affected in any way.
+         */
+        findOrCreateMatchingTextNodes: function (document, element, match) {
+            var treeWalker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false),
+                matchedNodes = [],
+                currentTextIndex = 0,
+                startReached = false,
+                currentNode = null,
+                newNode = null;
+
+            while ((currentNode = treeWalker.nextNode()) !== null) {
+                if (!startReached && match.start < (currentTextIndex + currentNode.nodeValue.length)) {
+                    startReached = true;
+                    newNode = Util.splitStartNodeIfNeeded(currentNode, match.start, currentTextIndex);
+                }
+                if (startReached) {
+                    Util.splitEndNodeIfNeeded(currentNode, newNode, match.end, currentTextIndex);
+                }
+                if (startReached && currentTextIndex === match.end) {
+                    break; // Found the node(s) corresponding to the link. Break out and move on to the next.
+                } else if (startReached && currentTextIndex > (match.end + 1)) {
+                    throw new Error('PerformLinking overshot the target!'); // should never happen...
+                }
+
+                if (startReached) {
+                    matchedNodes.push(newNode || currentNode);
+                }
+
+                currentTextIndex += currentNode.nodeValue.length;
+                if (newNode !== null) {
+                    currentTextIndex += newNode.nodeValue.length;
+                    // Skip the newNode as we'll already have pushed it to the matches
+                    treeWalker.nextNode();
+                }
+                newNode = null;
+            }
+            return matchedNodes;
+        },
+
+        /*
+         * Given the provided text node and text coordinates, split the text node if needed to make it align
+         * precisely with the coordinates.
+         *
+         * This function is intended to be called from Util.findOrCreateMatchingTextNodes.
+         */
+        splitStartNodeIfNeeded: function (currentNode, matchStartIndex, currentTextIndex) {
+            if (matchStartIndex !== currentTextIndex) {
+                return currentNode.splitText(matchStartIndex - currentTextIndex);
+            }
+            return null;
+        },
+
+        /*
+         * Given the provided text node and text coordinates, split the text node if needed to make it align
+         * precisely with the coordinates. The newNode argument should from the result of Util.splitStartNodeIfNeeded,
+         * if that function has been called on the same currentNode.
+         *
+         * This function is intended to be called from Util.findOrCreateMatchingTextNodes.
+         */
+        splitEndNodeIfNeeded: function (currentNode, newNode, matchEndIndex, currentTextIndex) {
+            var textIndexOfEndOfFarthestNode,
+                endSplitPoint;
+            textIndexOfEndOfFarthestNode = currentTextIndex + (newNode || currentNode).nodeValue.length +
+                    (newNode ? currentNode.nodeValue.length : 0) -
+                    1;
+            endSplitPoint = (newNode || currentNode).nodeValue.length -
+                    (textIndexOfEndOfFarthestNode + 1 - matchEndIndex);
+            if (textIndexOfEndOfFarthestNode >= matchEndIndex &&
+                    currentTextIndex !== textIndexOfEndOfFarthestNode &&
+                    endSplitPoint !== 0) {
+                (newNode || currentNode).splitText(endSplitPoint);
+            }
+        },
+
+        /*
+        * Take an element, and break up all of its text content into unique pieces such that:
+         * 1) All text content of the elements are in separate blocks. No piece of text content should span
+         *    span multiple blocks. This means no element return by this function should have
+         *    any blocks as children.
+         * 2) The union of the textcontent of all of the elements returned here covers all
+         *    of the text within the element.
+         *
+         *
+         * EXAMPLE:
+         * In the event that we have something like:
+         *
+         * <blockquote>
+         *   <p>Some Text</p>
+         *   <ol>
+         *     <li>List Item 1</li>
+         *     <li>List Item 2</li>
+         *   </ol>
+         * </blockquote>
+         *
+         * This function would return these elements as an array:
+         *   [ <p>Some Text</p>, <li>List Item 1</li>, <li>List Item 2</li> ]
+         *
+         * Since the <blockquote> and <ol> elements contain blocks within them they are not returned.
+         * Since the <p> and <li>'s don't contain block elements and cover all the text content of the
+         * <blockquote> container, they are the elements returned.
+         */
+        splitByBlockElements: function (element) {
+            var toRet = [],
+                blockElementQuery = MediumEditor.util.blockContainerElementNames.join(',');
+
+            if (element.nodeType === 3 || element.querySelectorAll(blockElementQuery).length === 0) {
+                return [element];
+            }
+
+            for (var i = 0; i < element.childNodes.length; i++) {
+                var child = element.childNodes[i];
+                if (child.nodeType === 3) {
+                    toRet.push(child);
+                } else {
+                    var blockElements = child.querySelectorAll(blockElementQuery);
+                    if (blockElements.length === 0) {
+                        toRet.push(child);
+                    } else {
+                        toRet = toRet.concat(MediumEditor.util.splitByBlockElements(child));
+                    }
+                }
+            }
+
+            return toRet;
+        },
+
+        // Find the next node in the DOM tree that represents any text that is being
+        // displayed directly next to the targetNode (passed as an argument)
+        // Text that appears directly next to the current node can be:
+        //  - A sibling text node
+        //  - A descendant of a sibling element
+        //  - A sibling text node of an ancestor
+        //  - A descendant of a sibling element of an ancestor
+        findAdjacentTextNodeWithContent: function findAdjacentTextNodeWithContent(rootNode, targetNode, ownerDocument) {
+            var pastTarget = false,
+                nextNode,
+                nodeIterator = ownerDocument.createNodeIterator(rootNode, NodeFilter.SHOW_TEXT, null, false);
+
+            // Use a native NodeIterator to iterate over all the text nodes that are descendants
+            // of the rootNode.  Once past the targetNode, choose the first non-empty text node
+            nextNode = nodeIterator.nextNode();
+            while (nextNode) {
+                if (nextNode === targetNode) {
+                    pastTarget = true;
+                } else if (pastTarget) {
+                    if (nextNode.nodeType === 3 && nextNode.nodeValue && nextNode.nodeValue.trim().length > 0) {
+                        break;
+                    }
+                }
+                nextNode = nodeIterator.nextNode();
+            }
+
+            return nextNode;
+        },
+
+        isDescendant: function isDescendant(parent, child, checkEquality) {
+            if (!parent || !child) {
+                return false;
+            }
+            if (parent === child) {
+                return !!checkEquality;
+            }
+            // If parent is not an element, it can't have any descendants
+            if (parent.nodeType !== 1) {
+                return false;
+            }
+            if (nodeContainsWorksWithTextNodes || child.nodeType !== 3) {
+                return parent.contains(child);
+            }
+            var node = child.parentNode;
+            while (node !== null) {
+                if (node === parent) {
+                    return true;
+                }
+                node = node.parentNode;
+            }
+            return false;
+        },
+
+        // https://github.com/jashkenas/underscore
+        isElement: function isElement(obj) {
+            return !!(obj && obj.nodeType === 1);
+        },
+
+        // https://github.com/jashkenas/underscore
+        throttle: function (func, wait) {
+            var THROTTLE_INTERVAL = 50,
+                context,
+                args,
+                result,
+                timeout = null,
+                previous = 0,
+                later = function () {
+                    previous = Date.now();
+                    timeout = null;
+                    result = func.apply(context, args);
+                    if (!timeout) {
+                        context = args = null;
+                    }
+                };
+
+            if (!wait && wait !== 0) {
+                wait = THROTTLE_INTERVAL;
+            }
+
+            return function () {
+                var now = Date.now(),
+                    remaining = wait - (now - previous);
+
+                context = this;
+                args = arguments;
+                if (remaining <= 0 || remaining > wait) {
+                    if (timeout) {
+                        clearTimeout(timeout);
+                        timeout = null;
+                    }
+                    previous = now;
+                    result = func.apply(context, args);
+                    if (!timeout) {
+                        context = args = null;
+                    }
+                } else if (!timeout) {
+                    timeout = setTimeout(later, remaining);
+                }
+                return result;
+            };
+        },
+
+        traverseUp: function (current, testElementFunction) {
+            if (!current) {
+                return false;
+            }
+
+            do {
+                if (current.nodeType === 1) {
+                    if (testElementFunction(current)) {
+                        return current;
+                    }
+                    // do not traverse upwards past the nearest containing editor
+                    if (Util.isMediumEditorElement(current)) {
+                        return false;
+                    }
+                }
+
+                current = current.parentNode;
+            } while (current);
+
+            return false;
+        },
+
+        htmlEntities: function (str) {
+            // converts special characters (like <) into their escaped/encoded values (like &lt;).
+            // This allows you to show to display the string without the browser reading it as HTML.
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        },
+
+        // http://stackoverflow.com/questions/6690752/insert-html-at-caret-in-a-contenteditable-div
+        insertHTMLCommand: function (doc, html) {
+            var selection, range, el, fragment, node, lastNode, toReplace;
+
+            if (doc.queryCommandSupported('insertHTML')) {
+                try {
+                    return doc.execCommand('insertHTML', false, html);
+                } catch (ignore) {}
+            }
+
+            selection = doc.getSelection();
+            if (selection.rangeCount) {
+                range = selection.getRangeAt(0);
+                toReplace = range.commonAncestorContainer;
+
+                // https://github.com/yabwe/medium-editor/issues/748
+                // If the selection is an empty editor element, create a temporary text node inside of the editor
+                // and select it so that we don't delete the editor element
+                if (Util.isMediumEditorElement(toReplace) && !toReplace.firstChild) {
+                    range.selectNode(toReplace.appendChild(doc.createTextNode('')));
+                } else if ((toReplace.nodeType === 3 && range.startOffset === 0 && range.endOffset === toReplace.nodeValue.length) ||
+                        (toReplace.nodeType !== 3 && toReplace.innerHTML === range.toString())) {
+                    // Ensure range covers maximum amount of nodes as possible
+                    // By moving up the DOM and selecting ancestors whose only child is the range
+                    while (!Util.isMediumEditorElement(toReplace) &&
+                            toReplace.parentNode &&
+                            toReplace.parentNode.childNodes.length === 1 &&
+                            !Util.isMediumEditorElement(toReplace.parentNode)) {
+                        toReplace = toReplace.parentNode;
+                    }
+                    range.selectNode(toReplace);
+                }
+                range.deleteContents();
+
+                el = doc.createElement('div');
+                el.innerHTML = html;
+                fragment = doc.createDocumentFragment();
+                while (el.firstChild) {
+                    node = el.firstChild;
+                    lastNode = fragment.appendChild(node);
+                }
+                range.insertNode(fragment);
+
+                // Preserve the selection:
+                if (lastNode) {
+                    range = range.cloneRange();
+                    range.setStartAfter(lastNode);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+        },
+
+        execFormatBlock: function (doc, tagName) {
+            // Get the top level block element that contains the selection
+            var blockContainer = Util.getTopBlockContainer(MediumEditor.selection.getSelectionStart(doc));
+
+            // Special handling for blockquote
+            if (tagName === 'blockquote') {
+                if (blockContainer) {
+                    var childNodes = Array.prototype.slice.call(blockContainer.childNodes);
+                    // Check if the blockquote has a block element as a child (nested blocks)
+                    if (childNodes.some(function (childNode) {
+                        return Util.isBlockContainer(childNode);
+                    })) {
+                        // FF handles blockquote differently on formatBlock
+                        // allowing nesting, we need to use outdent
+                        // https://developer.mozilla.org/en-US/docs/Rich-Text_Editing_in_Mozilla
+                        return doc.execCommand('outdent', false, null);
+                    }
+                }
+
+                // When IE blockquote needs to be called as indent
+                // http://stackoverflow.com/questions/1816223/rich-text-editor-with-blockquote-function/1821777#1821777
+                if (Util.isIE) {
+                    return doc.execCommand('indent', false, tagName);
+                }
+            }
+
+            // If the blockContainer is already the element type being passed in
+            // treat it as 'undo' formatting and just convert it to a <p>
+            if (blockContainer && tagName === blockContainer.nodeName.toLowerCase()) {
+                tagName = 'p';
+            }
+
+            // When IE we need to add <> to heading elements
+            // http://stackoverflow.com/questions/10741831/execcommand-formatblock-headings-in-ie
+            if (Util.isIE) {
+                tagName = '<' + tagName + '>';
+            }
+            return doc.execCommand('formatBlock', false, tagName);
+        },
+
+        /**
+         * Set target to blank on the given el element
+         *
+         * TODO: not sure if this should be here
+         *
+         * When creating a link (using core -> createLink) the selection returned by Firefox will be the parent of the created link
+         * instead of the created link itself (as it is for Chrome for example), so we retrieve all "a" children to grab the good one by
+         * using `anchorUrl` to ensure that we are adding target="_blank" on the good one.
+         * This isn't a bulletproof solution anyway ..
+         */
+        setTargetBlank: function (el, anchorUrl) {
+            var i, url = anchorUrl || false;
+            if (el.nodeName.toLowerCase() === 'a') {
+                el.target = '_blank';
+            } else {
+                el = el.getElementsByTagName('a');
+
+                for (i = 0; i < el.length; i += 1) {
+                    if (false === url || url === el[i].attributes.href.value) {
+                        el[i].target = '_blank';
+                    }
+                }
+            }
+        },
+
+        addClassToAnchors: function (el, buttonClass) {
+            var classes = buttonClass.split(' '),
+                i,
+                j;
+            if (el.nodeName.toLowerCase() === 'a') {
+                for (j = 0; j < classes.length; j += 1) {
+                    el.classList.add(classes[j]);
+                }
+            } else {
+                el = el.getElementsByTagName('a');
+                for (i = 0; i < el.length; i += 1) {
+                    for (j = 0; j < classes.length; j += 1) {
+                        el[i].classList.add(classes[j]);
+                    }
+                }
+            }
+        },
+
+        isListItem: function (node) {
+            if (!node) {
+                return false;
+            }
+            if (node.nodeName.toLowerCase() === 'li') {
+                return true;
+            }
+
+            var parentNode = node.parentNode,
+                tagName = parentNode.nodeName.toLowerCase();
+            while (tagName === 'li' || (!Util.isBlockContainer(parentNode) && tagName !== 'div')) {
+                if (tagName === 'li') {
+                    return true;
+                }
+                parentNode = parentNode.parentNode;
+                if (parentNode) {
+                    tagName = parentNode.nodeName.toLowerCase();
+                } else {
+                    return false;
+                }
+            }
+            return false;
+        },
+
+        cleanListDOM: function (ownerDocument, element) {
+            if (element.nodeName.toLowerCase() !== 'li') {
                 return;
             }
-            this.parentElements = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre'];
-            this.id = document.querySelectorAll('.medium-editor-toolbar').length + 1;
-            this.options = extend(options, this.defaults);
+
+            var list = element.parentElement;
+
+            if (list.parentElement.nodeName.toLowerCase() === 'p') { // yes we need to clean up
+                Util.unwrap(list.parentElement, ownerDocument);
+
+                // move cursor at the end of the text inside the list
+                // for some unknown reason, the cursor is moved to end of the "visual" line
+                MediumEditor.selection.moveCursor(ownerDocument, element.firstChild, element.firstChild.textContent.length);
+            }
+        },
+
+        /* splitDOMTree
+         *
+         * Given a root element some descendant element, split the root element
+         * into its own element containing the descendant element and all elements
+         * on the left or right side of the descendant ('right' is default)
+         *
+         * example:
+         *
+         *         <div>
+         *      /    |   \
+         *  <span> <span> <span>
+         *   / \    / \    / \
+         *  1   2  3   4  5   6
+         *
+         *  If I wanted to split this tree given the <div> as the root and "4" as the leaf
+         *  the result would be (the prime ' marks indicates nodes that are created as clones):
+         *
+         *   SPLITTING OFF 'RIGHT' TREE       SPLITTING OFF 'LEFT' TREE
+         *
+         *     <div>            <div>'              <div>'      <div>
+         *      / \              / \                 / \          |
+         * <span> <span>   <span>' <span>       <span> <span>   <span>
+         *   / \    |        |      / \           /\     /\       /\
+         *  1   2   3        4     5   6         1  2   3  4     5  6
+         *
+         *  The above example represents splitting off the 'right' or 'left' part of a tree, where
+         *  the <div>' would be returned as an element not appended to the DOM, and the <div>
+         *  would remain in place where it was
+         *
+        */
+        splitOffDOMTree: function (rootNode, leafNode, splitLeft) {
+            var splitOnNode = leafNode,
+                createdNode = null,
+                splitRight = !splitLeft;
+
+            // loop until we hit the root
+            while (splitOnNode !== rootNode) {
+                var currParent = splitOnNode.parentNode,
+                    newParent = currParent.cloneNode(false),
+                    targetNode = (splitRight ? splitOnNode : currParent.firstChild),
+                    appendLast;
+
+                // Create a new parent element which is a clone of the current parent
+                if (createdNode) {
+                    if (splitRight) {
+                        // If we're splitting right, add previous created element before siblings
+                        newParent.appendChild(createdNode);
+                    } else {
+                        // If we're splitting left, add previous created element last
+                        appendLast = createdNode;
+                    }
+                }
+                createdNode = newParent;
+
+                while (targetNode) {
+                    var sibling = targetNode.nextSibling;
+                    // Special handling for the 'splitNode'
+                    if (targetNode === splitOnNode) {
+                        if (!targetNode.hasChildNodes()) {
+                            targetNode.parentNode.removeChild(targetNode);
+                        } else {
+                            // For the node we're splitting on, if it has children, we need to clone it
+                            // and not just move it
+                            targetNode = targetNode.cloneNode(false);
+                        }
+                        // If the resulting split node has content, add it
+                        if (targetNode.textContent) {
+                            createdNode.appendChild(targetNode);
+                        }
+
+                        targetNode = (splitRight ? sibling : null);
+                    } else {
+                        // For general case, just remove the element and only
+                        // add it to the split tree if it contains something
+                        targetNode.parentNode.removeChild(targetNode);
+                        if (targetNode.hasChildNodes() || targetNode.textContent) {
+                            createdNode.appendChild(targetNode);
+                        }
+
+                        targetNode = sibling;
+                    }
+                }
+
+                // If we had an element we wanted to append at the end, do that now
+                if (appendLast) {
+                    createdNode.appendChild(appendLast);
+                }
+
+                splitOnNode = currParent;
+            }
+
+            return createdNode;
+        },
+
+        moveTextRangeIntoElement: function (startNode, endNode, newElement) {
+            if (!startNode || !endNode) {
+                return false;
+            }
+
+            var rootNode = Util.findCommonRoot(startNode, endNode);
+            if (!rootNode) {
+                return false;
+            }
+
+            if (endNode === startNode) {
+                var temp = startNode.parentNode,
+                    sibling = startNode.nextSibling;
+                temp.removeChild(startNode);
+                newElement.appendChild(startNode);
+                if (sibling) {
+                    temp.insertBefore(newElement, sibling);
+                } else {
+                    temp.appendChild(newElement);
+                }
+                return newElement.hasChildNodes();
+            }
+
+            // create rootChildren array which includes all the children
+            // we care about
+            var rootChildren = [],
+                firstChild,
+                lastChild,
+                nextNode;
+            for (var i = 0; i < rootNode.childNodes.length; i++) {
+                nextNode = rootNode.childNodes[i];
+                if (!firstChild) {
+                    if (Util.isDescendant(nextNode, startNode, true)) {
+                        firstChild = nextNode;
+                    }
+                } else {
+                    if (Util.isDescendant(nextNode, endNode, true)) {
+                        lastChild = nextNode;
+                        break;
+                    } else {
+                        rootChildren.push(nextNode);
+                    }
+                }
+            }
+
+            var afterLast = lastChild.nextSibling,
+                fragment = rootNode.ownerDocument.createDocumentFragment();
+
+            // build up fragment on startNode side of tree
+            if (firstChild === startNode) {
+                firstChild.parentNode.removeChild(firstChild);
+                fragment.appendChild(firstChild);
+            } else {
+                fragment.appendChild(Util.splitOffDOMTree(firstChild, startNode));
+            }
+
+            // add any elements between firstChild & lastChild
+            rootChildren.forEach(function (element) {
+                element.parentNode.removeChild(element);
+                fragment.appendChild(element);
+            });
+
+            // build up fragment on endNode side of the tree
+            if (lastChild === endNode) {
+                lastChild.parentNode.removeChild(lastChild);
+                fragment.appendChild(lastChild);
+            } else {
+                fragment.appendChild(Util.splitOffDOMTree(lastChild, endNode, true));
+            }
+
+            // Add fragment into passed in element
+            newElement.appendChild(fragment);
+
+            if (lastChild.parentNode === rootNode) {
+                // If last child is in the root, insert newElement in front of it
+                rootNode.insertBefore(newElement, lastChild);
+            } else if (afterLast) {
+                // If last child was removed, but it had a sibling, insert in front of it
+                rootNode.insertBefore(newElement, afterLast);
+            } else {
+                // lastChild was removed and was the last actual element just append
+                rootNode.appendChild(newElement);
+            }
+
+            return newElement.hasChildNodes();
+        },
+
+        /* based on http://stackoverflow.com/a/6183069 */
+        depthOfNode: function (inNode) {
+            var theDepth = 0,
+                node = inNode;
+            while (node.parentNode !== null) {
+                node = node.parentNode;
+                theDepth++;
+            }
+            return theDepth;
+        },
+
+        findCommonRoot: function (inNode1, inNode2) {
+            var depth1 = Util.depthOfNode(inNode1),
+                depth2 = Util.depthOfNode(inNode2),
+                node1 = inNode1,
+                node2 = inNode2;
+
+            while (depth1 !== depth2) {
+                if (depth1 > depth2) {
+                    node1 = node1.parentNode;
+                    depth1 -= 1;
+                } else {
+                    node2 = node2.parentNode;
+                    depth2 -= 1;
+                }
+            }
+
+            while (node1 !== node2) {
+                node1 = node1.parentNode;
+                node2 = node2.parentNode;
+            }
+
+            return node1;
+        },
+        /* END - based on http://stackoverflow.com/a/6183069 */
+
+        isElementAtBeginningOfBlock: function (node) {
+            var textVal,
+                sibling;
+            while (!Util.isBlockContainer(node) && !Util.isMediumEditorElement(node)) {
+                sibling = node;
+                while (sibling = sibling.previousSibling) {
+                    textVal = sibling.nodeType === 3 ? sibling.nodeValue : sibling.textContent;
+                    if (textVal.length > 0) {
+                        return false;
+                    }
+                }
+                node = node.parentNode;
+            }
+            return true;
+        },
+
+        isMediumEditorElement: function (element) {
+            return element && element.getAttribute && !!element.getAttribute('data-medium-editor-element');
+        },
+
+        getContainerEditorElement: function (element) {
+            return Util.traverseUp(element, function (node) {
+                return Util.isMediumEditorElement(node);
+            });
+        },
+
+        isBlockContainer: function (element) {
+            return element && element.nodeType !== 3 && Util.blockContainerElementNames.indexOf(element.nodeName.toLowerCase()) !== -1;
+        },
+
+        getClosestBlockContainer: function (node) {
+            return Util.traverseUp(node, function (node) {
+                return Util.isBlockContainer(node);
+            });
+        },
+
+        getTopBlockContainer: function (element) {
+            var topBlock = element;
+            Util.traverseUp(element, function (el) {
+                if (Util.isBlockContainer(el)) {
+                    topBlock = el;
+                }
+                return false;
+            });
+            return topBlock;
+        },
+
+        getFirstSelectableLeafNode: function (element) {
+            while (element && element.firstChild) {
+                element = element.firstChild;
+            }
+
+            // We don't want to set the selection to an element that can't have children, this messes up Gecko.
+            element = Util.traverseUp(element, function (el) {
+                return Util.emptyElementNames.indexOf(el.nodeName.toLowerCase()) === -1;
+            });
+            // Selecting at the beginning of a table doesn't work in PhantomJS.
+            if (element.nodeName.toLowerCase() === 'table') {
+                var firstCell = element.querySelector('th, td');
+                if (firstCell) {
+                    element = firstCell;
+                }
+            }
+            return element;
+        },
+
+        getFirstTextNode: function (element) {
+            if (element.nodeType === 3) {
+                return element;
+            }
+
+            for (var i = 0; i < element.childNodes.length; i++) {
+                var textNode = Util.getFirstTextNode(element.childNodes[i]);
+                if (textNode !== null) {
+                    return textNode;
+                }
+            }
+            return null;
+        },
+
+        ensureUrlHasProtocol: function (url) {
+            if (url.indexOf('://') === -1) {
+                return 'http://' + url;
+            }
+            return url;
+        },
+
+        warn: function () {
+            if (window.console !== undefined && typeof window.console.warn === 'function') {
+                window.console.warn.apply(window.console, arguments);
+            }
+        },
+
+        deprecated: function (oldName, newName, version) {
+            // simple deprecation warning mechanism.
+            var m = oldName + ' is deprecated, please use ' + newName + ' instead.';
+            if (version) {
+                m += ' Will be removed in ' + version;
+            }
+            Util.warn(m);
+        },
+
+        deprecatedMethod: function (oldName, newName, args, version) {
+            // run the replacement and warn when someone calls a deprecated method
+            Util.deprecated(oldName, newName, version);
+            if (typeof this[newName] === 'function') {
+                this[newName].apply(this, args);
+            }
+        },
+
+        cleanupAttrs: function (el, attrs) {
+            attrs.forEach(function (attr) {
+                el.removeAttribute(attr);
+            });
+        },
+
+        cleanupTags: function (el, tags) {
+            tags.forEach(function (tag) {
+                if (el.nodeName.toLowerCase() === tag) {
+                    el.parentNode.removeChild(el);
+                }
+            });
+        },
+
+        // get the closest parent
+        getClosestTag: function (el, tag) {
+            return Util.traverseUp(el, function (element) {
+                return element.nodeName.toLowerCase() === tag.toLowerCase();
+            });
+        },
+
+        unwrap: function (el, doc) {
+            var fragment = doc.createDocumentFragment(),
+                nodes = Array.prototype.slice.call(el.childNodes);
+
+            // cast nodeList to array since appending child
+            // to a different node will alter length of el.childNodes
+            for (var i = 0; i < nodes.length; i++) {
+                fragment.appendChild(nodes[i]);
+            }
+
+            if (fragment.childNodes.length) {
+                el.parentNode.replaceChild(fragment, el);
+            } else {
+                el.parentNode.removeChild(el);
+            }
+        }
+    };
+
+    MediumEditor.util = Util;
+}(window));
+
+(function () {
+    'use strict';
+
+    var Extension = function (options) {
+        MediumEditor.util.extend(this, options);
+    };
+
+    Extension.extend = function (protoProps) {
+        // magic extender thinger. mostly borrowed from backbone/goog.inherits
+        // place this function on some thing you want extend-able.
+        //
+        // example:
+        //
+        //      function Thing(args){
+        //          this.options = args;
+        //      }
+        //
+        //      Thing.prototype = { foo: "bar" };
+        //      Thing.extend = extenderify;
+        //
+        //      var ThingTwo = Thing.extend({ foo: "baz" });
+        //
+        //      var thingOne = new Thing(); // foo === "bar"
+        //      var thingTwo = new ThingTwo(); // foo === "baz"
+        //
+        //      which seems like some simply shallow copy nonsense
+        //      at first, but a lot more is going on there.
+        //
+        //      passing a `constructor` to the extend props
+        //      will cause the instance to instantiate through that
+        //      instead of the parent's constructor.
+
+        var parent = this,
+            child;
+
+        // The constructor function for the new subclass is either defined by you
+        // (the "constructor" property in your `extend` definition), or defaulted
+        // by us to simply call the parent's constructor.
+
+        if (protoProps && protoProps.hasOwnProperty('constructor')) {
+            child = protoProps.constructor;
+        } else {
+            child = function () {
+                return parent.apply(this, arguments);
+            };
+        }
+
+        // das statics (.extend comes over, so your subclass can have subclasses too)
+        MediumEditor.util.extend(child, parent);
+
+        // Set the prototype chain to inherit from `parent`, without calling
+        // `parent`'s constructor function.
+        var Surrogate = function () {
+            this.constructor = child;
+        };
+        Surrogate.prototype = parent.prototype;
+        child.prototype = new Surrogate();
+
+        if (protoProps) {
+            MediumEditor.util.extend(child.prototype, protoProps);
+        }
+
+        // todo: $super?
+
+        return child;
+    };
+
+    Extension.prototype = {
+        /* init: [function]
+         *
+         * Called by MediumEditor during initialization.
+         * The .base property will already have been set to
+         * current instance of MediumEditor when this is called.
+         * All helper methods will exist as well
+         */
+        init: function () {},
+
+        /* base: [MediumEditor instance]
+         *
+         * If not overriden, this will be set to the current instance
+         * of MediumEditor, before the init method is called
+         */
+        base: undefined,
+
+        /* name: [string]
+         *
+         * 'name' of the extension, used for retrieving the extension.
+         * If not set, MediumEditor will set this to be the key
+         * used when passing the extension into MediumEditor via the
+         * 'extensions' option
+         */
+        name: undefined,
+
+        /* checkState: [function (node)]
+         *
+         * If implemented, this function will be called one or more times
+         * the state of the editor & toolbar are updated.
+         * When the state is updated, the editor does the following:
+         *
+         * 1) Find the parent node containing the current selection
+         * 2) Call checkState on the extension, passing the node as an argument
+         * 3) Get the parent node of the previous node
+         * 4) Repeat steps #2 and #3 until we move outside the parent contenteditable
+         */
+        checkState: undefined,
+
+        /* destroy: [function ()]
+         *
+         * This method should remove any created html, custom event handlers
+         * or any other cleanup tasks that should be performed.
+         * If implemented, this function will be called when MediumEditor's
+         * destroy method has been called.
+         */
+        destroy: undefined,
+
+        /* As alternatives to checkState, these functions provide a more structured
+         * path to updating the state of an extension (usually a button) whenever
+         * the state of the editor & toolbar are updated.
+         */
+
+        /* queryCommandState: [function ()]
+         *
+         * If implemented, this function will be called once on each extension
+         * when the state of the editor/toolbar is being updated.
+         *
+         * If this function returns a non-null value, the extension will
+         * be ignored as the code climbs the dom tree.
+         *
+         * If this function returns true, and the setActive() function is defined
+         * setActive() will be called
+         */
+        queryCommandState: undefined,
+
+        /* isActive: [function ()]
+         *
+         * If implemented, this function will be called when MediumEditor
+         * has determined that this extension is 'active' for the current selection.
+         * This may be called when the editor & toolbar are being updated,
+         * but only if queryCommandState() or isAlreadyApplied() functions
+         * are implemented, and when called, return true.
+         */
+        isActive: undefined,
+
+        /* isAlreadyApplied: [function (node)]
+         *
+         * If implemented, this function is similar to checkState() in
+         * that it will be called repeatedly as MediumEditor moves up
+         * the DOM to update the editor & toolbar after a state change.
+         *
+         * NOTE: This function will NOT be called if checkState() has
+         * been implemented. This function will NOT be called if
+         * queryCommandState() is implemented and returns a non-null
+         * value when called
+         */
+        isAlreadyApplied: undefined,
+
+        /* setActive: [function ()]
+         *
+         * If implemented, this function is called when MediumEditor knows
+         * that this extension is currently enabled.  Currently, this
+         * function is called when updating the editor & toolbar, and
+         * only if queryCommandState() or isAlreadyApplied(node) return
+         * true when called
+         */
+        setActive: undefined,
+
+        /* setInactive: [function ()]
+         *
+         * If implemented, this function is called when MediumEditor knows
+         * that this extension is currently disabled.  Curently, this
+         * is called at the beginning of each state change for
+         * the editor & toolbar. After calling this, MediumEditor
+         * will attempt to update the extension, either via checkState()
+         * or the combination of queryCommandState(), isAlreadyApplied(node),
+         * isActive(), and setActive()
+         */
+        setInactive: undefined,
+
+        /************************ Helpers ************************
+         * The following are helpers that are either set by MediumEditor
+         * during initialization, or are helper methods which either
+         * route calls to the MediumEditor instance or provide common
+         * functionality for all extensions
+         *********************************************************/
+
+        /* window: [Window]
+         *
+         * If not overriden, this will be set to the window object
+         * to be used by MediumEditor and its extensions.  This is
+         * passed via the 'contentWindow' option to MediumEditor
+         * and is the global 'window' object by default
+         */
+        'window': undefined,
+
+        /* document: [Document]
+         *
+         * If not overriden, this will be set to the document object
+         * to be used by MediumEditor and its extensions. This is
+         * passed via the 'ownerDocument' optin to MediumEditor
+         * and is the global 'document' object by default
+         */
+        'document': undefined,
+
+        /* getEditorElements: [function ()]
+         *
+         * Helper function which returns an array containing
+         * all the contenteditable elements for this instance
+         * of MediumEditor
+         */
+        getEditorElements: function () {
+            return this.base.elements;
+        },
+
+        /* getEditorId: [function ()]
+         *
+         * Helper function which returns a unique identifier
+         * for this instance of MediumEditor
+         */
+        getEditorId: function () {
+            return this.base.id;
+        },
+
+        /* getEditorOptions: [function (option)]
+         *
+         * Helper function which returns the value of an option
+         * used to initialize this instance of MediumEditor
+         */
+        getEditorOption: function (option) {
+            return this.base.options[option];
+        }
+    };
+
+    /* List of method names to add to the prototype of Extension
+     * Each of these methods will be defined as helpers that
+     * just call directly into the MediumEditor instance.
+     *
+     * example for 'on' method:
+     * Extension.prototype.on = function () {
+     *     return this.base.on.apply(this.base, arguments);
+     * }
+     */
+    [
+        // general helpers
+        'execAction',
+
+        // event handling
+        'on',
+        'off',
+        'subscribe',
+        'trigger'
+
+    ].forEach(function (helper) {
+        Extension.prototype[helper] = function () {
+            return this.base[helper].apply(this.base, arguments);
+        };
+    });
+
+    MediumEditor.Extension = Extension;
+})();
+
+(function () {
+    'use strict';
+
+    function filterOnlyParentElements(node) {
+        if (MediumEditor.util.isBlockContainer(node)) {
+            return NodeFilter.FILTER_ACCEPT;
+        } else {
+            return NodeFilter.FILTER_SKIP;
+        }
+    }
+
+    var Selection = {
+        findMatchingSelectionParent: function (testElementFunction, contentWindow) {
+            var selection = contentWindow.getSelection(),
+                range,
+                current;
+
+            if (selection.rangeCount === 0) {
+                return false;
+            }
+
+            range = selection.getRangeAt(0);
+            current = range.commonAncestorContainer;
+
+            return MediumEditor.util.traverseUp(current, testElementFunction);
+        },
+
+        getSelectionElement: function (contentWindow) {
+            return this.findMatchingSelectionParent(function (el) {
+                return MediumEditor.util.isMediumEditorElement(el);
+            }, contentWindow);
+        },
+
+        // http://stackoverflow.com/questions/17678843/cant-restore-selection-after-html-modify-even-if-its-the-same-html
+        // Tim Down
+        exportSelection: function (root, doc) {
+            if (!root) {
+                return null;
+            }
+
+            var selectionState = null,
+                selection = doc.getSelection();
+
+            if (selection.rangeCount > 0) {
+                var range = selection.getRangeAt(0),
+                    preSelectionRange = range.cloneRange(),
+                    start;
+
+                preSelectionRange.selectNodeContents(root);
+                preSelectionRange.setEnd(range.startContainer, range.startOffset);
+                start = preSelectionRange.toString().length;
+
+                selectionState = {
+                    start: start,
+                    end: start + range.toString().length
+                };
+                // If start = 0 there may still be an empty paragraph before it, but we don't care.
+                if (start !== 0) {
+                    var emptyBlocksIndex = this.getIndexRelativeToAdjacentEmptyBlocks(doc, root, range.startContainer, range.startOffset);
+                    if (emptyBlocksIndex !== -1) {
+                        selectionState.emptyBlocksIndex = emptyBlocksIndex;
+                    }
+                }
+            }
+
+            return selectionState;
+        },
+
+        // http://stackoverflow.com/questions/17678843/cant-restore-selection-after-html-modify-even-if-its-the-same-html
+        // Tim Down
+        //
+        // {object} selectionState - the selection to import
+        // {DOMElement} root - the root element the selection is being restored inside of
+        // {Document} doc - the document to use for managing selection
+        // {boolean} [favorLaterSelectionAnchor] - defaults to false. If true, import the cursor immediately
+        //      subsequent to an anchor tag if it would otherwise be placed right at the trailing edge inside the
+        //      anchor. This cursor positioning, even though visually equivalent to the user, can affect behavior
+        //      in MS IE.
+        importSelection: function (selectionState, root, doc, favorLaterSelectionAnchor) {
+            if (!selectionState || !root) {
+                return;
+            }
+
+            var range = doc.createRange();
+            range.setStart(root, 0);
+            range.collapse(true);
+
+            var node = root,
+                nodeStack = [],
+                charIndex = 0,
+                foundStart = false,
+                stop = false,
+                nextCharIndex;
+
+            while (!stop && node) {
+                if (node.nodeType === 3) {
+                    nextCharIndex = charIndex + node.length;
+                    if (!foundStart && selectionState.start >= charIndex && selectionState.start <= nextCharIndex) {
+                        range.setStart(node, selectionState.start - charIndex);
+                        foundStart = true;
+                    }
+                    if (foundStart && selectionState.end >= charIndex && selectionState.end <= nextCharIndex) {
+                        range.setEnd(node, selectionState.end - charIndex);
+                        stop = true;
+                    }
+                    charIndex = nextCharIndex;
+                } else {
+                    var i = node.childNodes.length - 1;
+                    while (i >= 0) {
+                        nodeStack.push(node.childNodes[i]);
+                        i -= 1;
+                    }
+                }
+                if (!stop) {
+                    node = nodeStack.pop();
+                }
+            }
+
+            if (typeof selectionState.emptyBlocksIndex !== 'undefined') {
+                range = this.importSelectionMoveCursorPastBlocks(doc, root, selectionState.emptyBlocksIndex, range);
+            }
+
+            // If the selection is right at the ending edge of a link, put it outside the anchor tag instead of inside.
+            if (favorLaterSelectionAnchor) {
+                range = this.importSelectionMoveCursorPastAnchor(selectionState, range);
+            }
+
+            var sel = doc.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        },
+
+        // Utility method called from importSelection only
+        importSelectionMoveCursorPastAnchor: function (selectionState, range) {
+            var nodeInsideAnchorTagFunction = function (node) {
+                return node.nodeName.toLowerCase() === 'a';
+            };
+            if (selectionState.start === selectionState.end &&
+                    range.startContainer.nodeType === 3 &&
+                    range.startOffset === range.startContainer.nodeValue.length &&
+                    MediumEditor.util.traverseUp(range.startContainer, nodeInsideAnchorTagFunction)) {
+                var prevNode = range.startContainer,
+                    currentNode = range.startContainer.parentNode;
+                while (currentNode !== null && currentNode.nodeName.toLowerCase() !== 'a') {
+                    if (currentNode.childNodes[currentNode.childNodes.length - 1] !== prevNode) {
+                        currentNode = null;
+                    } else {
+                        prevNode = currentNode;
+                        currentNode = currentNode.parentNode;
+                    }
+                }
+                if (currentNode !== null && currentNode.nodeName.toLowerCase() === 'a') {
+                    var currentNodeIndex = null;
+                    for (var i = 0; currentNodeIndex === null && i < currentNode.parentNode.childNodes.length; i++) {
+                        if (currentNode.parentNode.childNodes[i] === currentNode) {
+                            currentNodeIndex = i;
+                        }
+                    }
+                    range.setStart(currentNode.parentNode, currentNodeIndex + 1);
+                    range.collapse(true);
+                }
+            }
+            return range;
+        },
+
+        // Uses the emptyBlocksIndex calculated by getIndexRelativeToAdjacentEmptyBlocks
+        // to move the cursor back to the start of the correct paragraph
+        importSelectionMoveCursorPastBlocks: function (doc, root, index, range) {
+            var treeWalker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, filterOnlyParentElements, false),
+                startContainer = range.startContainer,
+                startBlock,
+                targetNode,
+                currIndex = 0;
+            index = index || 1; // If index is 0, we still want to move to the next block
+
+            // Chrome counts newlines and spaces that separate block elements as actual elements.
+            // If the selection is inside one of these text nodes, and it has a previous sibling
+            // which is a block element, we want the treewalker to start at the previous sibling
+            // and NOT at the parent of the textnode
+            if (startContainer.nodeType === 3 && MediumEditor.util.isBlockContainer(startContainer.previousSibling)) {
+                startBlock = startContainer.previousSibling;
+            } else {
+                startBlock = MediumEditor.util.getClosestBlockContainer(startContainer);
+            }
+
+            // Skip over empty blocks until we hit the block we want the selection to be in
+            while (treeWalker.nextNode()) {
+                if (!targetNode) {
+                    // Loop through all blocks until we hit the starting block element
+                    if (startBlock === treeWalker.currentNode) {
+                        targetNode = treeWalker.currentNode;
+                    }
+                } else {
+                    targetNode = treeWalker.currentNode;
+                    currIndex++;
+                    // We hit the target index, bail
+                    if (currIndex === index) {
+                        break;
+                    }
+                    // If we find a non-empty block, ignore the emptyBlocksIndex and just put selection here
+                    if (targetNode.textContent.length > 0) {
+                        break;
+                    }
+                }
+            }
+
+            // We're selecting a high-level block node, so make sure the cursor gets moved into the deepest
+            // element at the beginning of the block
+            range.setStart(MediumEditor.util.getFirstSelectableLeafNode(targetNode), 0);
+
+            return range;
+        },
+
+        // Returns -1 unless the cursor is at the beginning of a paragraph/block
+        // If the paragraph/block is preceeded by empty paragraphs/block (with no text)
+        // it will return the number of empty paragraphs before the cursor.
+        // Otherwise, it will return 0, which indicates the cursor is at the beginning
+        // of a paragraph/block, and not at the end of the paragraph/block before it
+        getIndexRelativeToAdjacentEmptyBlocks: function (doc, root, cursorContainer, cursorOffset) {
+            // If there is text in front of the cursor, that means there isn't only empty blocks before it
+            if (cursorContainer.textContent.length > 0 && cursorOffset > 0) {
+                return -1;
+            }
+
+            // Check if the block that contains the cursor has any other text in front of the cursor
+            var node = cursorContainer;
+            if (node.nodeType !== 3) {
+                node = cursorContainer.childNodes[cursorOffset];
+            }
+            if (node && !MediumEditor.util.isElementAtBeginningOfBlock(node)) {
+                return -1;
+            }
+
+            // Walk over block elements, counting number of empty blocks between last piece of text
+            // and the block the cursor is in
+            var closestBlock = MediumEditor.util.getClosestBlockContainer(cursorContainer),
+                treeWalker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, filterOnlyParentElements, false),
+                emptyBlocksCount = 0;
+            while (treeWalker.nextNode()) {
+                var blockIsEmpty = treeWalker.currentNode.textContent === '';
+                if (blockIsEmpty || emptyBlocksCount > 0) {
+                    emptyBlocksCount += 1;
+                }
+                if (treeWalker.currentNode === closestBlock) {
+                    return emptyBlocksCount;
+                }
+                if (!blockIsEmpty) {
+                    emptyBlocksCount = 0;
+                }
+            }
+
+            return emptyBlocksCount;
+        },
+
+        selectionInContentEditableFalse: function (contentWindow) {
+            // determine if the current selection is exclusively inside
+            // a contenteditable="false", though treat the case of an
+            // explicit contenteditable="true" inside a "false" as false.
+            var sawtrue,
+                sawfalse = this.findMatchingSelectionParent(function (el) {
+                    var ce = el && el.getAttribute('contenteditable');
+                    if (ce === 'true') {
+                        sawtrue = true;
+                    }
+                    return el.nodeName !== '#text' && ce === 'false';
+                }, contentWindow);
+
+            return !sawtrue && sawfalse;
+        },
+
+        // http://stackoverflow.com/questions/4176923/html-of-selected-text
+        // by Tim Down
+        getSelectionHtml: function getSelectionHtml(doc) {
+            var i,
+                html = '',
+                sel = doc.getSelection(),
+                len,
+                container;
+            if (sel.rangeCount) {
+                container = doc.createElement('div');
+                for (i = 0, len = sel.rangeCount; i < len; i += 1) {
+                    container.appendChild(sel.getRangeAt(i).cloneContents());
+                }
+                html = container.innerHTML;
+            }
+            return html;
+        },
+
+        /**
+         *  Find the caret position within an element irrespective of any inline tags it may contain.
+         *
+         *  @param {DOMElement} An element containing the cursor to find offsets relative to.
+         *  @param {Range} A Range representing cursor position. Will window.getSelection if none is passed.
+         *  @return {Object} 'left' and 'right' attributes contain offsets from begining and end of Element
+         */
+        getCaretOffsets: function getCaretOffsets(element, range) {
+            var preCaretRange, postCaretRange;
+
+            if (!range) {
+                range = window.getSelection().getRangeAt(0);
+            }
+
+            preCaretRange = range.cloneRange();
+            postCaretRange = range.cloneRange();
+
+            preCaretRange.selectNodeContents(element);
+            preCaretRange.setEnd(range.endContainer, range.endOffset);
+
+            postCaretRange.selectNodeContents(element);
+            postCaretRange.setStart(range.endContainer, range.endOffset);
+
+            return {
+                left: preCaretRange.toString().length,
+                right: postCaretRange.toString().length
+            };
+        },
+
+        // http://stackoverflow.com/questions/15867542/range-object-get-selection-parent-node-chrome-vs-firefox
+        rangeSelectsSingleNode: function (range) {
+            var startNode = range.startContainer;
+            return startNode === range.endContainer &&
+                startNode.hasChildNodes() &&
+                range.endOffset === range.startOffset + 1;
+        },
+
+        getSelectedParentElement: function (range) {
+            if (!range) {
+                return null;
+            }
+
+            // Selection encompasses a single element
+            if (this.rangeSelectsSingleNode(range) && range.startContainer.childNodes[range.startOffset].nodeType !== 3) {
+                return range.startContainer.childNodes[range.startOffset];
+            }
+
+            // Selection range starts inside a text node, so get its parent
+            if (range.startContainer.nodeType === 3) {
+                return range.startContainer.parentNode;
+            }
+
+            // Selection starts inside an element
+            return range.startContainer;
+        },
+
+        getSelectedElements: function (doc) {
+            var selection = doc.getSelection(),
+                range,
+                toRet,
+                currNode;
+
+            if (!selection.rangeCount || selection.isCollapsed || !selection.getRangeAt(0).commonAncestorContainer) {
+                return [];
+            }
+
+            range = selection.getRangeAt(0);
+
+            if (range.commonAncestorContainer.nodeType === 3) {
+                toRet = [];
+                currNode = range.commonAncestorContainer;
+                while (currNode.parentNode && currNode.parentNode.childNodes.length === 1) {
+                    toRet.push(currNode.parentNode);
+                    currNode = currNode.parentNode;
+                }
+
+                return toRet;
+            }
+
+            return [].filter.call(range.commonAncestorContainer.getElementsByTagName('*'), function (el) {
+                return (typeof selection.containsNode === 'function') ? selection.containsNode(el, true) : true;
+            });
+        },
+
+        selectNode: function (node, doc) {
+            var range = doc.createRange(),
+                sel = doc.getSelection();
+
+            range.selectNodeContents(node);
+            sel.removeAllRanges();
+            sel.addRange(range);
+        },
+
+        select: function (doc, startNode, startOffset, endNode, endOffset) {
+            doc.getSelection().removeAllRanges();
+            var range = doc.createRange();
+            range.setStart(startNode, startOffset);
+            if (endNode) {
+                range.setEnd(endNode, endOffset);
+            } else {
+                range.collapse(true);
+            }
+            doc.getSelection().addRange(range);
+            return range;
+        },
+
+        /**
+         * Move cursor to the given node with the given offset.
+         *
+         * @param  {DomDocument} doc     Current document
+         * @param  {DomElement}  node    Element where to jump
+         * @param  {integer}     offset  Where in the element should we jump, 0 by default
+         */
+        moveCursor: function (doc, node, offset) {
+            this.select(doc, node, offset);
+        },
+
+        getSelectionRange: function (ownerDocument) {
+            var selection = ownerDocument.getSelection();
+            if (selection.rangeCount === 0) {
+                return null;
+            }
+            return selection.getRangeAt(0);
+        },
+
+        // http://stackoverflow.com/questions/1197401/how-can-i-get-the-element-the-caret-is-in-with-javascript-when-using-contentedi
+        // by You
+        getSelectionStart: function (ownerDocument) {
+            var node = ownerDocument.getSelection().anchorNode,
+                startNode = (node && node.nodeType === 3 ? node.parentNode : node);
+
+            return startNode;
+        }
+    };
+
+    MediumEditor.selection = Selection;
+}());
+
+(function () {
+    'use strict';
+
+    var Events = function (instance) {
+        this.base = instance;
+        this.options = this.base.options;
+        this.events = [];
+        this.disabledEvents = {};
+        this.customEvents = {};
+        this.listeners = {};
+    };
+
+    Events.prototype = {
+        InputEventOnContenteditableSupported: !MediumEditor.util.isIE,
+
+        // Helpers for event handling
+
+        attachDOMEvent: function (target, event, listener, useCapture) {
+            target.addEventListener(event, listener, useCapture);
+            this.events.push([target, event, listener, useCapture]);
+        },
+
+        detachDOMEvent: function (target, event, listener, useCapture) {
+            var index = this.indexOfListener(target, event, listener, useCapture),
+                e;
+            if (index !== -1) {
+                e = this.events.splice(index, 1)[0];
+                e[0].removeEventListener(e[1], e[2], e[3]);
+            }
+        },
+
+        indexOfListener: function (target, event, listener, useCapture) {
+            var i, n, item;
+            for (i = 0, n = this.events.length; i < n; i = i + 1) {
+                item = this.events[i];
+                if (item[0] === target && item[1] === event && item[2] === listener && item[3] === useCapture) {
+                    return i;
+                }
+            }
+            return -1;
+        },
+
+        detachAllDOMEvents: function () {
+            var e = this.events.pop();
+            while (e) {
+                e[0].removeEventListener(e[1], e[2], e[3]);
+                e = this.events.pop();
+            }
+        },
+
+        enableCustomEvent: function (event) {
+            if (this.disabledEvents[event] !== undefined) {
+                delete this.disabledEvents[event];
+            }
+        },
+
+        disableCustomEvent: function (event) {
+            this.disabledEvents[event] = true;
+        },
+
+        // custom events
+        attachCustomEvent: function (event, listener) {
+            this.setupListener(event);
+            if (!this.customEvents[event]) {
+                this.customEvents[event] = [];
+            }
+            this.customEvents[event].push(listener);
+        },
+
+        detachCustomEvent: function (event, listener) {
+            var index = this.indexOfCustomListener(event, listener);
+            if (index !== -1) {
+                this.customEvents[event].splice(index, 1);
+                // TODO: If array is empty, should detach internal listeners via destroyListener()
+            }
+        },
+
+        indexOfCustomListener: function (event, listener) {
+            if (!this.customEvents[event] || !this.customEvents[event].length) {
+                return -1;
+            }
+
+            return this.customEvents[event].indexOf(listener);
+        },
+
+        detachAllCustomEvents: function () {
+            this.customEvents = {};
+            // TODO: Should detach internal listeners here via destroyListener()
+        },
+
+        triggerCustomEvent: function (name, data, editable) {
+            if (this.customEvents[name] && !this.disabledEvents[name]) {
+                this.customEvents[name].forEach(function (listener) {
+                    listener(data, editable);
+                });
+            }
+        },
+
+        // Cleaning up
+
+        destroy: function () {
+            this.detachAllDOMEvents();
+            this.detachAllCustomEvents();
+            this.detachExecCommand();
+
+            if (this.base.elements) {
+                this.base.elements.forEach(function (element) {
+                    element.removeAttribute('data-medium-focused');
+                });
+            }
+        },
+
+        // Listening to calls to document.execCommand
+
+        // Attach a listener to be notified when document.execCommand is called
+        attachToExecCommand: function () {
+            if (this.execCommandListener) {
+                return;
+            }
+
+            // Store an instance of the listener so:
+            // 1) We only attach to execCommand once
+            // 2) We can remove the listener later
+            this.execCommandListener = function (execInfo) {
+                this.handleDocumentExecCommand(execInfo);
+            }.bind(this);
+
+            // Ensure that execCommand has been wrapped correctly
+            this.wrapExecCommand();
+
+            // Add listener to list of execCommand listeners
+            this.options.ownerDocument.execCommand.listeners.push(this.execCommandListener);
+        },
+
+        // Remove our listener for calls to document.execCommand
+        detachExecCommand: function () {
+            var doc = this.options.ownerDocument;
+            if (!this.execCommandListener || !doc.execCommand.listeners) {
+                return;
+            }
+
+            // Find the index of this listener in the array of listeners so it can be removed
+            var index = doc.execCommand.listeners.indexOf(this.execCommandListener);
+            if (index !== -1) {
+                doc.execCommand.listeners.splice(index, 1);
+            }
+
+            // If the list of listeners is now empty, put execCommand back to its original state
+            if (!doc.execCommand.listeners.length) {
+                this.unwrapExecCommand();
+            }
+        },
+
+        // Wrap document.execCommand in a custom method so we can listen to calls to it
+        wrapExecCommand: function () {
+            var doc = this.options.ownerDocument;
+
+            // Ensure all instance of MediumEditor only wrap execCommand once
+            if (doc.execCommand.listeners) {
+                return;
+            }
+
+            // Create a wrapper method for execCommand which will:
+            // 1) Call document.execCommand with the correct arguments
+            // 2) Loop through any listeners and notify them that execCommand was called
+            //    passing extra info on the call
+            // 3) Return the result
+            var wrapper = function (aCommandName, aShowDefaultUI, aValueArgument) {
+                var result = doc.execCommand.orig.apply(this, arguments);
+
+                if (!doc.execCommand.listeners) {
+                    return result;
+                }
+
+                var args = Array.prototype.slice.call(arguments);
+                doc.execCommand.listeners.forEach(function (listener) {
+                    listener({
+                        command: aCommandName,
+                        value: aValueArgument,
+                        args: args,
+                        result: result
+                    });
+                });
+
+                return result;
+            };
+
+            // Store a reference to the original execCommand
+            wrapper.orig = doc.execCommand;
+
+            // Attach an array for storing listeners
+            wrapper.listeners = [];
+
+            // Overwrite execCommand
+            doc.execCommand = wrapper;
+        },
+
+        // Revert document.execCommand back to its original self
+        unwrapExecCommand: function () {
+            var doc = this.options.ownerDocument;
+            if (!doc.execCommand.orig) {
+                return;
+            }
+
+            // Use the reference to the original execCommand to revert back
+            doc.execCommand = doc.execCommand.orig;
+        },
+
+        // Listening to browser events to emit events medium-editor cares about
+        setupListener: function (name) {
+            if (this.listeners[name]) {
+                return;
+            }
+
+            switch (name) {
+                case 'externalInteraction':
+                    // Detecting when user has interacted with elements outside of MediumEditor
+                    this.attachDOMEvent(this.options.ownerDocument.body, 'mousedown', this.handleBodyMousedown.bind(this), true);
+                    this.attachDOMEvent(this.options.ownerDocument.body, 'click', this.handleBodyClick.bind(this), true);
+                    this.attachDOMEvent(this.options.ownerDocument.body, 'focus', this.handleBodyFocus.bind(this), true);
+                    break;
+                case 'blur':
+                    // Detecting when focus is lost
+                    this.setupListener('externalInteraction');
+                    break;
+                case 'focus':
+                    // Detecting when focus moves into some part of MediumEditor
+                    this.setupListener('externalInteraction');
+                    break;
+                case 'editableInput':
+                    // setup cache for knowing when the content has changed
+                    this.contentCache = [];
+                    this.base.elements.forEach(function (element) {
+                        this.contentCache[element.getAttribute('medium-editor-index')] = element.innerHTML;
+
+                        // Attach to the 'oninput' event, handled correctly by most browsers
+                        if (this.InputEventOnContenteditableSupported) {
+                            this.attachDOMEvent(element, 'input', this.handleInput.bind(this));
+                        }
+                    }.bind(this));
+
+                    // For browsers which don't support the input event on contenteditable (IE)
+                    // we'll attach to 'selectionchange' on the document and 'keypress' on the editables
+                    if (!this.InputEventOnContenteditableSupported) {
+                        this.setupListener('editableKeypress');
+                        this.keypressUpdateInput = true;
+                        this.attachDOMEvent(document, 'selectionchange', this.handleDocumentSelectionChange.bind(this));
+                        // Listen to calls to execCommand
+                        this.attachToExecCommand();
+                    }
+                    break;
+                case 'editableClick':
+                    // Detecting click in the contenteditables
+                    this.attachToEachElement('click', this.handleClick);
+                    break;
+                case 'editableBlur':
+                    // Detecting blur in the contenteditables
+                    this.attachToEachElement('blur', this.handleBlur);
+                    break;
+                case 'editableKeypress':
+                    // Detecting keypress in the contenteditables
+                    this.attachToEachElement('keypress', this.handleKeypress);
+                    break;
+                case 'editableKeyup':
+                    // Detecting keyup in the contenteditables
+                    this.attachToEachElement('keyup', this.handleKeyup);
+                    break;
+                case 'editableKeydown':
+                    // Detecting keydown on the contenteditables
+                    this.attachToEachElement('keydown', this.handleKeydown);
+                    break;
+                case 'editableKeydownEnter':
+                    // Detecting keydown for ENTER on the contenteditables
+                    this.setupListener('editableKeydown');
+                    break;
+                case 'editableKeydownTab':
+                    // Detecting keydown for TAB on the contenteditable
+                    this.setupListener('editableKeydown');
+                    break;
+                case 'editableKeydownDelete':
+                    // Detecting keydown for DELETE/BACKSPACE on the contenteditables
+                    this.setupListener('editableKeydown');
+                    break;
+                case 'editableMouseover':
+                    // Detecting mouseover on the contenteditables
+                    this.attachToEachElement('mouseover', this.handleMouseover);
+                    break;
+                case 'editableDrag':
+                    // Detecting dragover and dragleave on the contenteditables
+                    this.attachToEachElement('dragover', this.handleDragging);
+                    this.attachToEachElement('dragleave', this.handleDragging);
+                    break;
+                case 'editableDrop':
+                    // Detecting drop on the contenteditables
+                    this.attachToEachElement('drop', this.handleDrop);
+                    break;
+                case 'editablePaste':
+                    // Detecting paste on the contenteditables
+                    this.attachToEachElement('paste', this.handlePaste);
+                    break;
+            }
+            this.listeners[name] = true;
+        },
+
+        attachToEachElement: function (name, handler) {
+            this.base.elements.forEach(function (element) {
+                this.attachDOMEvent(element, name, handler.bind(this));
+            }, this);
+        },
+
+        focusElement: function (element) {
+            element.focus();
+            this.updateFocus(element, { target: element, type: 'focus' });
+        },
+
+        updateFocus: function (target, eventObj) {
+            var toolbar = this.base.getExtensionByName('toolbar'),
+                toolbarEl = toolbar ? toolbar.getToolbarElement() : null,
+                anchorPreview = this.base.getExtensionByName('anchor-preview'),
+                previewEl = (anchorPreview && anchorPreview.getPreviewElement) ? anchorPreview.getPreviewElement() : null,
+                hadFocus = this.base.getFocusedElement(),
+                toFocus;
+
+            // For clicks, we need to know if the mousedown that caused the click happened inside the existing focused element.
+            // If so, we don't want to focus another element
+            if (hadFocus &&
+                    eventObj.type === 'click' &&
+                    this.lastMousedownTarget &&
+                    (MediumEditor.util.isDescendant(hadFocus, this.lastMousedownTarget, true) ||
+                     MediumEditor.util.isDescendant(toolbarEl, this.lastMousedownTarget, true) ||
+                     MediumEditor.util.isDescendant(previewEl, this.lastMousedownTarget, true))) {
+                toFocus = hadFocus;
+            }
+
+            if (!toFocus) {
+                this.base.elements.some(function (element) {
+                    // If the target is part of an editor element, this is the element getting focus
+                    if (!toFocus && (MediumEditor.util.isDescendant(element, target, true))) {
+                        toFocus = element;
+                    }
+
+                    // bail if we found an element that's getting focus
+                    return !!toFocus;
+                }, this);
+            }
+
+            // Check if the target is external (not part of the editor, toolbar, or anchorpreview)
+            var externalEvent = !MediumEditor.util.isDescendant(hadFocus, target, true) &&
+                                !MediumEditor.util.isDescendant(toolbarEl, target, true) &&
+                                !MediumEditor.util.isDescendant(previewEl, target, true);
+
+            if (toFocus !== hadFocus) {
+                // If element has focus, and focus is going outside of editor
+                // Don't blur focused element if clicking on editor, toolbar, or anchorpreview
+                if (hadFocus && externalEvent) {
+                    // Trigger blur on the editable that has lost focus
+                    hadFocus.removeAttribute('data-medium-focused');
+                    this.triggerCustomEvent('blur', eventObj, hadFocus);
+                }
+
+                // If focus is going into an editor element
+                if (toFocus) {
+                    // Trigger focus on the editable that now has focus
+                    toFocus.setAttribute('data-medium-focused', true);
+                    this.triggerCustomEvent('focus', eventObj, toFocus);
+                }
+            }
+
+            if (externalEvent) {
+                this.triggerCustomEvent('externalInteraction', eventObj);
+            }
+        },
+
+        updateInput: function (target, eventObj) {
+            if (!this.contentCache) {
+                return;
+            }
+            // An event triggered which signifies that the user may have changed someting
+            // Look in our cache of input for the contenteditables to see if something changed
+            var index = target.getAttribute('medium-editor-index');
+            if (target.innerHTML !== this.contentCache[index]) {
+                // The content has changed since the last time we checked, fire the event
+                this.triggerCustomEvent('editableInput', eventObj, target);
+            }
+            this.contentCache[index] = target.innerHTML;
+        },
+
+        handleDocumentSelectionChange: function (event) {
+            // When selectionchange fires, target and current target are set
+            // to document, since this is where the event is handled
+            // However, currentTarget will have an 'activeElement' property
+            // which will point to whatever element has focus.
+            if (event.currentTarget && event.currentTarget.activeElement) {
+                var activeElement = event.currentTarget.activeElement,
+                    currentTarget;
+                // We can look at the 'activeElement' to determine if the selectionchange has
+                // happened within a contenteditable owned by this instance of MediumEditor
+                this.base.elements.some(function (element) {
+                    if (MediumEditor.util.isDescendant(element, activeElement, true)) {
+                        currentTarget = element;
+                        return true;
+                    }
+                    return false;
+                }, this);
+
+                // We know selectionchange fired within one of our contenteditables
+                if (currentTarget) {
+                    this.updateInput(currentTarget, { target: activeElement, currentTarget: currentTarget });
+                }
+            }
+        },
+
+        handleDocumentExecCommand: function () {
+            // document.execCommand has been called
+            // If one of our contenteditables currently has focus, we should
+            // attempt to trigger the 'editableInput' event
+            var target = this.base.getFocusedElement();
+            if (target) {
+                this.updateInput(target, { target: target, currentTarget: target });
+            }
+        },
+
+        handleBodyClick: function (event) {
+            this.updateFocus(event.target, event);
+        },
+
+        handleBodyFocus: function (event) {
+            this.updateFocus(event.target, event);
+        },
+
+        handleBodyMousedown: function (event) {
+            this.lastMousedownTarget = event.target;
+        },
+
+        handleInput: function (event) {
+            this.updateInput(event.currentTarget, event);
+        },
+
+        handleClick: function (event) {
+            this.triggerCustomEvent('editableClick', event, event.currentTarget);
+        },
+
+        handleBlur: function (event) {
+            this.triggerCustomEvent('editableBlur', event, event.currentTarget);
+        },
+
+        handleKeypress: function (event) {
+            this.triggerCustomEvent('editableKeypress', event, event.currentTarget);
+
+            // If we're doing manual detection of the editableInput event we need
+            // to check for input changes during 'keypress'
+            if (this.keypressUpdateInput) {
+                var eventObj = { target: event.target, currentTarget: event.currentTarget };
+
+                // In IE, we need to let the rest of the event stack complete before we detect
+                // changes to input, so using setTimeout here
+                setTimeout(function () {
+                    this.updateInput(eventObj.currentTarget, eventObj);
+                }.bind(this), 0);
+            }
+        },
+
+        handleKeyup: function (event) {
+            this.triggerCustomEvent('editableKeyup', event, event.currentTarget);
+        },
+
+        handleMouseover: function (event) {
+            this.triggerCustomEvent('editableMouseover', event, event.currentTarget);
+        },
+
+        handleDragging: function (event) {
+            this.triggerCustomEvent('editableDrag', event, event.currentTarget);
+        },
+
+        handleDrop: function (event) {
+            this.triggerCustomEvent('editableDrop', event, event.currentTarget);
+        },
+
+        handlePaste: function (event) {
+            this.triggerCustomEvent('editablePaste', event, event.currentTarget);
+        },
+
+        handleKeydown: function (event) {
+            this.triggerCustomEvent('editableKeydown', event, event.currentTarget);
+
+            if (MediumEditor.util.isKey(event, MediumEditor.util.keyCode.ENTER) || (event.ctrlKey && MediumEditor.util.isKey(event, MediumEditor.util.keyCode.M))) {
+                return this.triggerCustomEvent('editableKeydownEnter', event, event.currentTarget);
+            }
+
+            if (MediumEditor.util.isKey(event, MediumEditor.util.keyCode.TAB)) {
+                return this.triggerCustomEvent('editableKeydownTab', event, event.currentTarget);
+            }
+
+            if (MediumEditor.util.isKey(event, [MediumEditor.util.keyCode.DELETE, MediumEditor.util.keyCode.BACKSPACE])) {
+                return this.triggerCustomEvent('editableKeydownDelete', event, event.currentTarget);
+            }
+        }
+    };
+
+    MediumEditor.Events = Events;
+}());
+
+(function () {
+    'use strict';
+
+    var Button = MediumEditor.Extension.extend({
+
+        /* Button Options */
+
+        /* action: [string]
+         * The action argument to pass to MediumEditor.execAction()
+         * when the button is clicked
+         */
+        action: undefined,
+
+        /* aria: [string]
+         * The value to add as the aria-label attribute of the button
+         * element displayed in the toolbar.
+         * This is also used as the tooltip for the button
+         */
+        aria: undefined,
+
+        /* tagNames: [Array]
+         * NOTE: This is not used if useQueryState is set to true.
+         *
+         * Array of element tag names that would indicate that this
+         * button has already been applied. If this action has already
+         * been applied, the button will be displayed as 'active' in the toolbar
+         *
+         * Example:
+         * For 'bold', if the text is ever within a <b> or <strong>
+         * tag that indicates the text is already bold. So the array
+         * of tagNames for bold would be: ['b', 'strong']
+         */
+        tagNames: undefined,
+
+        /* style: [Object]
+         * NOTE: This is not used if useQueryState is set to true.
+         *
+         * A pair of css property & value(s) that indicate that this
+         * button has already been applied. If this action has already
+         * been applied, the button will be displayed as 'active' in the toolbar
+         * Properties of the object:
+         *   prop [String]: name of the css property
+         *   value [String]: value(s) of the css property
+         *                   multiple values can be separated by a '|'
+         *
+         * Example:
+         * For 'bold', if the text is ever within an element with a 'font-weight'
+         * style property set to '700' or 'bold', that indicates the text
+         * is already bold.  So the style object for bold would be:
+         * { prop: 'font-weight', value: '700|bold' }
+         */
+        style: undefined,
+
+        /* useQueryState: [boolean]
+         * Enables/disables whether this button should use the built-in
+         * document.queryCommandState() method to determine whether
+         * the action has already been applied.  If the action has already
+         * been applied, the button will be displayed as 'active' in the toolbar
+         *
+         * Example:
+         * For 'bold', if this is set to true, the code will call:
+         * document.queryCommandState('bold') which will return true if the
+         * browser thinks the text is already bold, and false otherwise
+         */
+        useQueryState: undefined,
+
+        /* contentDefault: [string]
+         * Default innerHTML to put inside the button
+         */
+        contentDefault: undefined,
+
+        /* contentFA: [string]
+         * The innerHTML to use for the content of the button
+         * if the `buttonLabels` option for MediumEditor is set to 'fontawesome'
+         */
+        contentFA: undefined,
+
+        /* classList: [Array]
+         * An array of classNames (strings) to be added to the button
+         */
+        classList: undefined,
+
+        /* attrs: [object]
+         * A set of key-value pairs to add to the button as custom attributes
+         */
+        attrs: undefined,
+
+        // The button constructor can optionally accept the name of a built-in button
+        // (ie 'bold', 'italic', etc.)
+        // When the name of a button is passed, it will initialize itself with the
+        // configuration for that button
+        constructor: function (options) {
+            if (Button.isBuiltInButton(options)) {
+                MediumEditor.Extension.call(this, this.defaults[options]);
+            } else {
+                MediumEditor.Extension.call(this, options);
+            }
+        },
+
+        init: function () {
+            MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+            this.button = this.createButton();
+            this.on(this.button, 'click', this.handleClick.bind(this));
+        },
+
+        /* getButton: [function ()]
+         *
+         * If implemented, this function will be called when
+         * the toolbar is being created.  The DOM Element returned
+         * by this function will be appended to the toolbar along
+         * with any other buttons.
+         */
+        getButton: function () {
+            return this.button;
+        },
+
+        getAction: function () {
+            return (typeof this.action === 'function') ? this.action(this.base.options) : this.action;
+        },
+
+        getAria: function () {
+            return (typeof this.aria === 'function') ? this.aria(this.base.options) : this.aria;
+        },
+
+        getTagNames: function () {
+            return (typeof this.tagNames === 'function') ? this.tagNames(this.base.options) : this.tagNames;
+        },
+
+        createButton: function () {
+            var button = this.document.createElement('button'),
+                content = this.contentDefault,
+                ariaLabel = this.getAria(),
+                buttonLabels = this.getEditorOption('buttonLabels');
+            // Add class names
+            button.classList.add('medium-editor-action');
+            button.classList.add('medium-editor-action-' + this.name);
+            if (this.classList) {
+                this.classList.forEach(function (className) {
+                    button.classList.add(className);
+                });
+            }
+
+            // Add attributes
+            button.setAttribute('data-action', this.getAction());
+            if (ariaLabel) {
+                button.setAttribute('title', ariaLabel);
+                button.setAttribute('aria-label', ariaLabel);
+            }
+            if (this.attrs) {
+                Object.keys(this.attrs).forEach(function (attr) {
+                    button.setAttribute(attr, this.attrs[attr]);
+                }, this);
+            }
+
+            if (buttonLabels === 'fontawesome' && this.contentFA) {
+                content = this.contentFA;
+            }
+            button.innerHTML = content;
+            return button;
+        },
+
+        handleClick: function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            var action = this.getAction();
+
+            if (action) {
+                this.execAction(action);
+            }
+        },
+
+        isActive: function () {
+            return this.button.classList.contains(this.getEditorOption('activeButtonClass'));
+        },
+
+        setInactive: function () {
+            this.button.classList.remove(this.getEditorOption('activeButtonClass'));
+            delete this.knownState;
+        },
+
+        setActive: function () {
+            this.button.classList.add(this.getEditorOption('activeButtonClass'));
+            delete this.knownState;
+        },
+
+        queryCommandState: function () {
+            var queryState = null;
+            if (this.useQueryState) {
+                queryState = this.base.queryCommandState(this.getAction());
+            }
+            return queryState;
+        },
+
+        isAlreadyApplied: function (node) {
+            var isMatch = false,
+                tagNames = this.getTagNames(),
+                styleVals,
+                computedStyle;
+
+            if (this.knownState === false || this.knownState === true) {
+                return this.knownState;
+            }
+
+            if (tagNames && tagNames.length > 0) {
+                isMatch = tagNames.indexOf(node.nodeName.toLowerCase()) !== -1;
+            }
+
+            if (!isMatch && this.style) {
+                styleVals = this.style.value.split('|');
+                computedStyle = this.window.getComputedStyle(node, null).getPropertyValue(this.style.prop);
+                styleVals.forEach(function (val) {
+                    if (!this.knownState) {
+                        isMatch = (computedStyle.indexOf(val) !== -1);
+                        // text-decoration is not inherited by default
+                        // so if the computed style for text-decoration doesn't match
+                        // don't write to knownState so we can fallback to other checks
+                        if (isMatch || this.style.prop !== 'text-decoration') {
+                            this.knownState = isMatch;
+                        }
+                    }
+                }, this);
+            }
+
+            return isMatch;
+        }
+    });
+
+    Button.isBuiltInButton = function (name) {
+        return (typeof name === 'string') && MediumEditor.extensions.button.prototype.defaults.hasOwnProperty(name);
+    };
+
+    MediumEditor.extensions.button = Button;
+}());
+
+(function () {
+    'use strict';
+
+    /* MediumEditor.extensions.button.defaults: [Object]
+     * Set of default config options for all of the built-in MediumEditor buttons
+     */
+    MediumEditor.extensions.button.prototype.defaults = {
+        'bold': {
+            name: 'bold',
+            action: 'bold',
+            aria: 'bold',
+            tagNames: ['b', 'strong'],
+            style: {
+                prop: 'font-weight',
+                value: '700|bold'
+            },
+            useQueryState: true,
+            contentDefault: '<b>B</b>',
+            contentFA: '<i class="fa fa-bold"></i>'
+        },
+        'italic': {
+            name: 'italic',
+            action: 'italic',
+            aria: 'italic',
+            tagNames: ['i', 'em'],
+            style: {
+                prop: 'font-style',
+                value: 'italic'
+            },
+            useQueryState: true,
+            contentDefault: '<b><i>I</i></b>',
+            contentFA: '<i class="fa fa-italic"></i>'
+        },
+        'underline': {
+            name: 'underline',
+            action: 'underline',
+            aria: 'underline',
+            tagNames: ['u'],
+            style: {
+                prop: 'text-decoration',
+                value: 'underline'
+            },
+            useQueryState: true,
+            contentDefault: '<b><u>U</u></b>',
+            contentFA: '<i class="fa fa-underline"></i>'
+        },
+        'strikethrough': {
+            name: 'strikethrough',
+            action: 'strikethrough',
+            aria: 'strike through',
+            tagNames: ['strike'],
+            style: {
+                prop: 'text-decoration',
+                value: 'line-through'
+            },
+            useQueryState: true,
+            contentDefault: '<s>A</s>',
+            contentFA: '<i class="fa fa-strikethrough"></i>'
+        },
+        'superscript': {
+            name: 'superscript',
+            action: 'superscript',
+            aria: 'superscript',
+            tagNames: ['sup'],
+            /* firefox doesn't behave the way we want it to, so we CAN'T use queryCommandState for superscript
+               https://github.com/guardian/scribe/blob/master/BROWSERINCONSISTENCIES.md#documentquerycommandstate */
+            // useQueryState: true
+            contentDefault: '<b>x<sup>1</sup></b>',
+            contentFA: '<i class="fa fa-superscript"></i>'
+        },
+        'subscript': {
+            name: 'subscript',
+            action: 'subscript',
+            aria: 'subscript',
+            tagNames: ['sub'],
+            /* firefox doesn't behave the way we want it to, so we CAN'T use queryCommandState for subscript
+               https://github.com/guardian/scribe/blob/master/BROWSERINCONSISTENCIES.md#documentquerycommandstate */
+            // useQueryState: true
+            contentDefault: '<b>x<sub>1</sub></b>',
+            contentFA: '<i class="fa fa-subscript"></i>'
+        },
+        'image': {
+            name: 'image',
+            action: 'image',
+            aria: 'image',
+            tagNames: ['img'],
+            contentDefault: '<b>image</b>',
+            contentFA: '<i class="fa fa-picture-o"></i>'
+        },
+        'orderedlist': {
+            name: 'orderedlist',
+            action: 'insertorderedlist',
+            aria: 'ordered list',
+            tagNames: ['ol'],
+            useQueryState: true,
+            contentDefault: '<b>1.</b>',
+            contentFA: '<i class="fa fa-list-ol"></i>'
+        },
+        'unorderedlist': {
+            name: 'unorderedlist',
+            action: 'insertunorderedlist',
+            aria: 'unordered list',
+            tagNames: ['ul'],
+            useQueryState: true,
+            contentDefault: '<b>&bull;</b>',
+            contentFA: '<i class="fa fa-list-ul"></i>'
+        },
+        'indent': {
+            name: 'indent',
+            action: 'indent',
+            aria: 'indent',
+            tagNames: [],
+            contentDefault: '<b>&rarr;</b>',
+            contentFA: '<i class="fa fa-indent"></i>'
+        },
+        'outdent': {
+            name: 'outdent',
+            action: 'outdent',
+            aria: 'outdent',
+            tagNames: [],
+            contentDefault: '<b>&larr;</b>',
+            contentFA: '<i class="fa fa-outdent"></i>'
+        },
+        'justifyCenter': {
+            name: 'justifyCenter',
+            action: 'justifyCenter',
+            aria: 'center justify',
+            tagNames: [],
+            style: {
+                prop: 'text-align',
+                value: 'center'
+            },
+            contentDefault: '<b>C</b>',
+            contentFA: '<i class="fa fa-align-center"></i>'
+        },
+        'justifyFull': {
+            name: 'justifyFull',
+            action: 'justifyFull',
+            aria: 'full justify',
+            tagNames: [],
+            style: {
+                prop: 'text-align',
+                value: 'justify'
+            },
+            contentDefault: '<b>J</b>',
+            contentFA: '<i class="fa fa-align-justify"></i>'
+        },
+        'justifyLeft': {
+            name: 'justifyLeft',
+            action: 'justifyLeft',
+            aria: 'left justify',
+            tagNames: [],
+            style: {
+                prop: 'text-align',
+                value: 'left'
+            },
+            contentDefault: '<b>L</b>',
+            contentFA: '<i class="fa fa-align-left"></i>'
+        },
+        'justifyRight': {
+            name: 'justifyRight',
+            action: 'justifyRight',
+            aria: 'right justify',
+            tagNames: [],
+            style: {
+                prop: 'text-align',
+                value: 'right'
+            },
+            contentDefault: '<b>R</b>',
+            contentFA: '<i class="fa fa-align-right"></i>'
+        },
+        // Known inline elements that are not removed, or not removed consistantly across browsers:
+        // <span>, <label>, <br>
+        'removeFormat': {
+            name: 'removeFormat',
+            aria: 'remove formatting',
+            action: 'removeFormat',
+            contentDefault: '<b>X</b>',
+            contentFA: '<i class="fa fa-eraser"></i>'
+        },
+
+        /***** Buttons for appending block elements (append-<element> action) *****/
+
+        'quote': {
+            name: 'quote',
+            action: 'append-blockquote',
+            aria: 'blockquote',
+            tagNames: ['blockquote'],
+            contentDefault: '<b>&ldquo;</b>',
+            contentFA: '<i class="fa fa-quote-right"></i>'
+        },
+        'pre': {
+            name: 'pre',
+            action: 'append-pre',
+            aria: 'preformatted text',
+            tagNames: ['pre'],
+            contentDefault: '<b>0101</b>',
+            contentFA: '<i class="fa fa-code fa-lg"></i>'
+        },
+        'h1': {
+            name: 'h1',
+            action: 'append-h1',
+            aria: 'header type one',
+            tagNames: ['h1'],
+            contentDefault: '<b>H1</b>',
+            contentFA: '<i class="fa fa-header"><sup>1</sup>'
+        },
+        'h2': {
+            name: 'h2',
+            action: 'append-h2',
+            aria: 'header type two',
+            tagNames: ['h2'],
+            contentDefault: '<b>H2</b>',
+            contentFA: '<i class="fa fa-header"><sup>2</sup>'
+        },
+        'h3': {
+            name: 'h3',
+            action: 'append-h3',
+            aria: 'header type three',
+            tagNames: ['h3'],
+            contentDefault: '<b>H3</b>',
+            contentFA: '<i class="fa fa-header"><sup>3</sup>'
+        },
+        'h4': {
+            name: 'h4',
+            action: 'append-h4',
+            aria: 'header type four',
+            tagNames: ['h4'],
+            contentDefault: '<b>H4</b>',
+            contentFA: '<i class="fa fa-header"><sup>4</sup>'
+        },
+        'h5': {
+            name: 'h5',
+            action: 'append-h5',
+            aria: 'header type five',
+            tagNames: ['h5'],
+            contentDefault: '<b>H5</b>',
+            contentFA: '<i class="fa fa-header"><sup>5</sup>'
+        },
+        'h6': {
+            name: 'h6',
+            action: 'append-h6',
+            aria: 'header type six',
+            tagNames: ['h6'],
+            contentDefault: '<b>H6</b>',
+            contentFA: '<i class="fa fa-header"><sup>6</sup>'
+        }
+    };
+
+})();
+(function () {
+    'use strict';
+
+    /* Base functionality for an extension which will display
+     * a 'form' inside the toolbar
+     */
+    var FormExtension = MediumEditor.extensions.button.extend({
+
+        init: function () {
+            MediumEditor.extensions.button.prototype.init.apply(this, arguments);
+        },
+
+        // default labels for the form buttons
+        formSaveLabel: '&#10003;',
+        formCloseLabel: '&times;',
+
+        /* hasForm: [boolean]
+         *
+         * Setting this to true will cause getForm() to be called
+         * when the toolbar is created, so the form can be appended
+         * inside the toolbar container
+         */
+        hasForm: true,
+
+        /* getForm: [function ()]
+         *
+         * When hasForm is true, this function must be implemented
+         * and return a DOM Element which will be appended to
+         * the toolbar container. The form should start hidden, and
+         * the extension can choose when to hide/show it
+         */
+        getForm: function () {},
+
+        /* isDisplayed: [function ()]
+         *
+         * This function should return true/false reflecting
+         * whether the form is currently displayed
+         */
+        isDisplayed: function () {},
+
+        /* hideForm: [function ()]
+         *
+         * This function should hide the form element inside
+         * the toolbar container
+         */
+        hideForm: function () {},
+
+        /************************ Helpers ************************
+         * The following are helpers that are either set by MediumEditor
+         * during initialization, or are helper methods which either
+         * route calls to the MediumEditor instance or provide common
+         * functionality for all form extensions
+         *********************************************************/
+
+        /* showToolbarDefaultActions: [function ()]
+         *
+         * Helper method which will turn back the toolbar after canceling
+         * the customized form
+         */
+        showToolbarDefaultActions: function () {
+            var toolbar = this.base.getExtensionByName('toolbar');
+            if (toolbar) {
+                toolbar.showToolbarDefaultActions();
+            }
+        },
+
+        /* hideToolbarDefaultActions: [function ()]
+         *
+         * Helper function which will hide the default contents of the
+         * toolbar, but leave the toolbar container in the same state
+         * to allow a form to display its custom contents inside the toolbar
+         */
+        hideToolbarDefaultActions: function () {
+            var toolbar = this.base.getExtensionByName('toolbar');
+            if (toolbar) {
+                toolbar.hideToolbarDefaultActions();
+            }
+        },
+
+        /* setToolbarPosition: [function ()]
+         *
+         * Helper function which will update the size and position
+         * of the toolbar based on the toolbar content and the current
+         * position of the user's selection
+         */
+        setToolbarPosition: function () {
+            var toolbar = this.base.getExtensionByName('toolbar');
+            if (toolbar) {
+                toolbar.setToolbarPosition();
+            }
+        }
+    });
+
+    MediumEditor.extensions.form = FormExtension;
+})();
+(function () {
+    'use strict';
+
+    var AnchorForm = MediumEditor.extensions.form.extend({
+        /* Anchor Form Options */
+
+        /* customClassOption: [string]  (previously options.anchorButton + options.anchorButtonClass)
+         * Custom class name the user can optionally have added to their created links (ie 'button').
+         * If passed as a non-empty string, a checkbox will be displayed allowing the user to choose
+         * whether to have the class added to the created link or not.
+         */
+        customClassOption: null,
+
+        /* customClassOptionText: [string]
+         * text to be shown in the checkbox when the __customClassOption__ is being used.
+         */
+        customClassOptionText: 'Button',
+
+        /* linkValidation: [boolean]  (previously options.checkLinkFormat)
+         * enables/disables check for common URL protocols on anchor links.
+         */
+        linkValidation: false,
+
+        /* placeholderText: [string]  (previously options.anchorInputPlaceholder)
+         * text to be shown as placeholder of the anchor input.
+         */
+        placeholderText: 'Paste or type a link',
+
+        /* targetCheckbox: [boolean]  (previously options.anchorTarget)
+         * enables/disables displaying a "Open in new window" checkbox, which when checked
+         * changes the `target` attribute of the created link.
+         */
+        targetCheckbox: false,
+
+        /* targetCheckboxText: [string]  (previously options.anchorInputCheckboxLabel)
+         * text to be shown in the checkbox enabled via the __targetCheckbox__ option.
+         */
+        targetCheckboxText: 'Open in new window',
+
+        // Options for the Button base class
+        name: 'anchor',
+        action: 'createLink',
+        aria: 'link',
+        tagNames: ['a'],
+        contentDefault: '<b>#</b>',
+        contentFA: '<i class="fa fa-link"></i>',
+
+        init: function () {
+            MediumEditor.extensions.form.prototype.init.apply(this, arguments);
+
+            this.subscribe('editableKeydown', this.handleKeydown.bind(this));
+        },
+
+        // Called when the button the toolbar is clicked
+        // Overrides ButtonExtension.handleClick
+        handleClick: function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            var range = MediumEditor.selection.getSelectionRange(this.document);
+
+            if (range.startContainer.nodeName.toLowerCase() === 'a' ||
+                range.endContainer.nodeName.toLowerCase() === 'a' ||
+                MediumEditor.util.getClosestTag(MediumEditor.selection.getSelectedParentElement(range), 'a')) {
+                return this.execAction('unlink');
+            }
+
+            if (!this.isDisplayed()) {
+                this.showForm();
+            }
+
+            return false;
+        },
+
+        // Called when user hits the defined shortcut (CTRL / COMMAND + K)
+        handleKeydown: function (event) {
+            if (MediumEditor.util.isKey(event, MediumEditor.util.keyCode.K) && MediumEditor.util.isMetaCtrlKey(event) && !event.shiftKey) {
+                this.handleClick(event);
+            }
+        },
+
+        // Called by medium-editor to append form to the toolbar
+        getForm: function () {
+            if (!this.form) {
+                this.form = this.createForm();
+            }
+            return this.form;
+        },
+
+        getTemplate: function () {
+            var template = [
+                '<input type="text" class="medium-editor-toolbar-input" placeholder="', this.placeholderText, '">'
+            ];
+
+            template.push(
+                '<a href="#" class="medium-editor-toolbar-save">',
+                this.getEditorOption('buttonLabels') === 'fontawesome' ? '<i class="fa fa-check"></i>' : this.formSaveLabel,
+                '</a>'
+            );
+
+            template.push('<a href="#" class="medium-editor-toolbar-close">',
+                this.getEditorOption('buttonLabels') === 'fontawesome' ? '<i class="fa fa-times"></i>' : this.formCloseLabel,
+                '</a>');
+
+            // both of these options are slightly moot with the ability to
+            // override the various form buildup/serialize functions.
+
+            if (this.targetCheckbox) {
+                // fixme: ideally, this targetCheckboxText would be a formLabel too,
+                // figure out how to deprecate? also consider `fa-` icon default implcations.
+                template.push(
+                    '<div class="medium-editor-toolbar-form-row">',
+                    '<input type="checkbox" class="medium-editor-toolbar-anchor-target">',
+                    '<label>',
+                    this.targetCheckboxText,
+                    '</label>',
+                    '</div>'
+                );
+            }
+
+            if (this.customClassOption) {
+                // fixme: expose this `Button` text as a formLabel property, too
+                // and provide similar access to a `fa-` icon default.
+                template.push(
+                    '<div class="medium-editor-toolbar-form-row">',
+                    '<input type="checkbox" class="medium-editor-toolbar-anchor-button">',
+                    '<label>',
+                    this.customClassOptionText,
+                    '</label>',
+                    '</div>'
+                );
+            }
+
+            return template.join('');
+
+        },
+
+        // Used by medium-editor when the default toolbar is to be displayed
+        isDisplayed: function () {
+            return this.getForm().style.display === 'block';
+        },
+
+        hideForm: function () {
+            this.getForm().style.display = 'none';
+            this.getInput().value = '';
+        },
+
+        showForm: function (opts) {
+            var input = this.getInput(),
+                targetCheckbox = this.getAnchorTargetCheckbox(),
+                buttonCheckbox = this.getAnchorButtonCheckbox();
+
+            opts = opts || { url: '' };
+            // TODO: This is for backwards compatability
+            // We don't need to support the 'string' argument in 6.0.0
+            if (typeof opts === 'string') {
+                opts = {
+                    url: opts
+                };
+            }
+
+            this.base.saveSelection();
+            this.hideToolbarDefaultActions();
+            this.getForm().style.display = 'block';
+            this.setToolbarPosition();
+
+            input.value = opts.url;
+            input.focus();
+
+            // If we have a target checkbox, we want it to be checked/unchecked
+            // based on whether the existing link has target=_blank
+            if (targetCheckbox) {
+                targetCheckbox.checked = opts.target === '_blank';
+            }
+
+            // If we have a custom class checkbox, we want it to be checked/unchecked
+            // based on whether an existing link already has the class
+            if (buttonCheckbox) {
+                var classList = opts.buttonClass ? opts.buttonClass.split(' ') : [];
+                buttonCheckbox.checked = (classList.indexOf(this.customClassOption) !== -1);
+            }
+        },
+
+        // Called by core when tearing down medium-editor (destroy)
+        destroy: function () {
+            if (!this.form) {
+                return false;
+            }
+
+            if (this.form.parentNode) {
+                this.form.parentNode.removeChild(this.form);
+            }
+
+            delete this.form;
+        },
+
+        // core methods
+
+        getFormOpts: function () {
+            // no notion of private functions? wanted `_getFormOpts`
+            var targetCheckbox = this.getAnchorTargetCheckbox(),
+                buttonCheckbox = this.getAnchorButtonCheckbox(),
+                opts = {
+                    url: this.getInput().value
+                };
+
+            if (this.linkValidation) {
+                opts.url = this.checkLinkFormat(opts.url);
+            }
+
+            opts.target = '_self';
+            if (targetCheckbox && targetCheckbox.checked) {
+                opts.target = '_blank';
+            }
+
+            if (buttonCheckbox && buttonCheckbox.checked) {
+                opts.buttonClass = this.customClassOption;
+            }
+
+            return opts;
+        },
+
+        doFormSave: function () {
+            var opts = this.getFormOpts();
+            this.completeFormSave(opts);
+        },
+
+        completeFormSave: function (opts) {
+            this.base.restoreSelection();
+            this.execAction(this.action, opts);
+            this.base.checkSelection();
+        },
+
+        checkLinkFormat: function (value) {
+            var re = /^(https?|ftps?|rtmpt?):\/\/|mailto:/;
+            return (re.test(value) ? '' : 'http://') + value;
+        },
+
+        doFormCancel: function () {
+            this.base.restoreSelection();
+            this.base.checkSelection();
+        },
+
+        // form creation and event handling
+        attachFormEvents: function (form) {
+            var close = form.querySelector('.medium-editor-toolbar-close'),
+                save = form.querySelector('.medium-editor-toolbar-save'),
+                input = form.querySelector('.medium-editor-toolbar-input');
+
+            // Handle clicks on the form itself
+            this.on(form, 'click', this.handleFormClick.bind(this));
+
+            // Handle typing in the textbox
+            this.on(input, 'keyup', this.handleTextboxKeyup.bind(this));
+
+            // Handle close button clicks
+            this.on(close, 'click', this.handleCloseClick.bind(this));
+
+            // Handle save button clicks (capture)
+            this.on(save, 'click', this.handleSaveClick.bind(this), true);
+
+        },
+
+        createForm: function () {
+            var doc = this.document,
+                form = doc.createElement('div');
+
+            // Anchor Form (div)
+            form.className = 'medium-editor-toolbar-form';
+            form.id = 'medium-editor-toolbar-form-anchor-' + this.getEditorId();
+            form.innerHTML = this.getTemplate();
+            this.attachFormEvents(form);
+
+            return form;
+        },
+
+        getInput: function () {
+            return this.getForm().querySelector('input.medium-editor-toolbar-input');
+        },
+
+        getAnchorTargetCheckbox: function () {
+            return this.getForm().querySelector('.medium-editor-toolbar-anchor-target');
+        },
+
+        getAnchorButtonCheckbox: function () {
+            return this.getForm().querySelector('.medium-editor-toolbar-anchor-button');
+        },
+
+        handleTextboxKeyup: function (event) {
+            // For ENTER -> create the anchor
+            if (event.keyCode === MediumEditor.util.keyCode.ENTER) {
+                event.preventDefault();
+                this.doFormSave();
+                return;
+            }
+
+            // For ESCAPE -> close the form
+            if (event.keyCode === MediumEditor.util.keyCode.ESCAPE) {
+                event.preventDefault();
+                this.doFormCancel();
+            }
+        },
+
+        handleFormClick: function (event) {
+            // make sure not to hide form when clicking inside the form
+            event.stopPropagation();
+        },
+
+        handleSaveClick: function (event) {
+            // Clicking Save -> create the anchor
+            event.preventDefault();
+            this.doFormSave();
+        },
+
+        handleCloseClick: function (event) {
+            // Click Close -> close the form
+            event.preventDefault();
+            this.doFormCancel();
+        }
+    });
+
+    MediumEditor.extensions.anchor = AnchorForm;
+}());
+(function () {
+    'use strict';
+
+    var AnchorPreview = MediumEditor.Extension.extend({
+        name: 'anchor-preview',
+
+        // Anchor Preview Options
+
+        /* hideDelay: [number]  (previously options.anchorPreviewHideDelay)
+         * time in milliseconds to show the anchor tag preview after the mouse has left the anchor tag.
+         */
+        hideDelay: 500,
+
+        /* previewValueSelector: [string]
+         * the default selector to locate where to put the activeAnchor value in the preview
+         */
+        previewValueSelector: 'a',
+
+        init: function () {
+            this.anchorPreview = this.createPreview();
+
+            this.getEditorOption('elementsContainer').appendChild(this.anchorPreview);
+
+            this.attachToEditables();
+        },
+
+        getPreviewElement: function () {
+            return this.anchorPreview;
+        },
+
+        createPreview: function () {
+            var el = this.document.createElement('div');
+
+            el.id = 'medium-editor-anchor-preview-' + this.getEditorId();
+            el.className = 'medium-editor-anchor-preview';
+            el.innerHTML = this.getTemplate();
+
+            this.on(el, 'click', this.handleClick.bind(this));
+
+            return el;
+        },
+
+        getTemplate: function () {
+            return '<div class="medium-editor-toolbar-anchor-preview" id="medium-editor-toolbar-anchor-preview">' +
+                '    <a class="medium-editor-toolbar-anchor-preview-inner"></a>' +
+                '</div>';
+        },
+
+        destroy: function () {
+            if (this.anchorPreview) {
+                if (this.anchorPreview.parentNode) {
+                    this.anchorPreview.parentNode.removeChild(this.anchorPreview);
+                }
+                delete this.anchorPreview;
+            }
+        },
+
+        hidePreview: function () {
+            this.anchorPreview.classList.remove('medium-editor-anchor-preview-active');
+            this.activeAnchor = null;
+        },
+
+        showPreview: function (anchorEl) {
+            if (this.anchorPreview.classList.contains('medium-editor-anchor-preview-active') ||
+                    anchorEl.getAttribute('data-disable-preview')) {
+                return true;
+            }
+
+            if (this.previewValueSelector) {
+                this.anchorPreview.querySelector(this.previewValueSelector).textContent = anchorEl.attributes.href.value;
+                this.anchorPreview.querySelector(this.previewValueSelector).href = anchorEl.attributes.href.value;
+            }
+
+            this.anchorPreview.classList.add('medium-toolbar-arrow-over');
+            this.anchorPreview.classList.remove('medium-toolbar-arrow-under');
+
+            if (!this.anchorPreview.classList.contains('medium-editor-anchor-preview-active')) {
+                this.anchorPreview.classList.add('medium-editor-anchor-preview-active');
+            }
+
+            this.activeAnchor = anchorEl;
+
+            this.positionPreview();
+            this.attachPreviewHandlers();
+
+            return this;
+        },
+
+        positionPreview: function (activeAnchor) {
+            activeAnchor = activeAnchor || this.activeAnchor;
+            var buttonHeight = this.anchorPreview.offsetHeight,
+                boundary = activeAnchor.getBoundingClientRect(),
+                middleBoundary = (boundary.left + boundary.right) / 2,
+                diffLeft = this.diffLeft,
+                diffTop = this.diffTop,
+                halfOffsetWidth,
+                defaultLeft;
+
+            halfOffsetWidth = this.anchorPreview.offsetWidth / 2;
+            var toolbarExtension = this.base.getExtensionByName('toolbar');
+            if (toolbarExtension) {
+                diffLeft = toolbarExtension.diffLeft;
+                diffTop = toolbarExtension.diffTop;
+            }
+            defaultLeft = diffLeft - halfOffsetWidth;
+
+            this.anchorPreview.style.top = Math.round(buttonHeight + boundary.bottom - diffTop + this.window.pageYOffset - this.anchorPreview.offsetHeight) + 'px';
+            if (middleBoundary < halfOffsetWidth) {
+                this.anchorPreview.style.left = defaultLeft + halfOffsetWidth + 'px';
+            } else if ((this.window.innerWidth - middleBoundary) < halfOffsetWidth) {
+                this.anchorPreview.style.left = this.window.innerWidth + defaultLeft - halfOffsetWidth + 'px';
+            } else {
+                this.anchorPreview.style.left = defaultLeft + middleBoundary + 'px';
+            }
+        },
+
+        attachToEditables: function () {
+            this.subscribe('editableMouseover', this.handleEditableMouseover.bind(this));
+        },
+
+        handleClick: function (event) {
+            var anchorExtension = this.base.getExtensionByName('anchor'),
+                activeAnchor = this.activeAnchor;
+
+            if (anchorExtension && activeAnchor) {
+                event.preventDefault();
+
+                this.base.selectElement(this.activeAnchor);
+
+                // Using setTimeout + delay because:
+                // We may actually be displaying the anchor form, which should be controlled by delay
+                this.base.delay(function () {
+                    if (activeAnchor) {
+                        var opts = {
+                            url: activeAnchor.attributes.href.value,
+                            target: activeAnchor.getAttribute('target'),
+                            buttonClass: activeAnchor.getAttribute('class')
+                        };
+                        anchorExtension.showForm(opts);
+                        activeAnchor = null;
+                    }
+                }.bind(this));
+            }
+
+            this.hidePreview();
+        },
+
+        handleAnchorMouseout: function () {
+            this.anchorToPreview = null;
+            this.off(this.activeAnchor, 'mouseout', this.instanceHandleAnchorMouseout);
+            this.instanceHandleAnchorMouseout = null;
+        },
+
+        handleEditableMouseover: function (event) {
+            var target = MediumEditor.util.getClosestTag(event.target, 'a');
+
+            if (false === target) {
+                return;
+            }
+
+            // Detect empty href attributes
+            // The browser will make href="" or href="#top"
+            // into absolute urls when accessed as event.target.href, so check the html
+            if (!/href=["']\S+["']/.test(target.outerHTML) || /href=["']#\S+["']/.test(target.outerHTML)) {
+                return true;
+            }
+
+            // only show when toolbar is not present
+            var toolbar = this.base.getExtensionByName('toolbar');
+            if (toolbar && toolbar.isDisplayed && toolbar.isDisplayed()) {
+                return true;
+            }
+
+            // detach handler for other anchor in case we hovered multiple anchors quickly
+            if (this.activeAnchor && this.activeAnchor !== target) {
+                this.detachPreviewHandlers();
+            }
+
+            this.anchorToPreview = target;
+
+            this.instanceHandleAnchorMouseout = this.handleAnchorMouseout.bind(this);
+            this.on(this.anchorToPreview, 'mouseout', this.instanceHandleAnchorMouseout);
+            // Using setTimeout + delay because:
+            // - We're going to show the anchor preview according to the configured delay
+            //   if the mouse has not left the anchor tag in that time
+            this.base.delay(function () {
+                if (this.anchorToPreview) {
+                    this.showPreview(this.anchorToPreview);
+                }
+            }.bind(this));
+        },
+
+        handlePreviewMouseover: function () {
+            this.lastOver = (new Date()).getTime();
+            this.hovering = true;
+        },
+
+        handlePreviewMouseout: function (event) {
+            if (!event.relatedTarget || !/anchor-preview/.test(event.relatedTarget.className)) {
+                this.hovering = false;
+            }
+        },
+
+        updatePreview: function () {
+            if (this.hovering) {
+                return true;
+            }
+            var durr = (new Date()).getTime() - this.lastOver;
+            if (durr > this.hideDelay) {
+                // hide the preview 1/2 second after mouse leaves the link
+                this.detachPreviewHandlers();
+            }
+        },
+
+        detachPreviewHandlers: function () {
+            // cleanup
+            clearInterval(this.intervalTimer);
+            if (this.instanceHandlePreviewMouseover) {
+                this.off(this.anchorPreview, 'mouseover', this.instanceHandlePreviewMouseover);
+                this.off(this.anchorPreview, 'mouseout', this.instanceHandlePreviewMouseout);
+                if (this.activeAnchor) {
+                    this.off(this.activeAnchor, 'mouseover', this.instanceHandlePreviewMouseover);
+                    this.off(this.activeAnchor, 'mouseout', this.instanceHandlePreviewMouseout);
+                }
+            }
+
+            this.hidePreview();
+
+            this.hovering = this.instanceHandlePreviewMouseover = this.instanceHandlePreviewMouseout = null;
+        },
+
+        // TODO: break up method and extract out handlers
+        attachPreviewHandlers: function () {
+            this.lastOver = (new Date()).getTime();
+            this.hovering = true;
+
+            this.instanceHandlePreviewMouseover = this.handlePreviewMouseover.bind(this);
+            this.instanceHandlePreviewMouseout = this.handlePreviewMouseout.bind(this);
+
+            this.intervalTimer = setInterval(this.updatePreview.bind(this), 200);
+
+            this.on(this.anchorPreview, 'mouseover', this.instanceHandlePreviewMouseover);
+            this.on(this.anchorPreview, 'mouseout', this.instanceHandlePreviewMouseout);
+            this.on(this.activeAnchor, 'mouseover', this.instanceHandlePreviewMouseover);
+            this.on(this.activeAnchor, 'mouseout', this.instanceHandlePreviewMouseout);
+        }
+    });
+
+    MediumEditor.extensions.anchorPreview = AnchorPreview;
+}());
+
+(function () {
+    'use strict';
+
+    var WHITESPACE_CHARS,
+        KNOWN_TLDS_FRAGMENT,
+        LINK_REGEXP_TEXT,
+        KNOWN_TLDS_REGEXP;
+
+    WHITESPACE_CHARS = [' ', '\t', '\n', '\r', '\u00A0', '\u2000', '\u2001', '\u2002', '\u2003',
+                                    '\u2028', '\u2029'];
+    KNOWN_TLDS_FRAGMENT = 'com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|' +
+        'xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|' +
+        'bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|' +
+        'fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|' +
+        'is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|' +
+        'mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|' +
+        'pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|' +
+        'tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw';
+
+    LINK_REGEXP_TEXT =
+        '(' +
+        // Version of Gruber URL Regexp optimized for JS: http://stackoverflow.com/a/17733640
+        '((?:(https?://|ftps?://|nntp://)|www\\d{0,3}[.]|[a-z0-9.\\-]+[.](' + KNOWN_TLDS_FRAGMENT + ')\\\/)\\S+(?:[^\\s`!\\[\\]{};:\'\".,?\u00AB\u00BB\u201C\u201D\u2018\u2019]))' +
+        // Addition to above Regexp to support bare domains/one level subdomains with common non-i18n TLDs and without www prefix:
+        ')|(([a-z0-9\\-]+\\.)?[a-z0-9\\-]+\\.(' + KNOWN_TLDS_FRAGMENT + '))';
+
+    KNOWN_TLDS_REGEXP = new RegExp('^(' + KNOWN_TLDS_FRAGMENT + ')$', 'i');
+
+    function nodeIsNotInsideAnchorTag(node) {
+        return !MediumEditor.util.getClosestTag(node, 'a');
+    }
+
+    var AutoLink = MediumEditor.Extension.extend({
+        init: function () {
+            MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+            this.disableEventHandling = false;
+            this.subscribe('editableKeypress', this.onKeypress.bind(this));
+            this.subscribe('editableBlur', this.onBlur.bind(this));
+            // MS IE has it's own auto-URL detect feature but ours is better in some ways. Be consistent.
+            this.document.execCommand('AutoUrlDetect', false, false);
+        },
+
+        destroy: function () {
+            // Turn AutoUrlDetect back on
+            if (this.document.queryCommandSupported('AutoUrlDetect')) {
+                this.document.execCommand('AutoUrlDetect', false, true);
+            }
+        },
+
+        onBlur: function (blurEvent, editable) {
+            this.performLinking(editable);
+        },
+
+        onKeypress: function (keyPressEvent) {
+            if (this.disableEventHandling) {
+                return;
+            }
+
+            if (MediumEditor.util.isKey(keyPressEvent, [MediumEditor.util.keyCode.SPACE, MediumEditor.util.keyCode.ENTER])) {
+                clearTimeout(this.performLinkingTimeout);
+                // Saving/restoring the selection in the middle of a keypress doesn't work well...
+                this.performLinkingTimeout = setTimeout(function () {
+                    try {
+                        var sel = this.base.exportSelection();
+                        if (this.performLinking(keyPressEvent.target)) {
+                            // pass true for favorLaterSelectionAnchor - this is needed for links at the end of a
+                            // paragraph in MS IE, or MS IE causes the link to be deleted right after adding it.
+                            this.base.importSelection(sel, true);
+                        }
+                    } catch (e) {
+                        if (window.console) {
+                            window.console.error('Failed to perform linking', e);
+                        }
+                        this.disableEventHandling = true;
+                    }
+                }.bind(this), 0);
+            }
+        },
+
+        performLinking: function (contenteditable) {
+            // Perform linking on a paragraph level basis as otherwise the detection can wrongly find the end
+            // of one paragraph and the beginning of another paragraph to constitute a link, such as a paragraph ending
+            // "link." and the next paragraph beginning with "my" is interpreted into "link.my" and the code tries to create
+            // a link across blockElements - which doesn't work and is terrible.
+            // (Medium deletes the spaces/returns between P tags so the textContent ends up without paragraph spacing)
+            var blockElements = MediumEditor.util.splitByBlockElements(contenteditable),
+                documentModified = false;
+            if (blockElements.length === 0) {
+                blockElements = [contenteditable];
+            }
+            for (var i = 0; i < blockElements.length; i++) {
+                documentModified = this.removeObsoleteAutoLinkSpans(blockElements[i]) || documentModified;
+                documentModified = this.performLinkingWithinElement(blockElements[i]) || documentModified;
+            }
+            return documentModified;
+        },
+
+        removeObsoleteAutoLinkSpans: function (element) {
+            if (!element || element.nodeType === 3) {
+                return false;
+            }
+
+            var spans = element.querySelectorAll('span[data-auto-link="true"]'),
+                documentModified = false;
+
+            for (var i = 0; i < spans.length; i++) {
+                var textContent = spans[i].textContent;
+                if (textContent.indexOf('://') === -1) {
+                    textContent = MediumEditor.util.ensureUrlHasProtocol(textContent);
+                }
+                if (spans[i].getAttribute('data-href') !== textContent && nodeIsNotInsideAnchorTag(spans[i])) {
+                    documentModified = true;
+                    var trimmedTextContent = textContent.replace(/\s+$/, '');
+                    if (spans[i].getAttribute('data-href') === trimmedTextContent) {
+                        var charactersTrimmed = textContent.length - trimmedTextContent.length,
+                            subtree = MediumEditor.util.splitOffDOMTree(spans[i], this.splitTextBeforeEnd(spans[i], charactersTrimmed));
+                        spans[i].parentNode.insertBefore(subtree, spans[i].nextSibling);
+                    } else {
+                        // Some editing has happened to the span, so just remove it entirely. The user can put it back
+                        // around just the href content if they need to prevent it from linking
+                        MediumEditor.util.unwrap(spans[i], this.document);
+                    }
+                }
+            }
+            return documentModified;
+        },
+
+        splitTextBeforeEnd: function (element, characterCount) {
+            var treeWalker = this.document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false),
+                lastChildNotExhausted = true;
+
+            // Start the tree walker at the last descendant of the span
+            while (lastChildNotExhausted) {
+                lastChildNotExhausted = treeWalker.lastChild() !== null;
+            }
+
+            var currentNode,
+                currentNodeValue,
+                previousNode;
+            while (characterCount > 0 && previousNode !== null) {
+                currentNode = treeWalker.currentNode;
+                currentNodeValue = currentNode.nodeValue;
+                if (currentNodeValue.length > characterCount) {
+                    previousNode = currentNode.splitText(currentNodeValue.length - characterCount);
+                    characterCount = 0;
+                } else {
+                    previousNode = treeWalker.previousNode();
+                    characterCount -= currentNodeValue.length;
+                }
+            }
+            return previousNode;
+        },
+
+        performLinkingWithinElement: function (element) {
+            var matches = this.findLinkableText(element),
+                linkCreated = false;
+
+            for (var matchIndex = 0; matchIndex < matches.length; matchIndex++) {
+                var matchingTextNodes = MediumEditor.util.findOrCreateMatchingTextNodes(this.document, element,
+                        matches[matchIndex]);
+                if (this.shouldNotLink(matchingTextNodes)) {
+                    continue;
+                }
+                this.createAutoLink(matchingTextNodes, matches[matchIndex].href);
+            }
+            return linkCreated;
+        },
+
+        shouldNotLink: function (textNodes) {
+            var shouldNotLink = false;
+            for (var i = 0; i < textNodes.length && shouldNotLink === false; i++) {
+                // Do not link if the text node is either inside an anchor or inside span[data-auto-link]
+                shouldNotLink = !!MediumEditor.util.traverseUp(textNodes[i], function (node) {
+                    return node.nodeName.toLowerCase() === 'a' ||
+                        (node.getAttribute && node.getAttribute('data-auto-link') === 'true');
+                });
+            }
+            return shouldNotLink;
+        },
+
+        findLinkableText: function (contenteditable) {
+            var linkRegExp = new RegExp(LINK_REGEXP_TEXT, 'gi'),
+                textContent = contenteditable.textContent,
+                match = null,
+                matches = [];
+
+            while ((match = linkRegExp.exec(textContent)) !== null) {
+                var matchOk = true,
+                    matchEnd = match.index + match[0].length;
+                // If the regexp detected something as a link that has text immediately preceding/following it, bail out.
+                matchOk = (match.index === 0 || WHITESPACE_CHARS.indexOf(textContent[match.index - 1]) !== -1) &&
+                    (matchEnd === textContent.length || WHITESPACE_CHARS.indexOf(textContent[matchEnd]) !== -1);
+                // If the regexp detected a bare domain that doesn't use one of our expected TLDs, bail out.
+                matchOk = matchOk && (match[0].indexOf('/') !== -1 ||
+                    KNOWN_TLDS_REGEXP.test(match[0].split('.').pop().split('?').shift()));
+
+                if (matchOk) {
+                    matches.push({
+                        href: match[0],
+                        start: match.index,
+                        end: matchEnd
+                    });
+                }
+            }
+            return matches;
+        },
+
+        createAutoLink: function (textNodes, href) {
+            href = MediumEditor.util.ensureUrlHasProtocol(href);
+            var anchor = MediumEditor.util.createLink(this.document, textNodes, href, this.getEditorOption('targetBlank') ? '_blank' : null),
+                span = this.document.createElement('span');
+            span.setAttribute('data-auto-link', 'true');
+            span.setAttribute('data-href', href);
+            anchor.insertBefore(span, anchor.firstChild);
+            while (anchor.childNodes.length > 1) {
+                span.appendChild(anchor.childNodes[1]);
+            }
+        }
+
+    });
+
+    MediumEditor.extensions.autoLink = AutoLink;
+}());
+(function () {
+    'use strict';
+
+    var CLASS_DRAG_OVER = 'medium-editor-dragover';
+
+    function clearClassNames(element) {
+        var editable = MediumEditor.util.getContainerEditorElement(element),
+            existing = Array.prototype.slice.call(editable.parentElement.querySelectorAll('.' + CLASS_DRAG_OVER));
+
+        existing.forEach(function (el) {
+            el.classList.remove(CLASS_DRAG_OVER);
+        });
+    }
+
+    var FileDragging = MediumEditor.Extension.extend({
+        name: 'fileDragging',
+
+        allowedTypes: ['image'],
+
+        init: function () {
+            MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+            this.subscribe('editableDrag', this.handleDrag.bind(this));
+            this.subscribe('editableDrop', this.handleDrop.bind(this));
+        },
+
+        handleDrag: function (event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+
+            var target = event.target.classList ? event.target : event.target.parentElement;
+
+            // Ensure the class gets removed from anything that had it before
+            clearClassNames(target);
+
+            if (event.type === 'dragover') {
+                target.classList.add(CLASS_DRAG_OVER);
+            }
+        },
+
+        handleDrop: function (event) {
+            // Prevent file from opening in the current window
+            event.preventDefault();
+            event.stopPropagation();
+
+            // IE9 does not support the File API, so prevent file from opening in the window
+            // but also don't try to actually get the file
+            if (event.dataTransfer.files) {
+                Array.prototype.slice.call(event.dataTransfer.files).forEach(function (file) {
+                    if (this.isAllowedFile(file)) {
+                        if (file.type.match('image')) {
+                            this.insertImageFile(file);
+                        }
+                    }
+                }, this);
+            }
+
+            // Make sure we remove our class from everything
+            clearClassNames(event.target);
+        },
+
+        isAllowedFile: function (file) {
+            return this.allowedTypes.some(function (fileType) {
+                return !!file.type.match(fileType);
+            });
+        },
+
+        insertImageFile: function (file) {
+            var fileReader = new FileReader();
+            fileReader.readAsDataURL(file);
+
+            var id = 'medium-img-' + (+new Date());
+            MediumEditor.util.insertHTMLCommand(this.document, '<img class="medium-editor-image-loading" id="' + id + '" />');
+
+            fileReader.onload = function () {
+                var img = this.document.getElementById(id);
+                if (img) {
+                    img.removeAttribute('id');
+                    img.removeAttribute('class');
+                    img.src = fileReader.result;
+                }
+            }.bind(this);
+        }
+    });
+
+    MediumEditor.extensions.fileDragging = FileDragging;
+}());
+
+(function () {
+    'use strict';
+
+    var KeyboardCommands = MediumEditor.Extension.extend({
+        name: 'keyboard-commands',
+
+        /* KeyboardCommands Options */
+
+        /* commands: [Array]
+         * Array of objects describing each command and the combination of keys that will trigger it
+         * Required for each object:
+         *   command [String] (argument passed to editor.execAction())
+         *   key [String] (keyboard character that triggers this command)
+         *   meta [boolean] (whether the ctrl/meta key has to be active or inactive)
+         *   shift [boolean] (whether the shift key has to be active or inactive)
+         *   alt [boolean] (whether the alt key has to be active or inactive)
+         */
+        commands: [
+            {
+                command: 'bold',
+                key: 'B',
+                meta: true,
+                shift: false,
+                alt: false
+            },
+            {
+                command: 'italic',
+                key: 'I',
+                meta: true,
+                shift: false,
+                alt: false
+            },
+            {
+                command: 'underline',
+                key: 'U',
+                meta: true,
+                shift: false,
+                alt: false
+            }
+        ],
+
+        init: function () {
+            MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+            this.subscribe('editableKeydown', this.handleKeydown.bind(this));
+            this.keys = {};
+            this.commands.forEach(function (command) {
+                var keyCode = command.key.charCodeAt(0);
+                if (!this.keys[keyCode]) {
+                    this.keys[keyCode] = [];
+                }
+                this.keys[keyCode].push(command);
+            }, this);
+        },
+
+        handleKeydown: function (event) {
+            var keyCode = MediumEditor.util.getKeyCode(event);
+            if (!this.keys[keyCode]) {
+                return;
+            }
+
+            var isMeta = MediumEditor.util.isMetaCtrlKey(event),
+                isShift = !!event.shiftKey,
+                isAlt = !!event.altKey;
+
+            this.keys[keyCode].forEach(function (data) {
+                if (data.meta === isMeta &&
+                    data.shift === isShift &&
+                    (data.alt === isAlt ||
+                     undefined === data.alt)) { // TODO deprecated: remove check for undefined === data.alt when jumping to 6.0.0
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    // command can be false so the shortcut is just disabled
+                    if (false !== data.command) {
+                        this.execAction(data.command);
+                    }
+                }
+            }, this);
+        }
+    });
+
+    MediumEditor.extensions.keyboardCommands = KeyboardCommands;
+}());
+
+(function () {
+    'use strict';
+
+    var FontSizeForm = MediumEditor.extensions.form.extend({
+
+        name: 'fontsize',
+        action: 'fontSize',
+        aria: 'increase/decrease font size',
+        contentDefault: '&#xB1;', // ±
+        contentFA: '<i class="fa fa-text-height"></i>',
+
+        init: function () {
+            MediumEditor.extensions.form.prototype.init.apply(this, arguments);
+        },
+
+        // Called when the button the toolbar is clicked
+        // Overrides ButtonExtension.handleClick
+        handleClick: function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (!this.isDisplayed()) {
+                // Get fontsize of current selection (convert to string since IE returns this as number)
+                var fontSize = this.document.queryCommandValue('fontSize') + '';
+                this.showForm(fontSize);
+            }
+
+            return false;
+        },
+
+        // Called by medium-editor to append form to the toolbar
+        getForm: function () {
+            if (!this.form) {
+                this.form = this.createForm();
+            }
+            return this.form;
+        },
+
+        // Used by medium-editor when the default toolbar is to be displayed
+        isDisplayed: function () {
+            return this.getForm().style.display === 'block';
+        },
+
+        hideForm: function () {
+            this.getForm().style.display = 'none';
+            this.getInput().value = '';
+        },
+
+        showForm: function (fontSize) {
+            var input = this.getInput();
+
+            this.base.saveSelection();
+            this.hideToolbarDefaultActions();
+            this.getForm().style.display = 'block';
+            this.setToolbarPosition();
+
+            input.value = fontSize || '';
+            input.focus();
+        },
+
+        // Called by core when tearing down medium-editor (destroy)
+        destroy: function () {
+            if (!this.form) {
+                return false;
+            }
+
+            if (this.form.parentNode) {
+                this.form.parentNode.removeChild(this.form);
+            }
+
+            delete this.form;
+        },
+
+        // core methods
+
+        doFormSave: function () {
+            this.base.restoreSelection();
+            this.base.checkSelection();
+        },
+
+        doFormCancel: function () {
+            this.base.restoreSelection();
+            this.clearFontSize();
+            this.base.checkSelection();
+        },
+
+        // form creation and event handling
+        createForm: function () {
+            var doc = this.document,
+                form = doc.createElement('div'),
+                input = doc.createElement('input'),
+                close = doc.createElement('a'),
+                save = doc.createElement('a');
+
+            // Font Size Form (div)
+            form.className = 'medium-editor-toolbar-form';
+            form.id = 'medium-editor-toolbar-form-fontsize-' + this.getEditorId();
+
+            // Handle clicks on the form itself
+            this.on(form, 'click', this.handleFormClick.bind(this));
+
+            // Add font size slider
+            input.setAttribute('type', 'range');
+            input.setAttribute('min', '1');
+            input.setAttribute('max', '7');
+            input.className = 'medium-editor-toolbar-input';
+            form.appendChild(input);
+
+            // Handle typing in the textbox
+            this.on(input, 'change', this.handleSliderChange.bind(this));
+
+            // Add save buton
+            save.setAttribute('href', '#');
+            save.className = 'medium-editor-toobar-save';
+            save.innerHTML = this.getEditorOption('buttonLabels') === 'fontawesome' ?
+                             '<i class="fa fa-check"></i>' :
+                             '&#10003;';
+            form.appendChild(save);
+
+            // Handle save button clicks (capture)
+            this.on(save, 'click', this.handleSaveClick.bind(this), true);
+
+            // Add close button
+            close.setAttribute('href', '#');
+            close.className = 'medium-editor-toobar-close';
+            close.innerHTML = this.getEditorOption('buttonLabels') === 'fontawesome' ?
+                              '<i class="fa fa-times"></i>' :
+                              '&times;';
+            form.appendChild(close);
+
+            // Handle close button clicks
+            this.on(close, 'click', this.handleCloseClick.bind(this));
+
+            return form;
+        },
+
+        getInput: function () {
+            return this.getForm().querySelector('input.medium-editor-toolbar-input');
+        },
+
+        clearFontSize: function () {
+            MediumEditor.selection.getSelectedElements(this.document).forEach(function (el) {
+                if (el.nodeName.toLowerCase() === 'font' && el.hasAttribute('size')) {
+                    el.removeAttribute('size');
+                }
+            });
+        },
+
+        handleSliderChange: function () {
+            var size = this.getInput().value;
+            if (size === '4') {
+                this.clearFontSize();
+            } else {
+                this.execAction('fontSize', { size: size });
+            }
+        },
+
+        handleFormClick: function (event) {
+            // make sure not to hide form when clicking inside the form
+            event.stopPropagation();
+        },
+
+        handleSaveClick: function (event) {
+            // Clicking Save -> create the font size
+            event.preventDefault();
+            this.doFormSave();
+        },
+
+        handleCloseClick: function (event) {
+            // Click Close -> close the form
+            event.preventDefault();
+            this.doFormCancel();
+        }
+    });
+
+    MediumEditor.extensions.fontSize = FontSizeForm;
+}());
+(function () {
+    'use strict';
+    /*jslint regexp: true*/
+    /*
+        jslint does not allow character negation, because the negation
+        will not match any unicode characters. In the regexes in this
+        block, negation is used specifically to match the end of an html
+        tag, and in fact unicode characters *should* be allowed.
+    */
+    function createReplacements() {
+        return [
+            // replace two bogus tags that begin pastes from google docs
+            [new RegExp(/<[^>]*docs-internal-guid[^>]*>/gi), ''],
+            [new RegExp(/<\/b>(<br[^>]*>)?$/gi), ''],
+
+             // un-html spaces and newlines inserted by OS X
+            [new RegExp(/<span class="Apple-converted-space">\s+<\/span>/g), ' '],
+            [new RegExp(/<br class="Apple-interchange-newline">/g), '<br>'],
+
+            // replace google docs italics+bold with a span to be replaced once the html is inserted
+            [new RegExp(/<span[^>]*(font-style:italic;font-weight:bold|font-weight:bold;font-style:italic)[^>]*>/gi), '<span class="replace-with italic bold">'],
+
+            // replace google docs italics with a span to be replaced once the html is inserted
+            [new RegExp(/<span[^>]*font-style:italic[^>]*>/gi), '<span class="replace-with italic">'],
+
+            //[replace google docs bolds with a span to be replaced once the html is inserted
+            [new RegExp(/<span[^>]*font-weight:bold[^>]*>/gi), '<span class="replace-with bold">'],
+
+             // replace manually entered b/i/a tags with real ones
+            [new RegExp(/&lt;(\/?)(i|b|a)&gt;/gi), '<$1$2>'],
+
+             // replace manually a tags with real ones, converting smart-quotes from google docs
+            [new RegExp(/&lt;a(?:(?!href).)+href=(?:&quot;|&rdquo;|&ldquo;|"|“|”)(((?!&quot;|&rdquo;|&ldquo;|"|“|”).)*)(?:&quot;|&rdquo;|&ldquo;|"|“|”)(?:(?!&gt;).)*&gt;/gi), '<a href="$1">'],
+
+            // Newlines between paragraphs in html have no syntactic value,
+            // but then have a tendency to accidentally become additional paragraphs down the line
+            [new RegExp(/<\/p>\n+/gi), '</p>'],
+            [new RegExp(/\n+<p/gi), '<p'],
+
+            // Microsoft Word makes these odd tags, like <o:p></o:p>
+            [new RegExp(/<\/?o:[a-z]*>/gi), ''],
+
+            // cleanup comments added by Chrome when pasting html
+            ['<!--EndFragment-->', ''],
+            ['<!--StartFragment-->', '']
+        ];
+    }
+    /*jslint regexp: false*/
+
+    var PasteHandler = MediumEditor.Extension.extend({
+        /* Paste Options */
+
+        /* forcePlainText: [boolean]
+         * Forces pasting as plain text.
+         */
+        forcePlainText: true,
+
+        /* cleanPastedHTML: [boolean]
+         * cleans pasted content from different sources, like google docs etc.
+         */
+        cleanPastedHTML: false,
+
+        /* cleanReplacements: [Array]
+         * custom pairs (2 element arrays) of RegExp and replacement text to use during paste when
+         * __forcePlainText__ or __cleanPastedHTML__ are `true` OR when calling `cleanPaste(text)` helper method.
+         */
+        cleanReplacements: [],
+
+        /* cleanAttrs:: [Array]
+         * list of element attributes to remove during paste when __cleanPastedHTML__ is `true` or when
+         * calling `cleanPaste(text)` or `pasteHTML(html, options)` helper methods.
+         */
+        cleanAttrs: ['class', 'style', 'dir'],
+
+        /* cleanTags: [Array]
+         * list of element tag names to remove during paste when __cleanPastedHTML__ is `true` or when
+         * calling `cleanPaste(text)` or `pasteHTML(html, options)` helper methods.
+         */
+        cleanTags: ['meta'],
+
+        init: function () {
+            MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+            if (this.forcePlainText || this.cleanPastedHTML) {
+                this.subscribe('editablePaste', this.handlePaste.bind(this));
+            }
+        },
+
+        handlePaste: function (event, element) {
+            var paragraphs,
+                html = '',
+                p,
+                dataFormatHTML = 'text/html',
+                dataFormatPlain = 'text/plain',
+                pastedHTML,
+                pastedPlain;
+
+            if (this.window.clipboardData && event.clipboardData === undefined) {
+                event.clipboardData = this.window.clipboardData;
+                // If window.clipboardData exists, but event.clipboardData doesn't exist,
+                // we're probably in IE. IE only has two possibilities for clipboard
+                // data format: 'Text' and 'URL'.
+                //
+                // Of the two, we want 'Text':
+                dataFormatHTML = 'Text';
+                dataFormatPlain = 'Text';
+            }
+
+            if (event.clipboardData &&
+                    event.clipboardData.getData &&
+                    !event.defaultPrevented) {
+                event.preventDefault();
+
+                pastedHTML = event.clipboardData.getData(dataFormatHTML);
+                pastedPlain = event.clipboardData.getData(dataFormatPlain);
+
+                if (this.cleanPastedHTML && pastedHTML) {
+                    return this.cleanPaste(pastedHTML);
+                }
+
+                if (!(this.getEditorOption('disableReturn') || element.getAttribute('data-disable-return'))) {
+                    paragraphs = pastedPlain.split(/[\r\n]+/g);
+                    // If there are no \r\n in data, don't wrap in <p>
+                    if (paragraphs.length > 1) {
+                        for (p = 0; p < paragraphs.length; p += 1) {
+                            if (paragraphs[p] !== '') {
+                                html += '<p>' + MediumEditor.util.htmlEntities(paragraphs[p]) + '</p>';
+                            }
+                        }
+                    } else {
+                        html = MediumEditor.util.htmlEntities(paragraphs[0]);
+                    }
+                } else {
+                    html = MediumEditor.util.htmlEntities(pastedPlain);
+                }
+                MediumEditor.util.insertHTMLCommand(this.document, html);
+            }
+        },
+
+        cleanPaste: function (text) {
+            var i, elList, tmp, workEl,
+                multiline = /<p|<br|<div/.test(text),
+                replacements = createReplacements().concat(this.cleanReplacements || []);
+
+            for (i = 0; i < replacements.length; i += 1) {
+                text = text.replace(replacements[i][0], replacements[i][1]);
+            }
+
+            if (!multiline) {
+                return this.pasteHTML(text);
+            }
+
+            // create a temporary div to cleanup block elements
+            tmp = this.document.createElement('div');
+
+            // double br's aren't converted to p tags, but we want paragraphs.
+            tmp.innerHTML = '<p>' + text.split('<br><br>').join('</p><p>') + '</p>';
+
+            // block element cleanup
+            elList = tmp.querySelectorAll('a,p,div,br');
+            for (i = 0; i < elList.length; i += 1) {
+                workEl = elList[i];
+
+                // Microsoft Word replaces some spaces with newlines.
+                // While newlines between block elements are meaningless, newlines within
+                // elements are sometimes actually spaces.
+                workEl.innerHTML = workEl.innerHTML.replace(/\n/gi, ' ');
+
+                switch (workEl.nodeName.toLowerCase()) {
+                    case 'p':
+                    case 'div':
+                        this.filterCommonBlocks(workEl);
+                        break;
+                    case 'br':
+                        this.filterLineBreak(workEl);
+                        break;
+                }
+            }
+
+            this.pasteHTML(tmp.innerHTML);
+        },
+
+        pasteHTML: function (html, options) {
+            options = MediumEditor.util.defaults({}, options, {
+                cleanAttrs: this.cleanAttrs,
+                cleanTags: this.cleanTags
+            });
+
+            var elList, workEl, i, fragmentBody, pasteBlock = this.document.createDocumentFragment();
+
+            pasteBlock.appendChild(this.document.createElement('body'));
+
+            fragmentBody = pasteBlock.querySelector('body');
+            fragmentBody.innerHTML = html;
+
+            this.cleanupSpans(fragmentBody);
+
+            elList = fragmentBody.querySelectorAll('*');
+            for (i = 0; i < elList.length; i += 1) {
+                workEl = elList[i];
+
+                if ('a' === workEl.nodeName.toLowerCase() && this.getEditorOption('targetBlank')) {
+                    MediumEditor.util.setTargetBlank(workEl);
+                }
+
+                MediumEditor.util.cleanupAttrs(workEl, options.cleanAttrs);
+                MediumEditor.util.cleanupTags(workEl, options.cleanTags);
+            }
+
+            MediumEditor.util.insertHTMLCommand(this.document, fragmentBody.innerHTML.replace(/&nbsp;/g, ' '));
+        },
+
+        isCommonBlock: function (el) {
+            return (el && (el.nodeName.toLowerCase() === 'p' || el.nodeName.toLowerCase() === 'div'));
+        },
+
+        filterCommonBlocks: function (el) {
+            if (/^\s*$/.test(el.textContent) && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        },
+
+        filterLineBreak: function (el) {
+            if (this.isCommonBlock(el.previousElementSibling)) {
+                // remove stray br's following common block elements
+                this.removeWithParent(el);
+            } else if (this.isCommonBlock(el.parentNode) && (el.parentNode.firstChild === el || el.parentNode.lastChild === el)) {
+                // remove br's just inside open or close tags of a div/p
+                this.removeWithParent(el);
+            } else if (el.parentNode && el.parentNode.childElementCount === 1 && el.parentNode.textContent === '') {
+                // and br's that are the only child of elements other than div/p
+                this.removeWithParent(el);
+            }
+        },
+
+        // remove an element, including its parent, if it is the only element within its parent
+        removeWithParent: function (el) {
+            if (el && el.parentNode) {
+                if (el.parentNode.parentNode && el.parentNode.childElementCount === 1) {
+                    el.parentNode.parentNode.removeChild(el.parentNode);
+                } else {
+                    el.parentNode.removeChild(el);
+                }
+            }
+        },
+
+        cleanupSpans: function (containerEl) {
+            var i,
+                el,
+                newEl,
+                spans = containerEl.querySelectorAll('.replace-with'),
+                isCEF = function (el) {
+                    return (el && el.nodeName !== '#text' && el.getAttribute('contenteditable') === 'false');
+                };
+
+            for (i = 0; i < spans.length; i += 1) {
+                el = spans[i];
+                newEl = this.document.createElement(el.classList.contains('bold') ? 'b' : 'i');
+
+                if (el.classList.contains('bold') && el.classList.contains('italic')) {
+                    // add an i tag as well if this has both italics and bold
+                    newEl.innerHTML = '<i>' + el.innerHTML + '</i>';
+                } else {
+                    newEl.innerHTML = el.innerHTML;
+                }
+                el.parentNode.replaceChild(newEl, el);
+            }
+
+            spans = containerEl.querySelectorAll('span');
+            for (i = 0; i < spans.length; i += 1) {
+                el = spans[i];
+
+                // bail if span is in contenteditable = false
+                if (MediumEditor.util.traverseUp(el, isCEF)) {
+                    return false;
+                }
+
+                // remove empty spans, replace others with their contents
+                MediumEditor.util.unwrap(el, this.document);
+            }
+        }
+    });
+
+    MediumEditor.extensions.paste = PasteHandler;
+}());
+
+(function () {
+    'use strict';
+
+    var Placeholder = MediumEditor.Extension.extend({
+        name: 'placeholder',
+
+        /* Placeholder Options */
+
+        /* text: [string]
+         * Text to display in the placeholder
+         */
+        text: 'Type your text',
+
+        /* hideOnClick: [boolean]
+         * Should we hide the placeholder on click (true) or when user starts typing (false)
+         */
+        hideOnClick: true,
+
+        init: function () {
+            MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+            this.initPlaceholders();
+            this.attachEventHandlers();
+        },
+
+        initPlaceholders: function () {
+            this.getEditorElements().forEach(function (el) {
+                if (!el.getAttribute('data-placeholder')) {
+                    el.setAttribute('data-placeholder', this.text);
+                }
+                this.updatePlaceholder(el);
+            }, this);
+        },
+
+        destroy: function () {
+            this.getEditorElements().forEach(function (el) {
+                if (el.getAttribute('data-placeholder') === this.text) {
+                    el.removeAttribute('data-placeholder');
+                }
+            }, this);
+        },
+
+        showPlaceholder: function (el) {
+            if (el) {
+                el.classList.add('medium-editor-placeholder');
+            }
+        },
+
+        hidePlaceholder: function (el) {
+            if (el) {
+                el.classList.remove('medium-editor-placeholder');
+            }
+        },
+
+        updatePlaceholder: function (el, dontShow) {
+            // If the element has content, hide the placeholder
+            if (el.querySelector('img, blockquote, ul, ol') || (el.textContent.replace(/^\s+|\s+$/g, '') !== '')) {
+                return this.hidePlaceholder(el);
+            }
+
+            if (!dontShow) {
+                this.showPlaceholder(el);
+            }
+        },
+
+        attachEventHandlers: function () {
+            if (this.hideOnClick) {
+                // For the 'hideOnClick' option, the placeholder should always be hidden on focus
+                this.subscribe('focus', this.handleFocus.bind(this));
+            }
+
+            // If the editor has content, it should always hide the placeholder
+            this.subscribe('editableInput', this.handleInput.bind(this));
+
+            // When the editor loses focus, check if the placeholder should be visible
+            this.subscribe('blur', this.handleBlur.bind(this));
+        },
+
+        handleInput: function (event, element) {
+            // If the placeholder should be hidden on focus and the
+            // element has focus, don't show the placeholder
+            var dontShow = this.hideOnClick && (element === this.base.getFocusedElement());
+
+            // Editor's content has changed, check if the placeholder should be hidden
+            this.updatePlaceholder(element, dontShow);
+        },
+
+        handleFocus: function (event, element) {
+            // Editor has focus, hide the placeholder
+            this.hidePlaceholder(element);
+        },
+
+        handleBlur: function (event, element) {
+            // Editor has lost focus, check if the placeholder should be shown
+            this.updatePlaceholder(element);
+        }
+    });
+
+    MediumEditor.extensions.placeholder = Placeholder;
+}());
+
+(function () {
+    'use strict';
+
+    var Toolbar = MediumEditor.Extension.extend({
+        name: 'toolbar',
+
+        /* Toolbar Options */
+
+        /* align: ['left'|'center'|'right']
+         * When the __static__ option is true, this aligns the static toolbar
+         * relative to the medium-editor element.
+         */
+        align: 'center',
+
+        /* allowMultiParagraphSelection: [boolean]
+         * enables/disables whether the toolbar should be displayed when
+         * selecting multiple paragraphs/block elements
+         */
+        allowMultiParagraphSelection: true,
+
+        /* buttons: [Array]
+         * the names of the set of buttons to display on the toolbar.
+         */
+        buttons: ['bold', 'italic', 'underline', 'anchor', 'h2', 'h3', 'quote'],
+
+        /* diffLeft: [Number]
+         * value in pixels to be added to the X axis positioning of the toolbar.
+         */
+        diffLeft: 0,
+
+        /* diffTop: [Number]
+         * value in pixels to be added to the Y axis positioning of the toolbar.
+         */
+        diffTop: -10,
+
+        /* firstButtonClass: [string]
+         * CSS class added to the first button in the toolbar.
+         */
+        firstButtonClass: 'medium-editor-button-first',
+
+        /* lastButtonClass: [string]
+         * CSS class added to the last button in the toolbar.
+         */
+        lastButtonClass: 'medium-editor-button-last',
+
+        /* standardizeSelectionStart: [boolean]
+         * enables/disables standardizing how the beginning of a range is decided
+         * between browsers whenever the selected text is analyzed for updating toolbar buttons status.
+         */
+        standardizeSelectionStart: false,
+
+        /* static: [boolean]
+         * enable/disable the toolbar always displaying in the same location
+         * relative to the medium-editor element.
+         */
+        static: false,
+
+        /* sticky: [boolean]
+         * When the __static__ option is true, this enables/disables the toolbar
+         * "sticking" to the viewport and staying visible on the screen while
+         * the page scrolls.
+         */
+        sticky: false,
+
+        /* updateOnEmptySelection: [boolean]
+         * When the __static__ option is true, this enables/disables updating
+         * the state of the toolbar buttons even when the selection is collapsed
+         * (there is no selection, just a cursor).
+         */
+        updateOnEmptySelection: false,
+
+        /* relativeContainer: [node]
+         * appending the toolbar to a given node instead of body
+         */
+        relativeContainer: null,
+
+        init: function () {
+            MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+            this.initThrottledMethods();
+
+            if (!this.relativeContainer) {
+                this.getEditorOption('elementsContainer').appendChild(this.getToolbarElement());
+            } else {
+                this.relativeContainer.appendChild(this.getToolbarElement());
+            }
+        },
+
+        // Helper method to execute method for every extension, but ignoring the toolbar extension
+        forEachExtension: function (iterator, context) {
+            return this.base.extensions.forEach(function (command) {
+                if (command === this) {
+                    return;
+                }
+                return iterator.apply(context || this, arguments);
+            }, this);
+        },
+
+        // Toolbar creation/deletion
+
+        createToolbar: function () {
+            var toolbar = this.document.createElement('div');
+
+            toolbar.id = 'medium-editor-toolbar-' + this.getEditorId();
+            toolbar.className = 'medium-editor-toolbar';
+
+            if (this.static) {
+                toolbar.className += ' static-toolbar';
+            } else if (this.relativeContainer) {
+                toolbar.className += ' medium-editor-relative-toolbar';
+            } else {
+                toolbar.className += ' medium-editor-stalker-toolbar';
+            }
+
+            toolbar.appendChild(this.createToolbarButtons());
+
+            // Add any forms that extensions may have
+            this.forEachExtension(function (extension) {
+                if (extension.hasForm) {
+                    toolbar.appendChild(extension.getForm());
+                }
+            });
+
+            this.attachEventHandlers();
+
+            return toolbar;
+        },
+
+        createToolbarButtons: function () {
+            var ul = this.document.createElement('ul'),
+                li,
+                btn,
+                buttons,
+                extension,
+                buttonName,
+                buttonOpts;
+
+            ul.id = 'medium-editor-toolbar-actions' + this.getEditorId();
+            ul.className = 'medium-editor-toolbar-actions';
+            ul.style.display = 'block';
+
+            this.buttons.forEach(function (button) {
+                if (typeof button === 'string') {
+                    buttonName = button;
+                    buttonOpts = null;
+                } else {
+                    buttonName = button.name;
+                    buttonOpts = button;
+                }
+
+                // If the button already exists as an extension, it'll be returned
+                // othwerise it'll create the default built-in button
+                extension = this.base.addBuiltInExtension(buttonName, buttonOpts);
+
+                if (extension && typeof extension.getButton === 'function') {
+                    btn = extension.getButton(this.base);
+                    li = this.document.createElement('li');
+                    if (MediumEditor.util.isElement(btn)) {
+                        li.appendChild(btn);
+                    } else {
+                        li.innerHTML = btn;
+                    }
+                    ul.appendChild(li);
+                }
+            }, this);
+
+            buttons = ul.querySelectorAll('button');
+            if (buttons.length > 0) {
+                buttons[0].classList.add(this.firstButtonClass);
+                buttons[buttons.length - 1].classList.add(this.lastButtonClass);
+            }
+
+            return ul;
+        },
+
+        destroy: function () {
+            if (this.toolbar) {
+                if (this.toolbar.parentNode) {
+                    this.toolbar.parentNode.removeChild(this.toolbar);
+                }
+                delete this.toolbar;
+            }
+        },
+
+        // Toolbar accessors
+
+        getToolbarElement: function () {
+            if (!this.toolbar) {
+                this.toolbar = this.createToolbar();
+            }
+
+            return this.toolbar;
+        },
+
+        getToolbarActionsElement: function () {
+            return this.getToolbarElement().querySelector('.medium-editor-toolbar-actions');
+        },
+
+        // Toolbar event handlers
+
+        initThrottledMethods: function () {
+            // throttledPositionToolbar is throttled because:
+            // - It will be called when the browser is resizing, which can fire many times very quickly
+            // - For some event (like resize) a slight lag in UI responsiveness is OK and provides performance benefits
+            this.throttledPositionToolbar = MediumEditor.util.throttle(function () {
+                if (this.base.isActive) {
+                    this.positionToolbarIfShown();
+                }
+            }.bind(this));
+        },
+
+        attachEventHandlers: function () {
+            // MediumEditor custom events for when user beings and ends interaction with a contenteditable and its elements
+            this.subscribe('blur', this.handleBlur.bind(this));
+            this.subscribe('focus', this.handleFocus.bind(this));
+
+            // Updating the state of the toolbar as things change
+            this.subscribe('editableClick', this.handleEditableClick.bind(this));
+            this.subscribe('editableKeyup', this.handleEditableKeyup.bind(this));
+
+            // Handle mouseup on document for updating the selection in the toolbar
+            this.on(this.document.documentElement, 'mouseup', this.handleDocumentMouseup.bind(this));
+
+            // Add a scroll event for sticky toolbar
+            if (this.static && this.sticky) {
+                // On scroll (capture), re-position the toolbar
+                this.on(this.window, 'scroll', this.handleWindowScroll.bind(this), true);
+            }
+
+            // On resize, re-position the toolbar
+            this.on(this.window, 'resize', this.handleWindowResize.bind(this));
+        },
+
+        handleWindowScroll: function () {
+            this.positionToolbarIfShown();
+        },
+
+        handleWindowResize: function () {
+            this.throttledPositionToolbar();
+        },
+
+        handleDocumentMouseup: function (event) {
+            // Do not trigger checkState when mouseup fires over the toolbar
+            if (event &&
+                    event.target &&
+                    MediumEditor.util.isDescendant(this.getToolbarElement(), event.target)) {
+                return false;
+            }
+            this.checkState();
+        },
+
+        handleEditableClick: function () {
+            // Delay the call to checkState to handle bug where selection is empty
+            // immediately after clicking inside a pre-existing selection
+            setTimeout(function () {
+                this.checkState();
+            }.bind(this), 0);
+        },
+
+        handleEditableKeyup: function () {
+            this.checkState();
+        },
+
+        handleBlur: function () {
+            // Kill any previously delayed calls to hide the toolbar
+            clearTimeout(this.hideTimeout);
+
+            // Blur may fire even if we have a selection, so we want to prevent any delayed showToolbar
+            // calls from happening in this specific case
+            clearTimeout(this.delayShowTimeout);
+
+            // Delay the call to hideToolbar to handle bug with multiple editors on the page at once
+            this.hideTimeout = setTimeout(function () {
+                this.hideToolbar();
+            }.bind(this), 1);
+        },
+
+        handleFocus: function () {
+            this.checkState();
+        },
+
+        // Hiding/showing toolbar
+
+        isDisplayed: function () {
+            return this.getToolbarElement().classList.contains('medium-editor-toolbar-active');
+        },
+
+        showToolbar: function () {
+            clearTimeout(this.hideTimeout);
+            if (!this.isDisplayed()) {
+                this.getToolbarElement().classList.add('medium-editor-toolbar-active');
+                this.trigger('showToolbar', {}, this.base.getFocusedElement());
+            }
+        },
+
+        hideToolbar: function () {
+            if (this.isDisplayed()) {
+                this.getToolbarElement().classList.remove('medium-editor-toolbar-active');
+                this.trigger('hideToolbar', {}, this.base.getFocusedElement());
+            }
+        },
+
+        isToolbarDefaultActionsDisplayed: function () {
+            return this.getToolbarActionsElement().style.display === 'block';
+        },
+
+        hideToolbarDefaultActions: function () {
+            if (this.isToolbarDefaultActionsDisplayed()) {
+                this.getToolbarActionsElement().style.display = 'none';
+            }
+        },
+
+        showToolbarDefaultActions: function () {
+            this.hideExtensionForms();
+
+            if (!this.isToolbarDefaultActionsDisplayed()) {
+                this.getToolbarActionsElement().style.display = 'block';
+            }
+
+            // Using setTimeout + options.delay because:
+            // We will actually be displaying the toolbar, which should be controlled by options.delay
+            this.delayShowTimeout = this.base.delay(function () {
+                this.showToolbar();
+            }.bind(this));
+        },
+
+        hideExtensionForms: function () {
+            // Hide all extension forms
+            this.forEachExtension(function (extension) {
+                if (extension.hasForm && extension.isDisplayed()) {
+                    extension.hideForm();
+                }
+            });
+        },
+
+        // Responding to changes in user selection
+
+        // Checks for existance of multiple block elements in the current selection
+        multipleBlockElementsSelected: function () {
+            var regexEmptyHTMLTags = /<[^\/>][^>]*><\/[^>]+>/gim, // http://stackoverflow.com/questions/3129738/remove-empty-tags-using-regex
+                regexBlockElements = new RegExp('<(' + MediumEditor.util.blockContainerElementNames.join('|') + ')[^>]*>', 'g'),
+                selectionHTML = MediumEditor.selection.getSelectionHtml(this.document).replace(regexEmptyHTMLTags, ''), // Filter out empty blocks from selection
+                hasMultiParagraphs = selectionHTML.match(regexBlockElements); // Find how many block elements are within the html
+
+            return !!hasMultiParagraphs && hasMultiParagraphs.length > 1;
+        },
+
+        modifySelection: function () {
+            var selection = this.window.getSelection(),
+                selectionRange = selection.getRangeAt(0);
+
+            /*
+            * In firefox, there are cases (ie doubleclick of a word) where the selectionRange start
+            * will be at the very end of an element.  In other browsers, the selectionRange start
+            * would instead be at the very beginning of an element that actually has content.
+            * example:
+            *   <span>foo</span><span>bar</span>
+            *
+            * If the text 'bar' is selected, most browsers will have the selectionRange start at the beginning
+            * of the 'bar' span.  However, there are cases where firefox will have the selectionRange start
+            * at the end of the 'foo' span.  The contenteditable behavior will be ok, but if there are any
+            * properties on the 'bar' span, they won't be reflected accurately in the toolbar
+            * (ie 'Bold' button wouldn't be active)
+            *
+            * So, for cases where the selectionRange start is at the end of an element/node, find the next
+            * adjacent text node that actually has content in it, and move the selectionRange start there.
+            */
+            if (this.standardizeSelectionStart &&
+                    selectionRange.startContainer.nodeValue &&
+                    (selectionRange.startOffset === selectionRange.startContainer.nodeValue.length)) {
+                var adjacentNode = MediumEditor.util.findAdjacentTextNodeWithContent(MediumEditor.selection.getSelectionElement(this.window), selectionRange.startContainer, this.document);
+                if (adjacentNode) {
+                    var offset = 0;
+                    while (adjacentNode.nodeValue.substr(offset, 1).trim().length === 0) {
+                        offset = offset + 1;
+                    }
+                    selectionRange = MediumEditor.selection.select(this.document, adjacentNode, offset,
+                        selectionRange.endContainer, selectionRange.endOffset);
+                }
+            }
+        },
+
+        checkState: function () {
+            if (this.base.preventSelectionUpdates) {
+                return;
+            }
+
+            // If no editable has focus OR selection is inside contenteditable = false
+            // hide toolbar
+            if (!this.base.getFocusedElement() ||
+                    MediumEditor.selection.selectionInContentEditableFalse(this.window)) {
+                return this.hideToolbar();
+            }
+
+            // If there's no selection element, selection element doesn't belong to this editor
+            // or toolbar is disabled for this selection element
+            // hide toolbar
+            var selectionElement = MediumEditor.selection.getSelectionElement(this.window);
+            if (!selectionElement ||
+                    this.getEditorElements().indexOf(selectionElement) === -1 ||
+                    selectionElement.getAttribute('data-disable-toolbar')) {
+                return this.hideToolbar();
+            }
+
+            // Now we know there's a focused editable with a selection
+
+            // If the updateOnEmptySelection option is true, show the toolbar
+            if (this.updateOnEmptySelection && this.static) {
+                return this.showAndUpdateToolbar();
+            }
+
+            // If we don't have a 'valid' selection -> hide toolbar
+            if (this.window.getSelection().toString().trim() === '' ||
+                (this.allowMultiParagraphSelection === false && this.multipleBlockElementsSelected())) {
+                return this.hideToolbar();
+            }
+
+            this.showAndUpdateToolbar();
+        },
+
+        // Updating the toolbar
+
+        showAndUpdateToolbar: function () {
+            this.modifySelection();
+            this.setToolbarButtonStates();
+            this.trigger('positionToolbar', {}, this.base.getFocusedElement());
+            this.showToolbarDefaultActions();
+            this.setToolbarPosition();
+        },
+
+        setToolbarButtonStates: function () {
+            this.forEachExtension(function (extension) {
+                if (typeof extension.isActive === 'function' &&
+                    typeof extension.setInactive === 'function') {
+                    extension.setInactive();
+                }
+            });
+
+            this.checkActiveButtons();
+        },
+
+        checkActiveButtons: function () {
+            var manualStateChecks = [],
+                queryState = null,
+                selectionRange = MediumEditor.selection.getSelectionRange(this.document),
+                parentNode,
+                updateExtensionState = function (extension) {
+                    if (typeof extension.checkState === 'function') {
+                        extension.checkState(parentNode);
+                    } else if (typeof extension.isActive === 'function' &&
+                               typeof extension.isAlreadyApplied === 'function' &&
+                               typeof extension.setActive === 'function') {
+                        if (!extension.isActive() && extension.isAlreadyApplied(parentNode)) {
+                            extension.setActive();
+                        }
+                    }
+                };
+
+            if (!selectionRange) {
+                return;
+            }
+
+            // Loop through all extensions
+            this.forEachExtension(function (extension) {
+                // For those extensions where we can use document.queryCommandState(), do so
+                if (typeof extension.queryCommandState === 'function') {
+                    queryState = extension.queryCommandState();
+                    // If queryCommandState returns a valid value, we can trust the browser
+                    // and don't need to do our manual checks
+                    if (queryState !== null) {
+                        if (queryState && typeof extension.setActive === 'function') {
+                            extension.setActive();
+                        }
+                        return;
+                    }
+                }
+                // We can't use queryCommandState for this extension, so add to manualStateChecks
+                manualStateChecks.push(extension);
+            });
+
+            parentNode = MediumEditor.selection.getSelectedParentElement(selectionRange);
+
+            // Make sure the selection parent isn't outside of the contenteditable
+            if (!this.getEditorElements().some(function (element) {
+                    return MediumEditor.util.isDescendant(element, parentNode, true);
+                })) {
+                return;
+            }
+
+            // Climb up the DOM and do manual checks for whether a certain extension is currently enabled for this node
+            while (parentNode) {
+                manualStateChecks.forEach(updateExtensionState);
+
+                // we can abort the search upwards if we leave the contentEditable element
+                if (MediumEditor.util.isMediumEditorElement(parentNode)) {
+                    break;
+                }
+                parentNode = parentNode.parentNode;
+            }
+        },
+
+        // Positioning toolbar
+
+        positionToolbarIfShown: function () {
+            if (this.isDisplayed()) {
+                this.setToolbarPosition();
+            }
+        },
+
+        setToolbarPosition: function () {
+            var container = this.base.getFocusedElement(),
+                selection = this.window.getSelection(),
+                anchorPreview;
+
+            // If there isn't a valid selection, bail
+            if (!container) {
+                return this;
+            }
+
+            if (this.static && !this.relativeContainer) {
+                this.showToolbar();
+                this.positionStaticToolbar(container);
+            } else if (!selection.isCollapsed) {
+                this.showToolbar();
+
+                // we don't need any absolute positioning if relativeContainer is set
+                if (!this.relativeContainer) {
+                    this.positionToolbar(selection);
+                }
+            }
+
+            anchorPreview = this.base.getExtensionByName('anchor-preview');
+
+            if (anchorPreview && typeof anchorPreview.hidePreview === 'function') {
+                anchorPreview.hidePreview();
+            }
+        },
+
+        positionStaticToolbar: function (container) {
+            // position the toolbar at left 0, so we can get the real width of the toolbar
+            this.getToolbarElement().style.left = '0';
+
+            // document.documentElement for IE 9
+            var scrollTop = (this.document.documentElement && this.document.documentElement.scrollTop) || this.document.body.scrollTop,
+                windowWidth = this.window.innerWidth,
+                toolbarElement = this.getToolbarElement(),
+                containerRect = container.getBoundingClientRect(),
+                containerTop = containerRect.top + scrollTop,
+                containerCenter = (containerRect.left + (containerRect.width / 2)),
+                toolbarHeight = toolbarElement.offsetHeight,
+                toolbarWidth = toolbarElement.offsetWidth,
+                halfOffsetWidth = toolbarWidth / 2,
+                targetLeft;
+
+            if (this.sticky) {
+                // If it's beyond the height of the editor, position it at the bottom of the editor
+                if (scrollTop > (containerTop + container.offsetHeight - toolbarHeight)) {
+                    toolbarElement.style.top = (containerTop + container.offsetHeight - toolbarHeight) + 'px';
+                    toolbarElement.classList.remove('medium-editor-sticky-toolbar');
+
+                // Stick the toolbar to the top of the window
+                } else if (scrollTop > (containerTop - toolbarHeight)) {
+                    toolbarElement.classList.add('medium-editor-sticky-toolbar');
+                    toolbarElement.style.top = '0px';
+
+                // Normal static toolbar position
+                } else {
+                    toolbarElement.classList.remove('medium-editor-sticky-toolbar');
+                    toolbarElement.style.top = containerTop - toolbarHeight + 'px';
+                }
+            } else {
+                toolbarElement.style.top = containerTop - toolbarHeight + 'px';
+            }
+
+            switch (this.align) {
+                case 'left':
+                    targetLeft = containerRect.left;
+                    break;
+
+                case 'right':
+                    targetLeft = containerRect.right - toolbarWidth;
+                    break;
+
+                case 'center':
+                    targetLeft = containerCenter - halfOffsetWidth;
+                    break;
+            }
+
+            if (targetLeft < 0) {
+                targetLeft = 0;
+            } else if ((targetLeft + toolbarWidth) > windowWidth) {
+                targetLeft = (windowWidth - Math.ceil(toolbarWidth) - 1);
+            }
+
+            toolbarElement.style.left = targetLeft + 'px';
+        },
+
+        positionToolbar: function (selection) {
+            // position the toolbar at left 0, so we can get the real width of the toolbar
+            this.getToolbarElement().style.left = '0';
+
+            var windowWidth = this.window.innerWidth,
+                range = selection.getRangeAt(0),
+                boundary = range.getBoundingClientRect(),
+                middleBoundary = (boundary.left + boundary.right) / 2,
+                toolbarElement = this.getToolbarElement(),
+                toolbarHeight = toolbarElement.offsetHeight,
+                toolbarWidth = toolbarElement.offsetWidth,
+                halfOffsetWidth = toolbarWidth / 2,
+                buttonHeight = 50,
+                defaultLeft = this.diffLeft - halfOffsetWidth;
+
+            if (boundary.top < buttonHeight) {
+                toolbarElement.classList.add('medium-toolbar-arrow-over');
+                toolbarElement.classList.remove('medium-toolbar-arrow-under');
+                toolbarElement.style.top = buttonHeight + boundary.bottom - this.diffTop + this.window.pageYOffset - toolbarHeight + 'px';
+            } else {
+                toolbarElement.classList.add('medium-toolbar-arrow-under');
+                toolbarElement.classList.remove('medium-toolbar-arrow-over');
+                toolbarElement.style.top = boundary.top + this.diffTop + this.window.pageYOffset - toolbarHeight + 'px';
+            }
+
+            if (middleBoundary < halfOffsetWidth) {
+                toolbarElement.style.left = defaultLeft + halfOffsetWidth + 'px';
+            } else if ((windowWidth - middleBoundary) < halfOffsetWidth) {
+                toolbarElement.style.left = windowWidth + defaultLeft - halfOffsetWidth + 'px';
+            } else {
+                toolbarElement.style.left = defaultLeft + middleBoundary + 'px';
+            }
+        }
+    });
+
+    MediumEditor.extensions.toolbar = Toolbar;
+}());
+
+(function () {
+    'use strict';
+
+    var ImageDragging = MediumEditor.Extension.extend({
+        init: function () {
+            MediumEditor.Extension.prototype.init.apply(this, arguments);
+
+            this.subscribe('editableDrag', this.handleDrag.bind(this));
+            this.subscribe('editableDrop', this.handleDrop.bind(this));
+        },
+
+        handleDrag: function (event) {
+            var className = 'medium-editor-dragover';
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+
+            if (event.type === 'dragover') {
+                event.target.classList.add(className);
+            } else if (event.type === 'dragleave') {
+                event.target.classList.remove(className);
+            }
+        },
+
+        handleDrop: function (event) {
+            var className = 'medium-editor-dragover',
+                files;
+            event.preventDefault();
+            event.stopPropagation();
+
+            // IE9 does not support the File API, so prevent file from opening in a new window
+            // but also don't try to actually get the file
+            if (event.dataTransfer.files) {
+                files = Array.prototype.slice.call(event.dataTransfer.files, 0);
+                files.some(function (file) {
+                    if (file.type.match('image')) {
+                        var fileReader, id;
+                        fileReader = new FileReader();
+                        fileReader.readAsDataURL(file);
+
+                        id = 'medium-img-' + (+new Date());
+                        MediumEditor.util.insertHTMLCommand(this.document, '<img class="medium-editor-image-loading" id="' + id + '" />');
+
+                        fileReader.onload = function () {
+                            var img = this.document.getElementById(id);
+                            if (img) {
+                                img.removeAttribute('id');
+                                img.removeAttribute('class');
+                                img.src = fileReader.result;
+                            }
+                        }.bind(this);
+                    }
+                }.bind(this));
+            }
+            event.target.classList.remove(className);
+        }
+    });
+
+    MediumEditor.extensions.imageDragging = ImageDragging;
+}());
+
+(function () {
+    'use strict';
+
+    // Event handlers that shouldn't be exposed externally
+
+    function handleDisabledEnterKeydown(event, element) {
+        if (this.options.disableReturn || element.getAttribute('data-disable-return')) {
+            event.preventDefault();
+        } else if (this.options.disableDoubleReturn || element.getAttribute('data-disable-double-return')) {
+            var node = MediumEditor.selection.getSelectionStart(this.options.ownerDocument);
+
+            // if current text selection is empty OR previous sibling text is empty
+            if ((node && node.textContent.trim() === '') ||
+                (node.previousElementSibling && node.previousElementSibling.textContent.trim() === '')) {
+                event.preventDefault();
+            }
+        }
+    }
+
+    function handleTabKeydown(event) {
+        // Override tab only for pre nodes
+        var node = MediumEditor.selection.getSelectionStart(this.options.ownerDocument),
+            tag = node && node.nodeName.toLowerCase();
+
+        if (tag === 'pre') {
+            event.preventDefault();
+            MediumEditor.util.insertHTMLCommand(this.options.ownerDocument, '    ');
+        }
+
+        // Tab to indent list structures!
+        if (MediumEditor.util.isListItem(node)) {
+            event.preventDefault();
+
+            // If Shift is down, outdent, otherwise indent
+            if (event.shiftKey) {
+                this.options.ownerDocument.execCommand('outdent', false, null);
+            } else {
+                this.options.ownerDocument.execCommand('indent', false, null);
+            }
+        }
+    }
+
+    function handleBlockDeleteKeydowns(event) {
+        var p, node = MediumEditor.selection.getSelectionStart(this.options.ownerDocument),
+            tagName = node.nodeName.toLowerCase(),
+            isEmpty = /^(\s+|<br\/?>)?$/i,
+            isHeader = /h\d/i;
+
+        if (MediumEditor.util.isKey(event, [MediumEditor.util.keyCode.BACKSPACE, MediumEditor.util.keyCode.ENTER]) &&
+                // has a preceeding sibling
+                node.previousElementSibling &&
+                // in a header
+                isHeader.test(tagName) &&
+                // at the very end of the block
+                MediumEditor.selection.getCaretOffsets(node).left === 0) {
+            if (MediumEditor.util.isKey(event, MediumEditor.util.keyCode.BACKSPACE) && isEmpty.test(node.previousElementSibling.innerHTML)) {
+                // backspacing the begining of a header into an empty previous element will
+                // change the tagName of the current node to prevent one
+                // instead delete previous node and cancel the event.
+                node.previousElementSibling.parentNode.removeChild(node.previousElementSibling);
+                event.preventDefault();
+            } else if (MediumEditor.util.isKey(event, MediumEditor.util.keyCode.ENTER)) {
+                // hitting return in the begining of a header will create empty header elements before the current one
+                // instead, make "<p><br></p>" element, which are what happens if you hit return in an empty paragraph
+                p = this.options.ownerDocument.createElement('p');
+                p.innerHTML = '<br>';
+                node.previousElementSibling.parentNode.insertBefore(p, node);
+                event.preventDefault();
+            }
+        } else if (MediumEditor.util.isKey(event, MediumEditor.util.keyCode.DELETE) &&
+                    // between two sibling elements
+                    node.nextElementSibling &&
+                    node.previousElementSibling &&
+                    // not in a header
+                    !isHeader.test(tagName) &&
+                    // in an empty tag
+                    isEmpty.test(node.innerHTML) &&
+                    // when the next tag *is* a header
+                    isHeader.test(node.nextElementSibling.nodeName.toLowerCase())) {
+            // hitting delete in an empty element preceding a header, ex:
+            //  <p>[CURSOR]</p><h1>Header</h1>
+            // Will cause the h1 to become a paragraph.
+            // Instead, delete the paragraph node and move the cursor to the begining of the h1
+
+            // remove node and move cursor to start of header
+            MediumEditor.selection.moveCursor(this.options.ownerDocument, node.nextElementSibling);
+
+            node.previousElementSibling.parentNode.removeChild(node);
+
+            event.preventDefault();
+        } else if (MediumEditor.util.isKey(event, MediumEditor.util.keyCode.BACKSPACE) &&
+                tagName === 'li' &&
+                // hitting backspace inside an empty li
+                isEmpty.test(node.innerHTML) &&
+                // is first element (no preceeding siblings)
+                !node.previousElementSibling &&
+                // parent also does not have a sibling
+                !node.parentElement.previousElementSibling &&
+                // is not the only li in a list
+                node.nextElementSibling &&
+                node.nextElementSibling.nodeName.toLowerCase() === 'li') {
+            // backspacing in an empty first list element in the first list (with more elements) ex:
+            //  <ul><li>[CURSOR]</li><li>List Item 2</li></ul>
+            // will remove the first <li> but add some extra element before (varies based on browser)
+            // Instead, this will:
+            // 1) remove the list element
+            // 2) create a paragraph before the list
+            // 3) move the cursor into the paragraph
+
+            // create a paragraph before the list
+            p = this.options.ownerDocument.createElement('p');
+            p.innerHTML = '<br>';
+            node.parentElement.parentElement.insertBefore(p, node.parentElement);
+
+            // move the cursor into the new paragraph
+            MediumEditor.selection.moveCursor(this.options.ownerDocument, p);
+
+            // remove the list element
+            node.parentElement.removeChild(node);
+
+            event.preventDefault();
+        }
+    }
+
+    function handleKeyup(event) {
+        var node = MediumEditor.selection.getSelectionStart(this.options.ownerDocument),
+            tagName;
+
+        if (!node) {
+            return;
+        }
+
+        if (MediumEditor.util.isMediumEditorElement(node) && node.children.length === 0) {
+            this.options.ownerDocument.execCommand('formatBlock', false, 'p');
+        }
+
+        if (MediumEditor.util.isKey(event, MediumEditor.util.keyCode.ENTER) && !MediumEditor.util.isListItem(node)) {
+            tagName = node.nodeName.toLowerCase();
+            // For anchor tags, unlink
+            if (tagName === 'a') {
+                this.options.ownerDocument.execCommand('unlink', false, null);
+            } else if (!event.shiftKey && !event.ctrlKey) {
+                // only format block if this is not a header tag
+                if (!/h\d/.test(tagName)) {
+                    this.options.ownerDocument.execCommand('formatBlock', false, 'p');
+                }
+            }
+        }
+    }
+
+    // Internal helper methods which shouldn't be exposed externally
+
+    function addToEditors(win) {
+        if (!win._mediumEditors) {
+            // To avoid breaking users who are assuming that the unique id on
+            // medium-editor elements will start at 1, inserting a 'null' in the
+            // array so the unique-id can always map to the index of the editor instance
+            win._mediumEditors = [null];
+        }
+
+        // If this already has a unique id, re-use it
+        if (!this.id) {
+            this.id = win._mediumEditors.length;
+        }
+
+        win._mediumEditors[this.id] = this;
+    }
+
+    function removeFromEditors(win) {
+        if (!win._mediumEditors || !win._mediumEditors[this.id]) {
+            return;
+        }
+
+        /* Setting the instance to null in the array instead of deleting it allows:
+         * 1) Each instance to preserve its own unique-id, even after being destroyed
+         *    and initialized again
+         * 2) The unique-id to always correspond to an index in the array of medium-editor
+         *    instances. Thus, we will be able to look at a contenteditable, and determine
+         *    which instance it belongs to, by indexing into the global array.
+         */
+        win._mediumEditors[this.id] = null;
+    }
+
+    function createElementsArray(selector) {
+        if (!selector) {
+            selector = [];
+        }
+        // If string, use as query selector
+        if (typeof selector === 'string') {
+            selector = this.options.ownerDocument.querySelectorAll(selector);
+        }
+        // If element, put into array
+        if (MediumEditor.util.isElement(selector)) {
+            selector = [selector];
+        }
+        // Convert NodeList (or other array like object) into an array
+        var elements = Array.prototype.slice.apply(selector);
+
+        // Loop through elements and convert textarea's into divs
+        this.elements = [];
+        elements.forEach(function (element, index) {
+            if (element.nodeName.toLowerCase() === 'textarea') {
+                this.elements.push(createContentEditable.call(this, element, index));
+            } else {
+                this.elements.push(element);
+            }
+        }, this);
+    }
+
+    function setExtensionDefaults(extension, defaults) {
+        Object.keys(defaults).forEach(function (prop) {
+            if (extension[prop] === undefined) {
+                extension[prop] = defaults[prop];
+            }
+        });
+        return extension;
+    }
+
+    function initExtension(extension, name, instance) {
+        var extensionDefaults = {
+            'window': instance.options.contentWindow,
+            'document': instance.options.ownerDocument,
+            'base': instance
+        };
+
+        // Add default options into the extension
+        extension = setExtensionDefaults(extension, extensionDefaults);
+
+        // Call init on the extension
+        if (typeof extension.init === 'function') {
+            extension.init();
+        }
+
+        // Set extension name (if not already set)
+        if (!extension.name) {
+            extension.name = name;
+        }
+        return extension;
+    }
+
+    function isToolbarEnabled() {
+        // If any of the elements don't have the toolbar disabled
+        // We need a toolbar
+        if (this.elements.every(function (element) {
+                return !!element.getAttribute('data-disable-toolbar');
+            })) {
+            return false;
+        }
+
+        return this.options.toolbar !== false;
+    }
+
+    function isAnchorPreviewEnabled() {
+        // If toolbar is disabled, don't add
+        if (!isToolbarEnabled.call(this)) {
+            return false;
+        }
+
+        return this.options.anchorPreview !== false;
+    }
+
+    function isPlaceholderEnabled() {
+        return this.options.placeholder !== false;
+    }
+
+    function isAutoLinkEnabled() {
+        return this.options.autoLink !== false;
+    }
+
+    function isImageDraggingEnabled() {
+        return this.options.imageDragging !== false;
+    }
+
+    function isKeyboardCommandsEnabled() {
+        return this.options.keyboardCommands !== false;
+    }
+
+    function shouldUseFileDraggingExtension() {
+        // Since the file-dragging extension replaces the image-dragging extension,
+        // we need to check if the user passed an overrided image-dragging extension.
+        // If they have, to avoid breaking users, we won't use file-dragging extension.
+        return !this.options.extensions['imageDragging'];
+    }
+
+    function createContentEditable(textarea, id) {
+        var div = this.options.ownerDocument.createElement('div'),
+            now = Date.now(),
+            uniqueId = 'medium-editor-' + now + '-' + id,
+            atts = textarea.attributes;
+
+        // Some browsers can move pretty fast, since we're using a timestamp
+        // to make a unique-id, ensure that the id is actually unique on the page
+        while (this.options.ownerDocument.getElementById(uniqueId)) {
+            now++;
+            uniqueId = 'medium-editor-' + now + '-' + id;
+        }
+
+        div.className = textarea.className;
+        div.id = uniqueId;
+        div.innerHTML = textarea.value;
+
+        textarea.setAttribute('medium-editor-textarea-id', uniqueId);
+
+        // re-create all attributes from the textearea to the new created div
+        for (var i = 0, n = atts.length; i < n; i++) {
+            // do not re-create existing attributes
+            if (!div.hasAttribute(atts[i].nodeName)) {
+                div.setAttribute(atts[i].nodeName, atts[i].nodeValue);
+            }
+        }
+
+        textarea.classList.add('medium-editor-hidden');
+        textarea.parentNode.insertBefore(
+            div,
+            textarea
+        );
+
+        return div;
+    }
+
+    function initElements() {
+        this.elements.forEach(function (element, index) {
+            if (!this.options.disableEditing && !element.getAttribute('data-disable-editing')) {
+                element.setAttribute('contentEditable', true);
+                element.setAttribute('spellcheck', this.options.spellcheck);
+            }
+            element.setAttribute('data-medium-editor-element', true);
+            element.setAttribute('role', 'textbox');
+            element.setAttribute('aria-multiline', true);
+            element.setAttribute('medium-editor-index', index);
+
+            if (element.hasAttribute('medium-editor-textarea-id')) {
+                this.on(element, 'input', function (event) {
+                    var target = event.target,
+                        textarea = target.parentNode.querySelector('textarea[medium-editor-textarea-id="' + target.getAttribute('medium-editor-textarea-id') + '"]');
+                    if (textarea) {
+                        textarea.value = this.serialize()[target.id].value;
+                    }
+                }.bind(this));
+            }
+        }, this);
+    }
+
+    function attachHandlers() {
+        var i;
+
+        // attach to tabs
+        this.subscribe('editableKeydownTab', handleTabKeydown.bind(this));
+
+        // Bind keys which can create or destroy a block element: backspace, delete, return
+        this.subscribe('editableKeydownDelete', handleBlockDeleteKeydowns.bind(this));
+        this.subscribe('editableKeydownEnter', handleBlockDeleteKeydowns.bind(this));
+
+        // disabling return or double return
+        if (this.options.disableReturn || this.options.disableDoubleReturn) {
+            this.subscribe('editableKeydownEnter', handleDisabledEnterKeydown.bind(this));
+        } else {
+            for (i = 0; i < this.elements.length; i += 1) {
+                if (this.elements[i].getAttribute('data-disable-return') || this.elements[i].getAttribute('data-disable-double-return')) {
+                    this.subscribe('editableKeydownEnter', handleDisabledEnterKeydown.bind(this));
+                    break;
+                }
+            }
+        }
+
+        // if we're not disabling return, add a handler to help handle cleanup
+        // for certain cases when enter is pressed
+        if (!this.options.disableReturn) {
+            this.elements.forEach(function (element) {
+                if (!element.getAttribute('data-disable-return')) {
+                    this.on(element, 'keyup', handleKeyup.bind(this));
+                }
+            }, this);
+        }
+    }
+
+    function initExtensions() {
+
+        this.extensions = [];
+
+        // Passed in extensions
+        Object.keys(this.options.extensions).forEach(function (name) {
+            // Always save the toolbar extension for last
+            if (name !== 'toolbar' && this.options.extensions[name]) {
+                this.extensions.push(initExtension(this.options.extensions[name], name, this));
+            }
+        }, this);
+
+        // 4 Cases for imageDragging + fileDragging extensons:
+        //
+        // 1. ImageDragging ON + No Custom Image Dragging Extension:
+        //    * Use fileDragging extension (default options)
+        // 2. ImageDragging OFF + No Custom Image Dragging Extension:
+        //    * Use fileDragging extension w/ images turned off
+        // 3. ImageDragging ON + Custom Image Dragging Extension:
+        //    * Don't use fileDragging (could interfere with custom image dragging extension)
+        // 4. ImageDragging OFF + Custom Image Dragging:
+        //    * Don't use fileDragging (could interfere with custom image dragging extension)
+        if (shouldUseFileDraggingExtension.call(this)) {
+            var opts = this.options.fileDragging;
+            if (!opts) {
+                opts = {};
+
+                // Image is in the 'allowedTypes' list by default.
+                // If imageDragging is off override the 'allowedTypes' list with an empty one
+                if (!isImageDraggingEnabled.call(this)) {
+                    opts.allowedTypes = [];
+                }
+            }
+            this.addBuiltInExtension('fileDragging', opts);
+        }
+
+        // Built-in extensions
+        var builtIns = {
+            paste: true,
+            'anchor-preview': isAnchorPreviewEnabled.call(this),
+            autoLink: isAutoLinkEnabled.call(this),
+            keyboardCommands: isKeyboardCommandsEnabled.call(this),
+            placeholder: isPlaceholderEnabled.call(this)
+        };
+        Object.keys(builtIns).forEach(function (name) {
+            if (builtIns[name]) {
+                this.addBuiltInExtension(name);
+            }
+        }, this);
+
+        // Users can pass in a custom toolbar extension
+        // so check for that first and if it's not present
+        // just create the default toolbar
+        var toolbarExtension = this.options.extensions['toolbar'];
+        if (!toolbarExtension && isToolbarEnabled.call(this)) {
+            // Backwards compatability
+            var toolbarOptions = MediumEditor.util.extend({}, this.options.toolbar, {
+                allowMultiParagraphSelection: this.options.allowMultiParagraphSelection // deprecated
+            });
+            toolbarExtension = new MediumEditor.extensions.toolbar(toolbarOptions);
+        }
+
+        // If the toolbar is not disabled, so we actually have an extension
+        // initialize it and add it to the extensions array
+        if (toolbarExtension) {
+            this.extensions.push(initExtension(toolbarExtension, 'toolbar', this));
+        }
+    }
+
+    function mergeOptions(defaults, options) {
+        var deprecatedProperties = [
+            ['allowMultiParagraphSelection', 'toolbar.allowMultiParagraphSelection']
+        ];
+        // warn about using deprecated properties
+        if (options) {
+            deprecatedProperties.forEach(function (pair) {
+                if (options.hasOwnProperty(pair[0]) && options[pair[0]] !== undefined) {
+                    MediumEditor.util.deprecated(pair[0], pair[1], 'v6.0.0');
+                }
+            });
+        }
+
+        return MediumEditor.util.defaults({}, options, defaults);
+    }
+
+    function execActionInternal(action, opts) {
+        /*jslint regexp: true*/
+        var appendAction = /^append-(.+)$/gi,
+            justifyAction = /justify([A-Za-z]*)$/g, /* Detecting if is justifyCenter|Right|Left */
+            match;
+        /*jslint regexp: false*/
+
+        // Actions starting with 'append-' should attempt to format a block of text ('formatBlock') using a specific
+        // type of block element (ie append-blockquote, append-h1, append-pre, etc.)
+        match = appendAction.exec(action);
+        if (match) {
+            return MediumEditor.util.execFormatBlock(this.options.ownerDocument, match[1]);
+        }
+
+        if (action === 'fontSize') {
+            return this.options.ownerDocument.execCommand('fontSize', false, opts.size);
+        }
+
+        if (action === 'createLink') {
+            return this.createLink(opts);
+        }
+
+        if (action === 'image') {
+            return this.options.ownerDocument.execCommand('insertImage', false, this.options.contentWindow.getSelection());
+        }
+
+        /* Issue: https://github.com/yabwe/medium-editor/issues/595
+         * If the action is to justify the text */
+        if (justifyAction.exec(action)) {
+            var result = this.options.ownerDocument.execCommand(action, false, null),
+                parentNode = MediumEditor.selection.getSelectedParentElement(MediumEditor.selection.getSelectionRange(this.options.ownerDocument));
+            if (parentNode) {
+                cleanupJustifyDivFragments.call(this, MediumEditor.util.getTopBlockContainer(parentNode));
+            }
+
+            return result;
+        }
+
+        return this.options.ownerDocument.execCommand(action, false, null);
+    }
+
+    /* If we've just justified text within a container block
+     * Chrome may have removed <br> elements and instead wrapped lines in <div> elements
+     * with a text-align property.  If so, we want to fix this
+     */
+    function cleanupJustifyDivFragments(blockContainer) {
+        if (!blockContainer) {
+            return;
+        }
+
+        var textAlign,
+            childDivs = Array.prototype.slice.call(blockContainer.childNodes).filter(function (element) {
+                var isDiv = element.nodeName.toLowerCase() === 'div';
+                if (isDiv && !textAlign) {
+                    textAlign = element.style.textAlign;
+                }
+                return isDiv;
+            });
+
+        /* If we found child <div> elements with text-align style attributes
+         * we should fix this by:
+         *
+         * 1) Unwrapping each <div> which has a text-align style
+         * 2) Insert a <br> element after each set of 'unwrapped' div children
+         * 3) Set the text-align style of the parent block element
+         */
+        if (childDivs.length) {
+            // Since we're mucking with the HTML, preserve selection
+            this.saveSelection();
+            childDivs.forEach(function (div) {
+                if (div.style.textAlign === textAlign) {
+                    var lastChild = div.lastChild;
+                    if (lastChild) {
+                        // Instead of a div, extract the child elements and add a <br>
+                        MediumEditor.util.unwrap(div, this.options.ownerDocument);
+                        var br = this.options.ownerDocument.createElement('BR');
+                        lastChild.parentNode.insertBefore(br, lastChild.nextSibling);
+                    }
+                }
+            }, this);
+            blockContainer.style.textAlign = textAlign;
+            // We're done, so restore selection
+            this.restoreSelection();
+        }
+    }
+
+    MediumEditor.prototype = {
+        // NOT DOCUMENTED - exposed for backwards compatability
+        init: function (elements, options) {
+            this.options = mergeOptions.call(this, this.defaults, options);
+            this.origElements = elements;
+
+            if (!this.options.elementsContainer) {
+                this.options.elementsContainer = this.options.ownerDocument.body;
+            }
+
             return this.setup();
         },
 
         setup: function () {
+            if (this.isActive) {
+                return;
+            }
+
+            createElementsArray.call(this, this.origElements);
+
+            if (this.elements.length === 0) {
+                return;
+            }
+
             this.isActive = true;
-            this.initElements()
-                .bindSelect()
-                .bindPaste()
-                .setPlaceholders()
-                .bindWindowActions();
+            addToEditors.call(this, this.options.contentWindow);
+
+            this.events = new MediumEditor.Events(this);
+
+            // Call initialization helpers
+            initElements.call(this);
+            initExtensions.call(this);
+            attachHandlers.call(this);
         },
 
-        initElements: function () {
-            this.updateElementList();
-            var i,
-                addToolbar = false;
-            for (i = 0; i < this.elements.length; i += 1) {
-                if (!this.options.disableEditing && !this.elements[i].getAttribute('data-disable-editing')) {
-                    this.elements[i].setAttribute('contentEditable', true);
-                }
-                if (!this.elements[i].getAttribute('data-placeholder')) {
-                    this.elements[i].setAttribute('data-placeholder', this.options.placeholder);
-                }
-                this.elements[i].setAttribute('data-medium-element', true);
-                this.bindParagraphCreation(i).bindReturn(i).bindTab(i);
-                if (!this.options.disableToolbar && !this.elements[i].getAttribute('data-disable-toolbar')) {
-                    addToolbar = true;
-                }
+        destroy: function () {
+            if (!this.isActive) {
+                return;
             }
-            // Init toolbar
-            if (addToolbar) {
-                if (!this.options.elementsContainer) {
-                    this.options.elementsContainer = document.body;
+
+            this.isActive = false;
+
+            this.extensions.forEach(function (extension) {
+                if (typeof extension.destroy === 'function') {
+                    extension.destroy();
                 }
-                this.initToolbar()
-                    .bindButtons()
-                    .bindAnchorForm()
-                    .bindAnchorPreview();
-            }
-            return this;
+            }, this);
+
+            this.events.destroy();
+
+            this.elements.forEach(function (element) {
+                // Reset elements content, fix for issue where after editor destroyed the red underlines on spelling errors are left
+                if (this.options.spellcheck) {
+                    element.innerHTML = element.innerHTML;
+                }
+
+                // cleanup extra added attributes
+                element.removeAttribute('contentEditable');
+                element.removeAttribute('spellcheck');
+                element.removeAttribute('data-medium-editor-element');
+                element.removeAttribute('role');
+                element.removeAttribute('aria-multiline');
+                element.removeAttribute('medium-editor-index');
+
+                // Remove any elements created for textareas
+                if (element.hasAttribute('medium-editor-textarea-id')) {
+                    var textarea = element.parentNode.querySelector('textarea[medium-editor-textarea-id="' + element.getAttribute('medium-editor-textarea-id') + '"]');
+                    if (textarea) {
+                        // Un-hide the textarea
+                        textarea.classList.remove('medium-editor-hidden');
+                    }
+                    if (element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                }
+            }, this);
+            this.elements = [];
+
+            removeFromEditors.call(this, this.options.contentWindow);
         },
 
-        setElementSelection: function (selector) {
-            this.elementSelection = selector;
-            this.updateElementList();
+        on: function (target, event, listener, useCapture) {
+            this.events.attachDOMEvent(target, event, listener, useCapture);
         },
 
-        updateElementList: function () {
-            this.elements = typeof this.elementSelection === 'string' ? document.querySelectorAll(this.elementSelection) : this.elementSelection;
-            if (this.elements.nodeType === 1) {
-                this.elements = [this.elements];
-            }
+        off: function (target, event, listener, useCapture) {
+            this.events.detachDOMEvent(target, event, listener, useCapture);
+        },
+
+        subscribe: function (event, listener) {
+            this.events.attachCustomEvent(event, listener);
+        },
+
+        unsubscribe: function (event, listener) {
+            this.events.detachCustomEvent(event, listener);
+        },
+
+        trigger: function (name, data, editable) {
+            this.events.triggerCustomEvent(name, data, editable);
+        },
+
+        delay: function (fn) {
+            var self = this;
+            return setTimeout(function () {
+                if (self.isActive) {
+                    fn();
+                }
+            }, this.options.delay);
         },
 
         serialize: function () {
@@ -14445,1169 +18098,422 @@ if (typeof module === 'object') {
             return content;
         },
 
+        getExtensionByName: function (name) {
+            var extension;
+            if (this.extensions && this.extensions.length) {
+                this.extensions.some(function (ext) {
+                    if (ext.name === name) {
+                        extension = ext;
+                        return true;
+                    }
+                    return false;
+                });
+            }
+            return extension;
+        },
+
         /**
-         * Helper function to call a method with a number of parameters on all registered extensions.
-         * The function assures that the function exists before calling.
-         *
-         * @param {string} funcName name of the function to call
-         * @param [args] arguments passed into funcName
+         * NOT DOCUMENTED - exposed as a helper for other extensions to use
          */
-        callExtensions: function (funcName) {
-            if (arguments.length < 1) {
-                return;
+        addBuiltInExtension: function (name, opts) {
+            var extension = this.getExtensionByName(name),
+                merged;
+            if (extension) {
+                return extension;
             }
 
-            var args = Array.prototype.slice.call(arguments, 1),
-                ext,
-                name;
-
-            for (name in this.options.extensions) {
-                if (this.options.extensions.hasOwnProperty(name)) {
-                    ext = this.options.extensions[name];
-                    if (ext[funcName] !== undefined) {
-                        ext[funcName].apply(ext, args);
-                    }
-                }
-            }
-        },
-
-        bindParagraphCreation: function (index) {
-            var self = this;
-            this.elements[index].addEventListener('keypress', function (e) {
-                var node = getSelectionStart(),
-                    tagName;
-                if (e.which === 32) {
-                    tagName = node.tagName.toLowerCase();
-                    if (tagName === 'a') {
-                        document.execCommand('unlink', false, null);
-                    }
-                }
-            });
-
-            this.elements[index].addEventListener('keyup', function (e) {
-                var node = getSelectionStart(),
-                    tagName;
-                if (node && node.getAttribute('data-medium-element') && node.children.length === 0 && !(self.options.disableReturn || node.getAttribute('data-disable-return'))) {
-                    document.execCommand('formatBlock', false, 'p');
-                }
-                if (e.which === 13) {
-                    node = getSelectionStart();
-                    tagName = node.tagName.toLowerCase();
-                    if (!(self.options.disableReturn || this.getAttribute('data-disable-return')) &&
-                        tagName !== 'li' && !self.isListItemChild(node)) {
-                        if (!e.shiftKey) {
-                            document.execCommand('formatBlock', false, 'p');
-                        }
-                        if (tagName === 'a') {
-                            document.execCommand('unlink', false, null);
+            switch (name) {
+                case 'anchor':
+                    merged = MediumEditor.util.extend({}, this.options.anchor, opts);
+                    extension = new MediumEditor.extensions.anchor(merged);
+                    break;
+                case 'anchor-preview':
+                    extension = new MediumEditor.extensions.anchorPreview(this.options.anchorPreview);
+                    break;
+                case 'autoLink':
+                    extension = new MediumEditor.extensions.autoLink();
+                    break;
+                case 'fileDragging':
+                    extension = new MediumEditor.extensions.fileDragging(opts);
+                    break;
+                case 'fontsize':
+                    extension = new MediumEditor.extensions.fontSize(opts);
+                    break;
+                case 'keyboardCommands':
+                    extension = new MediumEditor.extensions.keyboardCommands(this.options.keyboardCommands);
+                    break;
+                case 'paste':
+                    extension = new MediumEditor.extensions.paste(this.options.paste);
+                    break;
+                case 'placeholder':
+                    extension = new MediumEditor.extensions.placeholder(this.options.placeholder);
+                    break;
+                default:
+                    // All of the built-in buttons for MediumEditor are extensions
+                    // so check to see if the extension we're creating is a built-in button
+                    if (MediumEditor.extensions.button.isBuiltInButton(name)) {
+                        if (opts) {
+                            merged = MediumEditor.util.defaults({}, opts, MediumEditor.extensions.button.prototype.defaults[name]);
+                            extension = new MediumEditor.extensions.button(merged);
+                        } else {
+                            extension = new MediumEditor.extensions.button(name);
                         }
                     }
-                }
-            });
-            return this;
-        },
-
-        isListItemChild: function (node) {
-            var parentNode = node.parentNode,
-                tagName = parentNode.tagName.toLowerCase();
-            while (this.parentElements.indexOf(tagName) === -1 && tagName !== 'div') {
-                if (tagName === 'li') {
-                    return true;
-                }
-                parentNode = parentNode.parentNode;
-                if (parentNode && parentNode.tagName) {
-                    tagName = parentNode.tagName.toLowerCase();
-                } else {
-                    return false;
-                }
-            }
-            return false;
-        },
-
-        bindReturn: function (index) {
-            var self = this;
-            this.elements[index].addEventListener('keypress', function (e) {
-                if (e.which === 13) {
-                    if (self.options.disableReturn || this.getAttribute('data-disable-return')) {
-                        e.preventDefault();
-                    } else if (self.options.disableDoubleReturn || this.getAttribute('data-disable-double-return')) {
-                        var node = getSelectionStart();
-                        if (node && node.innerText === '\n') {
-                            e.preventDefault();
-                        }
-                    }
-                }
-            });
-            return this;
-        },
-
-        bindTab: function (index) {
-            this.elements[index].addEventListener('keydown', function (e) {
-                if (e.which === 9) {
-                    // Override tab only for pre nodes
-                    var tag = getSelectionStart().tagName.toLowerCase();
-                    if (tag === 'pre') {
-                        e.preventDefault();
-                        document.execCommand('insertHtml', null, '    ');
-                    }
-                }
-            });
-            return this;
-        },
-
-        buttonTemplate: function (btnType) {
-            var buttonLabels = this.getButtonLabels(this.options.buttonLabels),
-                buttonTemplates = {
-                    'bold': '<button class="medium-editor-action medium-editor-action-bold" data-action="bold" data-element="b">' + buttonLabels.bold + '</button>',
-                    'italic': '<button class="medium-editor-action medium-editor-action-italic" data-action="italic" data-element="i">' + buttonLabels.italic + '</button>',
-                    'underline': '<button class="medium-editor-action medium-editor-action-underline" data-action="underline" data-element="u">' + buttonLabels.underline + '</button>',
-                    'strikethrough': '<button class="medium-editor-action medium-editor-action-strikethrough" data-action="strikethrough" data-element="strike"><strike>A</strike></button>',
-                    'superscript': '<button class="medium-editor-action medium-editor-action-superscript" data-action="superscript" data-element="sup">' + buttonLabels.superscript + '</button>',
-                    'subscript': '<button class="medium-editor-action medium-editor-action-subscript" data-action="subscript" data-element="sub">' + buttonLabels.subscript + '</button>',
-                    'anchor': '<button class="medium-editor-action medium-editor-action-anchor" data-action="anchor" data-element="a">' + buttonLabels.anchor + '</button>',
-                    'image': '<button class="medium-editor-action medium-editor-action-image" data-action="image" data-element="img">' + buttonLabels.image + '</button>',
-                    'header1': '<button class="medium-editor-action medium-editor-action-header1" data-action="append-' + this.options.firstHeader + '" data-element="' + this.options.firstHeader + '">' + buttonLabels.header1 + '</button>',
-                    'header2': '<button class="medium-editor-action medium-editor-action-header2" data-action="append-' + this.options.secondHeader + '" data-element="' + this.options.secondHeader + '">' + buttonLabels.header2 + '</button>',
-                    'quote': '<button class="medium-editor-action medium-editor-action-quote" data-action="append-blockquote" data-element="blockquote">' + buttonLabels.quote + '</button>',
-                    'orderedlist': '<button class="medium-editor-action medium-editor-action-orderedlist" data-action="insertorderedlist" data-element="ol">' + buttonLabels.orderedlist + '</button>',
-                    'unorderedlist': '<button class="medium-editor-action medium-editor-action-unorderedlist" data-action="insertunorderedlist" data-element="ul">' + buttonLabels.unorderedlist + '</button>',
-                    'pre': '<button class="medium-editor-action medium-editor-action-pre" data-action="append-pre" data-element="pre">' + buttonLabels.pre + '</button>',
-                    'indent': '<button class="medium-editor-action medium-editor-action-indent" data-action="indent" data-element="ul">' + buttonLabels.indent + '</button>',
-                    'outdent': '<button class="medium-editor-action medium-editor-action-outdent" data-action="outdent" data-element="ul">' + buttonLabels.outdent + '</button>'
-                };
-            return buttonTemplates[btnType] || false;
-        },
-
-        // TODO: break method
-        getButtonLabels: function (buttonLabelType) {
-            var customButtonLabels,
-                attrname,
-                buttonLabels = {
-                    'bold': '<b>B</b>',
-                    'italic': '<b><i>I</i></b>',
-                    'underline': '<b><u>U</u></b>',
-                    'superscript': '<b>x<sup>1</sup></b>',
-                    'subscript': '<b>x<sub>1</sub></b>',
-                    'anchor': '<b>#</b>',
-                    'image': '<b>image</b>',
-                    'header1': '<b>H1</b>',
-                    'header2': '<b>H2</b>',
-                    'quote': '<b>&ldquo;</b>',
-                    'orderedlist': '<b>1.</b>',
-                    'unorderedlist': '<b>&bull;</b>',
-                    'pre': '<b>0101</b>',
-                    'indent': '<b>&rarr;</b>',
-                    'outdent': '<b>&larr;</b>'
-                };
-            if (buttonLabelType === 'fontawesome') {
-                customButtonLabels = {
-                    'bold': '<i class="fa fa-bold"></i>',
-                    'italic': '<i class="fa fa-italic"></i>',
-                    'underline': '<i class="fa fa-underline"></i>',
-                    'superscript': '<i class="fa fa-superscript"></i>',
-                    'subscript': '<i class="fa fa-subscript"></i>',
-                    'anchor': '<i class="fa fa-link"></i>',
-                    'image': '<i class="fa fa-picture-o"></i>',
-                    'quote': '<i class="fa fa-quote-right"></i>',
-                    'orderedlist': '<i class="fa fa-list-ol"></i>',
-                    'unorderedlist': '<i class="fa fa-list-ul"></i>',
-                    'pre': '<i class="fa fa-code fa-lg"></i>',
-                    'indent': '<i class="fa fa-indent"></i>',
-                    'outdent': '<i class="fa fa-outdent"></i>'
-                };
-            } else if (typeof buttonLabelType === 'object') {
-                customButtonLabels = buttonLabelType;
-            }
-            if (typeof customButtonLabels === 'object') {
-                for (attrname in customButtonLabels) {
-                    if (customButtonLabels.hasOwnProperty(attrname)) {
-                        buttonLabels[attrname] = customButtonLabels[attrname];
-                    }
-                }
-            }
-            return buttonLabels;
-        },
-
-        initToolbar: function () {
-            if (this.toolbar) {
-                return this;
-            }
-            this.toolbar = this.createToolbar();
-            this.keepToolbarAlive = false;
-            this.anchorForm = this.toolbar.querySelector('.medium-editor-toolbar-form-anchor');
-            this.anchorInput = this.anchorForm.querySelector('input');
-            this.toolbarActions = this.toolbar.querySelector('.medium-editor-toolbar-actions');
-            this.anchorPreview = this.createAnchorPreview();
-
-            return this;
-        },
-
-        createToolbar: function () {
-            var toolbar = document.createElement('div');
-            toolbar.id = 'medium-editor-toolbar-' + this.id;
-            toolbar.className = 'medium-editor-toolbar';
-            toolbar.appendChild(this.toolbarButtons());
-            toolbar.appendChild(this.toolbarFormAnchor());
-            this.options.elementsContainer.appendChild(toolbar);
-            return toolbar;
-        },
-
-        //TODO: actionTemplate
-        toolbarButtons: function () {
-            var btns = this.options.buttons,
-                ul = document.createElement('ul'),
-                li,
-                i,
-                btn,
-                ext;
-
-            ul.id = 'medium-editor-toolbar-actions';
-            ul.className = 'medium-editor-toolbar-actions clearfix';
-
-            for (i = 0; i < btns.length; i += 1) {
-                if (this.options.extensions.hasOwnProperty(btns[i])) {
-                    ext = this.options.extensions[btns[i]];
-                    btn = ext.getButton !== undefined ? ext.getButton() : null;
-                } else {
-                    btn = this.buttonTemplate(btns[i]);
-                }
-
-                if (btn) {
-                    li = document.createElement('li');
-                    if (isElement(btn)) {
-                        li.appendChild(btn);
-                    } else {
-                        li.innerHTML = btn;
-                    }
-                    ul.appendChild(li);
-                }
             }
 
-            return ul;
-        },
-
-        toolbarFormAnchor: function () {
-            var anchor = document.createElement('div'),
-                input = document.createElement('input'),
-                a = document.createElement('a');
-
-            a.setAttribute('href', '#');
-            a.innerHTML = '&times;';
-
-            input.setAttribute('type', 'text');
-            input.setAttribute('placeholder', this.options.anchorInputPlaceholder);
-
-            anchor.className = 'medium-editor-toolbar-form-anchor';
-            anchor.id = 'medium-editor-toolbar-form-anchor';
-            anchor.appendChild(input);
-            anchor.appendChild(a);
-
-            return anchor;
-        },
-
-        bindSelect: function () {
-            var self = this,
-                timer = '',
-                i;
-
-            this.checkSelectionWrapper = function (e) {
-
-                // Do not close the toolbar when bluring the editable area and clicking into the anchor form
-                if (e && self.clickingIntoArchorForm(e)) {
-                    return false;
-                }
-
-                clearTimeout(timer);
-                timer = setTimeout(function () {
-                    self.checkSelection();
-                }, self.options.delay);
-            };
-
-            document.documentElement.addEventListener('mouseup', this.checkSelectionWrapper);
-
-            for (i = 0; i < this.elements.length; i += 1) {
-                this.elements[i].addEventListener('keyup', this.checkSelectionWrapper);
-                this.elements[i].addEventListener('blur', this.checkSelectionWrapper);
+            if (extension) {
+                this.extensions.push(initExtension(extension, name, this));
             }
-            return this;
+
+            return extension;
+        },
+
+        stopSelectionUpdates: function () {
+            this.preventSelectionUpdates = true;
+        },
+
+        startSelectionUpdates: function () {
+            this.preventSelectionUpdates = false;
         },
 
         checkSelection: function () {
-            var newSelection,
-                selectionElement;
-
-            if (this.keepToolbarAlive !== true && !this.options.disableToolbar) {
-                newSelection = window.getSelection();
-                if (newSelection.toString().trim() === '' ||
-                    (this.options.allowMultiParagraphSelection === false && this.hasMultiParagraphs())) {
-                    this.hideToolbarActions();
-                } else {
-                    selectionElement = this.getSelectionElement();
-                    if (!selectionElement || selectionElement.getAttribute('data-disable-toolbar')) {
-                        this.hideToolbarActions();
-                    } else {
-                        this.checkSelectionElement(newSelection, selectionElement);
-                    }
-                }
+            var toolbar = this.getExtensionByName('toolbar');
+            if (toolbar) {
+                toolbar.checkState();
             }
             return this;
         },
 
-        clickingIntoArchorForm: function (e) {
-            var self = this;
-            if (e.type && e.type.toLowerCase() === 'blur' && e.relatedTarget && e.relatedTarget === self.anchorInput) {
-                return true;
+        // Wrapper around document.queryCommandState for checking whether an action has already
+        // been applied to the current selection
+        queryCommandState: function (action) {
+            var fullAction = /^full-(.+)$/gi,
+                match,
+                queryState = null;
+
+            // Actions starting with 'full-' need to be modified since this is a medium-editor concept
+            match = fullAction.exec(action);
+            if (match) {
+                action = match[1];
             }
-            return false;
-        },
 
-        hasMultiParagraphs: function () {
-            var selectionHtml = getSelectionHtml().replace(/<[\S]+><\/[\S]+>/gim, ''),
-                hasMultiParagraphs = selectionHtml.match(/<(p|h[0-6]|blockquote)>([\s\S]*?)<\/(p|h[0-6]|blockquote)>/g);
-
-            return (hasMultiParagraphs ? hasMultiParagraphs.length : 0);
-        },
-
-        checkSelectionElement: function (newSelection, selectionElement) {
-            var i;
-            this.selection = newSelection;
-            this.selectionRange = this.selection.getRangeAt(0);
-            for (i = 0; i < this.elements.length; i += 1) {
-                if (this.elements[i] === selectionElement) {
-                    this.setToolbarButtonStates()
-                        .setToolbarPosition()
-                        .showToolbarActions();
-                    return;
-                }
-            }
-            this.hideToolbarActions();
-        },
-
-        getSelectionElement: function () {
-            var selection = window.getSelection(),
-                range, current, parent,
-                result,
-                getMediumElement = function (e) {
-                    var localParent = e;
-                    try {
-                        while (!localParent.getAttribute('data-medium-element')) {
-                            localParent = localParent.parentNode;
-                        }
-                    } catch (errb) {
-                        return false;
-                    }
-                    return localParent;
-                };
-            // First try on current node
             try {
-                range = selection.getRangeAt(0);
-                current = range.commonAncestorContainer;
-                parent = current.parentNode;
-
-                if (current.getAttribute('data-medium-element')) {
-                    result = current;
-                } else {
-                    result = getMediumElement(parent);
-                }
-                // If not search in the parent nodes.
-            } catch (err) {
-                result = getMediumElement(parent);
+                queryState = this.options.ownerDocument.queryCommandState(action);
+            } catch (exc) {
+                queryState = null;
             }
+
+            return queryState;
+        },
+
+        execAction: function (action, opts) {
+            /*jslint regexp: true*/
+            var fullAction = /^full-(.+)$/gi,
+                match,
+                result;
+            /*jslint regexp: false*/
+
+            // Actions starting with 'full-' should be applied to to the entire contents of the editable element
+            // (ie full-bold, full-append-pre, etc.)
+            match = fullAction.exec(action);
+            if (match) {
+                // Store the current selection to be restored after applying the action
+                this.saveSelection();
+                // Select all of the contents before calling the action
+                this.selectAllContents();
+                result = execActionInternal.call(this, match[1], opts);
+                // Restore the previous selection
+                this.restoreSelection();
+            } else {
+                result = execActionInternal.call(this, action, opts);
+            }
+
+            // do some DOM clean-up for known browser issues after the action
+            if (action === 'insertunorderedlist' || action === 'insertorderedlist') {
+                MediumEditor.util.cleanListDOM(this.options.ownerDocument, this.getSelectedParentElement());
+            }
+
+            this.checkSelection();
             return result;
         },
 
-        setToolbarPosition: function () {
-            var buttonHeight = 50,
-                selection = window.getSelection(),
-                range = selection.getRangeAt(0),
-                boundary = range.getBoundingClientRect(),
-                defaultLeft = (this.options.diffLeft) - (this.toolbar.offsetWidth / 2),
-                middleBoundary = (boundary.left + boundary.right) / 2,
-                halfOffsetWidth = this.toolbar.offsetWidth / 2;
-            if (boundary.top < buttonHeight) {
-                this.toolbar.classList.add('medium-toolbar-arrow-over');
-                this.toolbar.classList.remove('medium-toolbar-arrow-under');
-                this.toolbar.style.top = buttonHeight + boundary.bottom - this.options.diffTop + window.pageYOffset - this.toolbar.offsetHeight + 'px';
-            } else {
-                this.toolbar.classList.add('medium-toolbar-arrow-under');
-                this.toolbar.classList.remove('medium-toolbar-arrow-over');
-                this.toolbar.style.top = boundary.top + this.options.diffTop + window.pageYOffset - this.toolbar.offsetHeight + 'px';
+        getSelectedParentElement: function (range) {
+            if (range === undefined) {
+                range = this.options.contentWindow.getSelection().getRangeAt(0);
             }
-            if (middleBoundary < halfOffsetWidth) {
-                this.toolbar.style.left = defaultLeft + halfOffsetWidth + 'px';
-            } else if ((window.innerWidth - middleBoundary) < halfOffsetWidth) {
-                this.toolbar.style.left = window.innerWidth + defaultLeft - halfOffsetWidth + 'px';
-            } else {
-                this.toolbar.style.left = defaultLeft + middleBoundary + 'px';
-            }
-
-            this.hideAnchorPreview();
-
-            return this;
+            return MediumEditor.selection.getSelectedParentElement(range);
         },
 
-        setToolbarButtonStates: function () {
-            var buttons = this.toolbarActions.querySelectorAll('button'),
-                i;
-            for (i = 0; i < buttons.length; i += 1) {
-                buttons[i].classList.remove(this.options.activeButtonClass);
-            }
-            this.checkActiveButtons();
-            return this;
-        },
+        selectAllContents: function () {
+            var currNode = MediumEditor.selection.getSelectionElement(this.options.contentWindow);
 
-        checkActiveButtons: function () {
-            var elements = Array.prototype.slice.call(this.elements),
-                parentNode = this.getSelectedParentElement();
-            while (parentNode.tagName !== undefined && this.parentElements.indexOf(parentNode.tagName.toLowerCase) === -1) {
-                this.activateButton(parentNode.tagName.toLowerCase());
-                this.callExtensions('checkState', parentNode);
-
-                // we can abort the search upwards if we leave the contentEditable element
-                if (elements.indexOf(parentNode) !== -1) {
-                    break;
-                }
-                parentNode = parentNode.parentNode;
-            }
-        },
-
-        activateButton: function (tag) {
-            var el = this.toolbar.querySelector('[data-element="' + tag + '"]');
-            if (el !== null && el.className.indexOf(this.options.activeButtonClass) === -1) {
-                el.className += ' ' + this.options.activeButtonClass;
-            }
-        },
-
-        bindButtons: function () {
-            var buttons = this.toolbar.querySelectorAll('button'),
-                i,
-                self = this,
-                triggerAction = function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (self.selection === undefined) {
-                        self.checkSelection();
-                    }
-                    if (this.className.indexOf(self.options.activeButtonClass) > -1) {
-                        this.classList.remove(self.options.activeButtonClass);
-                    } else {
-                        this.className += ' ' + self.options.activeButtonClass;
-                    }
-                    if (this.hasAttribute('data-action')) {
-                        self.execAction(this.getAttribute('data-action'), e);
-                    }
-                };
-            for (i = 0; i < buttons.length; i += 1) {
-                buttons[i].addEventListener('click', triggerAction);
-            }
-            this.setFirstAndLastItems(buttons);
-            return this;
-        },
-
-        setFirstAndLastItems: function (buttons) {
-            if (buttons.length > 0) {
-                buttons[0].className += ' ' + this.options.firstButtonClass;
-                buttons[buttons.length - 1].className += ' ' + this.options.lastButtonClass;
-            }
-            return this;
-        },
-
-        execAction: function (action, e) {
-            if (action.indexOf('append-') > -1) {
-                this.execFormatBlock(action.replace('append-', ''));
-                this.setToolbarPosition();
-                this.setToolbarButtonStates();
-            } else if (action === 'anchor') {
-                this.triggerAnchorAction(e);
-            } else if (action === 'image') {
-                document.execCommand('insertImage', false, window.getSelection());
-            } else {
-                document.execCommand(action, false, null);
-                this.setToolbarPosition();
-            }
-        },
-
-        // http://stackoverflow.com/questions/15867542/range-object-get-selection-parent-node-chrome-vs-firefox
-        rangeSelectsSingleNode: function (range) {
-            var startNode = range.startContainer;
-            return startNode === range.endContainer &&
-                startNode.hasChildNodes() &&
-                range.endOffset === range.startOffset + 1;
-        },
-
-        getSelectedParentElement: function () {
-            var selectedParentElement = null,
-                range = this.selectionRange;
-            if (this.rangeSelectsSingleNode(range)) {
-                selectedParentElement = range.startContainer.childNodes[range.startOffset];
-            } else if (range.startContainer.nodeType === 3) {
-                selectedParentElement = range.startContainer.parentNode;
-            } else {
-                selectedParentElement = range.startContainer;
-            }
-            return selectedParentElement;
-        },
-
-        triggerAnchorAction: function () {
-            var selectedParentElement = this.getSelectedParentElement();
-            if (selectedParentElement.tagName &&
-                    selectedParentElement.tagName.toLowerCase() === 'a') {
-                document.execCommand('unlink', false, null);
-            } else {
-                if (this.anchorForm.style.display === 'block') {
-                    this.showToolbarActions();
-                } else {
-                    this.showAnchorForm();
-                }
-            }
-            return this;
-        },
-
-        execFormatBlock: function (el) {
-            var selectionData = this.getSelectionData(this.selection.anchorNode);
-            // FF handles blockquote differently on formatBlock
-            // allowing nesting, we need to use outdent
-            // https://developer.mozilla.org/en-US/docs/Rich-Text_Editing_in_Mozilla
-            if (el === 'blockquote' && selectionData.el &&
-                selectionData.el.parentNode.tagName.toLowerCase() === 'blockquote') {
-                return document.execCommand('outdent', false, null);
-            }
-            if (selectionData.tagName === el) {
-                el = 'p';
-            }
-            // When IE we need to add <> to heading elements and
-            //  blockquote needs to be called as indent
-            // http://stackoverflow.com/questions/10741831/execcommand-formatblock-headings-in-ie
-            // http://stackoverflow.com/questions/1816223/rich-text-editor-with-blockquote-function/1821777#1821777
-            if (this.isIE) {
-                if (el === 'blockquote') {
-                    return document.execCommand('indent', false, el);
-                }
-                el = '<' + el + '>';
-            }
-            return document.execCommand('formatBlock', false, el);
-        },
-
-        getSelectionData: function (el) {
-            var tagName;
-
-            if (el && el.tagName) {
-                tagName = el.tagName.toLowerCase();
-            }
-
-            while (el && this.parentElements.indexOf(tagName) === -1) {
-                el = el.parentNode;
-                if (el && el.tagName) {
-                    tagName = el.tagName.toLowerCase();
-                }
-            }
-
-            return {
-                el: el,
-                tagName: tagName
-            };
-        },
-
-        getFirstChild: function (el) {
-            var firstChild = el.firstChild;
-            while (firstChild !== null && firstChild.nodeType !== 1) {
-                firstChild = firstChild.nextSibling;
-            }
-            return firstChild;
-        },
-
-        hideToolbarActions: function () {
-            this.keepToolbarAlive = false;
-            if (this.toolbar !== undefined) {
-                this.toolbar.classList.remove('medium-editor-toolbar-active');
-            }
-        },
-
-        showToolbarActions: function () {
-            var self = this,
-                timer;
-            this.anchorForm.style.display = 'none';
-            this.toolbarActions.style.display = 'block';
-            this.keepToolbarAlive = false;
-            clearTimeout(timer);
-            timer = setTimeout(function () {
-                if (self.toolbar && !self.toolbar.classList.contains('medium-editor-toolbar-active')) {
-                    self.toolbar.classList.add('medium-editor-toolbar-active');
-                }
-            }, 100);
-        },
-
-        saveSelection: function() {
-            this.savedSelection = saveSelection();
-        },
-
-        restoreSelection: function() {
-            restoreSelection(this.savedSelection);
-        },
-
-        showAnchorForm: function (link_value) {
-            this.toolbarActions.style.display = 'none';
-            this.saveSelection();
-            this.anchorForm.style.display = 'block';
-            this.keepToolbarAlive = true;
-            this.anchorInput.focus();
-            this.anchorInput.value = link_value || '';
-        },
-
-        bindAnchorForm: function () {
-            var linkCancel = this.anchorForm.querySelector('a'),
-                self = this;
-            this.anchorForm.addEventListener('click', function (e) {
-                e.stopPropagation();
-            });
-            this.anchorInput.addEventListener('keyup', function (e) {
-                if (e.keyCode === 13) {
-                    e.preventDefault();
-                    self.createLink(this);
-                }
-            });
-            this.anchorInput.addEventListener('click', function (e) {
-                // make sure not to hide form when cliking into the input
-                e.stopPropagation();
-                self.keepToolbarAlive = true;
-            });
-            this.anchorInput.addEventListener('blur', function () {
-                self.keepToolbarAlive = false;
-                self.checkSelection();
-            });
-            linkCancel.addEventListener('click', function (e) {
-                e.preventDefault();
-                self.showToolbarActions();
-                restoreSelection(self.savedSelection);
-            });
-            return this;
-        },
-
-
-        hideAnchorPreview: function () {
-            this.anchorPreview.classList.remove('medium-editor-anchor-preview-active');
-        },
-
-        // TODO: break method
-        showAnchorPreview: function (anchorEl) {
-            if (this.anchorPreview.classList.contains('medium-editor-anchor-preview-active')) {
-                return true;
-            }
-
-            var self = this,
-                buttonHeight = 40,
-                boundary = anchorEl.getBoundingClientRect(),
-                middleBoundary = (boundary.left + boundary.right) / 2,
-                halfOffsetWidth,
-                defaultLeft,
-                timer;
-
-            self.anchorPreview.querySelector('i').textContent = anchorEl.href;
-            halfOffsetWidth = self.anchorPreview.offsetWidth / 2;
-            defaultLeft = self.options.diffLeft - halfOffsetWidth;
-
-            clearTimeout(timer);
-            timer = setTimeout(function () {
-                if (self.anchorPreview && !self.anchorPreview.classList.contains('medium-editor-anchor-preview-active')) {
-                    self.anchorPreview.classList.add('medium-editor-anchor-preview-active');
-                }
-            }, 100);
-
-            self.observeAnchorPreview(anchorEl);
-
-            self.anchorPreview.classList.add('medium-toolbar-arrow-over');
-            self.anchorPreview.classList.remove('medium-toolbar-arrow-under');
-            self.anchorPreview.style.top = Math.round(buttonHeight + boundary.bottom - self.options.diffTop + window.pageYOffset - self.anchorPreview.offsetHeight) + 'px';
-            if (middleBoundary < halfOffsetWidth) {
-                self.anchorPreview.style.left = defaultLeft + halfOffsetWidth + 'px';
-            } else if ((window.innerWidth - middleBoundary) < halfOffsetWidth) {
-                self.anchorPreview.style.left = window.innerWidth + defaultLeft - halfOffsetWidth + 'px';
-            } else {
-                self.anchorPreview.style.left = defaultLeft + middleBoundary + 'px';
-            }
-
-            return this;
-        },
-
-        // TODO: break method
-        observeAnchorPreview: function (anchorEl) {
-            var self = this,
-                lastOver = (new Date()).getTime(),
-                over = true,
-                stamp = function () {
-                    lastOver = (new Date()).getTime();
-                    over = true;
-                },
-                unstamp = function (e) {
-                    if (!e.relatedTarget || !/anchor-preview/.test(e.relatedTarget.className)) {
-                        over = false;
-                    }
-                },
-                interval_timer = setInterval(function () {
-                    if (over) {
-                        return true;
-                    }
-                    var durr = (new Date()).getTime() - lastOver;
-                    if (durr > self.options.anchorPreviewHideDelay) {
-                        // hide the preview 1/2 second after mouse leaves the link
-                        self.hideAnchorPreview();
-
-                        // cleanup
-                        clearInterval(interval_timer);
-                        self.anchorPreview.removeEventListener('mouseover', stamp);
-                        self.anchorPreview.removeEventListener('mouseout', unstamp);
-                        anchorEl.removeEventListener('mouseover', stamp);
-                        anchorEl.removeEventListener('mouseout', unstamp);
-
-                    }
-                }, 200);
-
-            self.anchorPreview.addEventListener('mouseover', stamp);
-            self.anchorPreview.addEventListener('mouseout', unstamp);
-            anchorEl.addEventListener('mouseover', stamp);
-            anchorEl.addEventListener('mouseout', unstamp);
-        },
-
-        createAnchorPreview: function () {
-            var self = this,
-                anchorPreview = document.createElement('div');
-
-            anchorPreview.id = 'medium-editor-anchor-preview-' + this.id;
-            anchorPreview.className = 'medium-editor-anchor-preview';
-            anchorPreview.innerHTML = this.anchorPreviewTemplate();
-            this.options.elementsContainer.appendChild(anchorPreview);
-
-            anchorPreview.addEventListener('click', function () {
-                self.anchorPreviewClickHandler();
-            });
-
-            return anchorPreview;
-        },
-
-        anchorPreviewTemplate: function () {
-            return '<div class="medium-editor-toolbar-anchor-preview" id="medium-editor-toolbar-anchor-preview">' +
-                '    <i class="medium-editor-toolbar-anchor-preview-inner"></i>' +
-                '</div>';
-        },
-
-        anchorPreviewClickHandler: function (e) {
-            if (this.activeAnchor) {
-
-                var self = this,
-                    range = document.createRange(),
-                    sel = window.getSelection();
-
-                range.selectNodeContents(self.activeAnchor);
-                sel.removeAllRanges();
-                sel.addRange(range);
-                setTimeout(function () {
-                    if (self.activeAnchor) {
-                        self.showAnchorForm(self.activeAnchor.href);
-                    }
-                    self.keepToolbarAlive = false;
-                }, 100 + self.options.delay);
-
-            }
-
-            this.hideAnchorPreview();
-        },
-
-        editorAnchorObserver: function (e) {
-            var self = this,
-                overAnchor = true,
-                leaveAnchor = function () {
-                    // mark the anchor as no longer hovered, and stop listening
-                    overAnchor = false;
-                    self.activeAnchor.removeEventListener('mouseout', leaveAnchor);
-                };
-
-            if (e.target && e.target.tagName.toLowerCase() === 'a') {
-
-                // Detect empty href attributes
-                // The browser will make href="" or href="#top"
-                // into absolute urls when accessed as e.targed.href, so check the html
-                if (!/href=["']\S+["']/.test(e.target.outerHTML) || /href=["']#\S+["']/.test(e.target.outerHTML)) {
-                    return true;
+            if (currNode) {
+                // Move to the lowest descendant node that still selects all of the contents
+                while (currNode.children.length === 1) {
+                    currNode = currNode.children[0];
                 }
 
-                // only show when hovering on anchors
-                if (this.toolbar.classList.contains('medium-editor-toolbar-active')) {
-                    // only show when toolbar is not present
-                    return true;
+                this.selectElement(currNode);
+            }
+        },
+
+        selectElement: function (element) {
+            MediumEditor.selection.selectNode(element, this.options.ownerDocument);
+
+            var selElement = MediumEditor.selection.getSelectionElement(this.options.contentWindow);
+            if (selElement) {
+                this.events.focusElement(selElement);
+            }
+        },
+
+        getFocusedElement: function () {
+            var focused;
+            this.elements.some(function (element) {
+                // Find the element that has focus
+                if (!focused && element.getAttribute('data-medium-focused')) {
+                    focused = element;
                 }
-                this.activeAnchor = e.target;
-                this.activeAnchor.addEventListener('mouseout', leaveAnchor);
-                // show the anchor preview according to the configured delay
-                // if the mouse has not left the anchor tag in that time
-                setTimeout(function () {
-                    if (overAnchor) {
-                        self.showAnchorPreview(e.target);
-                    }
-                }, self.options.delay);
 
+                // bail if we found the element that had focus
+                return !!focused;
+            }, this);
 
-            }
+            return focused;
         },
 
-        bindAnchorPreview: function (index) {
-            var i, self = this;
-            this.editorAnchorObserverWrapper = function (e) {
-                self.editorAnchorObserver(e);
-            };
-            for (i = 0; i < this.elements.length; i += 1) {
-                this.elements[i].addEventListener('mouseover', this.editorAnchorObserverWrapper);
+        // Export the state of the selection in respect to one of this
+        // instance of MediumEditor's elements
+        exportSelection: function () {
+            var selectionElement = MediumEditor.selection.getSelectionElement(this.options.contentWindow),
+                editableElementIndex = this.elements.indexOf(selectionElement),
+                selectionState = null;
+
+            if (editableElementIndex >= 0) {
+                selectionState = MediumEditor.selection.exportSelection(selectionElement, this.options.ownerDocument);
             }
-            return this;
+
+            if (selectionState !== null && editableElementIndex !== 0) {
+                selectionState.editableElementIndex = editableElementIndex;
+            }
+
+            return selectionState;
         },
 
-        checkLinkFormat: function (value) {
-            var re = /^(https?|ftps?|rtmpt?):\/\/|mailto:/;
-            return (re.test(value) ? '' : 'http://') + value;
+        saveSelection: function () {
+            this.selectionState = this.exportSelection();
         },
 
-        setTargetBlank: function () {
-            var el = getSelectionStart(),
-                i;
-            if (el.tagName.toLowerCase() === 'a') {
-                el.target = '_blank';
-            } else {
-                el = el.getElementsByTagName('a');
-                for (i = 0; i < el.length; i += 1) {
-                    el[i].target = '_blank';
-                }
-            }
-        },
-
-        createLink: function (input) {
-            if (input.value.trim().length === 0) {
-                this.hideToolbarActions();
-                return;
-            }
-            restoreSelection(this.savedSelection);
-            if (this.options.checkLinkFormat) {
-                input.value = this.checkLinkFormat(input.value);
-            }
-            document.execCommand('createLink', false, input.value);
-            if (this.options.targetBlank) {
-                this.setTargetBlank();
-            }
-            this.checkSelection();
-            this.showToolbarActions();
-            input.value = '';
-        },
-
-        bindWindowActions: function () {
-            var timerResize,
-                self = this;
-            this.windowResizeHandler = function () {
-                clearTimeout(timerResize);
-                timerResize = setTimeout(function () {
-                    if (self.toolbar && self.toolbar.classList.contains('medium-editor-toolbar-active')) {
-                        self.setToolbarPosition();
-                    }
-                }, 100);
-            };
-            window.addEventListener('resize', this.windowResizeHandler);
-            return this;
-        },
-
-        activate: function () {
-            if (this.isActive) {
+        // Restore a selection based on a selectionState returned by a call
+        // to MediumEditor.exportSelection
+        importSelection: function (selectionState, favorLaterSelectionAnchor) {
+            if (!selectionState) {
                 return;
             }
 
-            this.setup();
+            var editableElement = this.elements[selectionState.editableElementIndex || 0];
+            MediumEditor.selection.importSelection(selectionState, editableElement, this.options.ownerDocument, favorLaterSelectionAnchor);
         },
 
-        // TODO: break method
-        deactivate: function () {
-            var i;
-            if (!this.isActive) {
+        restoreSelection: function () {
+            this.importSelection(this.selectionState);
+        },
+
+        createLink: function (opts) {
+            var currentEditor = MediumEditor.selection.getSelectionElement(this.options.contentWindow),
+                customEvent = {};
+
+            // Make sure the selection is within an element this editor is tracking
+            if (this.elements.indexOf(currentEditor) === -1) {
                 return;
             }
-            this.isActive = false;
 
-            if (this.toolbar !== undefined) {
-                this.options.elementsContainer.removeChild(this.anchorPreview);
-                this.options.elementsContainer.removeChild(this.toolbar);
-                delete this.toolbar;
-                delete this.anchorPreview;
-            }
+            try {
+                this.events.disableCustomEvent('editableInput');
+                if (opts.url && opts.url.trim().length > 0) {
+                    var currentSelection = this.options.contentWindow.getSelection();
+                    if (currentSelection) {
+                        var currRange = currentSelection.getRangeAt(0),
+                            commonAncestorContainer = currRange.commonAncestorContainer,
+                            exportedSelection,
+                            startContainerParentElement,
+                            endContainerParentElement,
+                            textNodes;
 
-            document.documentElement.removeEventListener('mouseup', this.checkSelectionWrapper);
-            window.removeEventListener('resize', this.windowResizeHandler);
-
-            for (i = 0; i < this.elements.length; i += 1) {
-                this.elements[i].removeEventListener('mouseover', this.editorAnchorObserverWrapper);
-                this.elements[i].removeEventListener('keyup', this.checkSelectionWrapper);
-                this.elements[i].removeEventListener('blur', this.checkSelectionWrapper);
-                this.elements[i].removeEventListener('paste', this.pasteWrapper);
-                this.elements[i].removeAttribute('contentEditable');
-                this.elements[i].removeAttribute('data-medium-element');
-            }
-
-        },
-
-        htmlEntities: function (str) {
-            // converts special characters (like <) into their escaped/encoded values (like &lt;).
-            // This allows you to show to display the string without the browser reading it as HTML.
-            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        },
-
-        bindPaste: function () {
-            var i, self = this;
-            this.pasteWrapper = function (e) {
-                var paragraphs,
-                    html = '',
-                    p;
-
-                this.classList.remove('medium-editor-placeholder');
-                if (!self.options.forcePlainText && !self.options.cleanPastedHTML) {
-                    return this;
-                }
-
-                if (e.clipboardData && e.clipboardData.getData && !e.defaultPrevented) {
-                    e.preventDefault();
-
-                    if (self.options.cleanPastedHTML && e.clipboardData.getData('text/html')) {
-                        return self.cleanPaste(e.clipboardData.getData('text/html'));
-                    }
-                    if (!(self.options.disableReturn || this.getAttribute('data-disable-return'))) {
-                        paragraphs = e.clipboardData.getData('text/plain').split(/[\r\n]/g);
-                        for (p = 0; p < paragraphs.length; p += 1) {
-                            if (paragraphs[p] !== '') {
-                                if (navigator.userAgent.match(/firefox/i) && p === 0) {
-                                    html += self.htmlEntities(paragraphs[p]);
-                                } else {
-                                    html += '<p>' + self.htmlEntities(paragraphs[p]) + '</p>';
-                                }
-                            }
+                        // If the selection is contained within a single text node
+                        // and the selection starts at the beginning of the text node,
+                        // MSIE still says the startContainer is the parent of the text node.
+                        // If the selection is contained within a single text node, we
+                        // want to just use the default browser 'createLink', so we need
+                        // to account for this case and adjust the commonAncestorContainer accordingly
+                        if (currRange.endContainer.nodeType === 3 &&
+                            currRange.startContainer.nodeType !== 3 &&
+                            currRange.startOffset === 0 &&
+                            currRange.startContainer.firstChild === currRange.endContainer) {
+                            commonAncestorContainer = currRange.endContainer;
                         }
-                        document.execCommand('insertHTML', false, html);
-                    } else {
-                        document.execCommand('insertHTML', false, e.clipboardData.getData('text/plain'));
+
+                        startContainerParentElement = MediumEditor.util.getClosestBlockContainer(currRange.startContainer);
+                        endContainerParentElement = MediumEditor.util.getClosestBlockContainer(currRange.endContainer);
+
+                        // If the selection is not contained within a single text node
+                        // but the selection is contained within the same block element
+                        // we want to make sure we create a single link, and not multiple links
+                        // which can happen with the built in browser functionality
+                        if (commonAncestorContainer.nodeType !== 3 && startContainerParentElement === endContainerParentElement) {
+                            var parentElement = (startContainerParentElement || currentEditor),
+                                fragment = this.options.ownerDocument.createDocumentFragment();
+
+                            // since we are going to create a link from an extracted text,
+                            // be sure that if we are updating a link, we won't let an empty link behind (see #754)
+                            // (Workaroung for Chrome)
+                            this.execAction('unlink');
+
+                            exportedSelection = this.exportSelection();
+                            fragment.appendChild(parentElement.cloneNode(true));
+
+                            if (currentEditor === parentElement) {
+                                // We have to avoid the editor itself being wiped out when it's the only block element,
+                                // as our reference inside this.elements gets detached from the page when insertHTML runs.
+                                // If we just use [parentElement, 0] and [parentElement, parentElement.childNodes.length]
+                                // as the range boundaries, this happens whenever parentElement === currentEditor.
+                                // The tradeoff to this workaround is that a orphaned tag can sometimes be left behind at
+                                // the end of the editor's content.
+                                // In Gecko:
+                                // as an empty <strong></strong> if parentElement.lastChild is a <strong> tag.
+                                // In WebKit:
+                                // an invented <br /> tag at the end in the same situation
+                                MediumEditor.selection.select(
+                                    this.options.ownerDocument,
+                                    parentElement.firstChild,
+                                    0,
+                                    parentElement.lastChild,
+                                    parentElement.lastChild.nodeType === 3 ?
+                                    parentElement.lastChild.nodeValue.length : parentElement.lastChild.childNodes.length
+                                );
+                            } else {
+                                MediumEditor.selection.select(
+                                    this.options.ownerDocument,
+                                    parentElement,
+                                    0,
+                                    parentElement,
+                                    parentElement.childNodes.length
+                                );
+                            }
+
+                            var modifiedExportedSelection = this.exportSelection();
+
+                            textNodes = MediumEditor.util.findOrCreateMatchingTextNodes(
+                                this.options.ownerDocument,
+                                fragment,
+                                {
+                                    start: exportedSelection.start - modifiedExportedSelection.start,
+                                    end: exportedSelection.end - modifiedExportedSelection.start,
+                                    editableElementIndex: exportedSelection.editableElementIndex
+                                }
+                            );
+
+                            // Creates the link in the document fragment
+                            MediumEditor.util.createLink(this.options.ownerDocument, textNodes, opts.url.trim());
+
+                            // Chrome trims the leading whitespaces when inserting HTML, which messes up restoring the selection.
+                            var leadingWhitespacesCount = (fragment.firstChild.innerHTML.match(/^\s+/) || [''])[0].length;
+
+                            // Now move the created link back into the original document in a way to preserve undo/redo history
+                            MediumEditor.util.insertHTMLCommand(this.options.ownerDocument, fragment.firstChild.innerHTML.replace(/^\s+/, ''));
+                            exportedSelection.start -= leadingWhitespacesCount;
+                            exportedSelection.end -= leadingWhitespacesCount;
+
+                            this.importSelection(exportedSelection);
+                        } else {
+                            this.options.ownerDocument.execCommand('createLink', false, opts.url);
+                        }
+
+                        if (this.options.targetBlank || opts.target === '_blank') {
+                            MediumEditor.util.setTargetBlank(MediumEditor.selection.getSelectionStart(this.options.ownerDocument), opts.url);
+                        }
+
+                        if (opts.buttonClass) {
+                            MediumEditor.util.addClassToAnchors(MediumEditor.selection.getSelectionStart(this.options.ownerDocument), opts.buttonClass);
+                        }
                     }
                 }
-            };
-            for (i = 0; i < this.elements.length; i += 1) {
-                this.elements[i].addEventListener('paste', this.pasteWrapper);
-            }
-            return this;
-        },
-
-        setPlaceholders: function () {
-            var i,
-                activatePlaceholder = function (el) {
-                    if (!(el.querySelector('img')) &&
-                            !(el.querySelector('blockquote')) &&
-                            el.textContent.replace(/^\s+|\s+$/g, '') === '') {
-                        el.classList.add('medium-editor-placeholder');
+                // Fire input event for backwards compatibility if anyone was listening directly to the DOM input event
+                if (this.options.targetBlank || opts.target === '_blank' || opts.buttonClass) {
+                    customEvent = this.options.ownerDocument.createEvent('HTMLEvents');
+                    customEvent.initEvent('input', true, true, this.options.contentWindow);
+                    for (var i = 0; i < this.elements.length; i += 1) {
+                        this.elements[i].dispatchEvent(customEvent);
                     }
-                },
-                placeholderWrapper = function (e) {
-                    this.classList.remove('medium-editor-placeholder');
-                    if (e.type !== 'keypress') {
-                        activatePlaceholder(this);
-                    }
-                };
-            for (i = 0; i < this.elements.length; i += 1) {
-                activatePlaceholder(this.elements[i]);
-                this.elements[i].addEventListener('blur', placeholderWrapper);
-                this.elements[i].addEventListener('keypress', placeholderWrapper);
+                }
+            } finally {
+                this.events.enableCustomEvent('editableInput');
             }
-            return this;
+            // Fire our custom editableInput event
+            this.events.triggerCustomEvent('editableInput', customEvent, currentEditor);
         },
 
         cleanPaste: function (text) {
-
-            /*jslint regexp: true*/
-            /*
-                jslint does not allow character negation, because the negation
-                will not match any unicode characters. In the regexes in this
-                block, negation is used specifically to match the end of an html
-                tag, and in fact unicode characters *should* be allowed.
-            */
-            var i, elList, workEl,
-                el = this.getSelectionElement(),
-                multiline = /<p|<br|<div/.test(text),
-                replacements = [
-
-                    // replace two bogus tags that begin pastes from google docs
-                    [new RegExp(/<[^>]*docs-internal-guid[^>]*>/gi), ""],
-                    [new RegExp(/<\/b>(<br[^>]*>)?$/gi), ""],
-
-                     // un-html spaces and newlines inserted by OS X
-                    [new RegExp(/<span class="Apple-converted-space">\s+<\/span>/g), ' '],
-                    [new RegExp(/<br class="Apple-interchange-newline">/g), '<br>'],
-
-                    // replace google docs italics+bold with a span to be replaced once the html is inserted
-                    [new RegExp(/<span[^>]*(font-style:italic;font-weight:bold|font-weight:bold;font-style:italic)[^>]*>/gi), '<span class="replace-with italic bold">'],
-
-                    // replace google docs italics with a span to be replaced once the html is inserted
-                    [new RegExp(/<span[^>]*font-style:italic[^>]*>/gi), '<span class="replace-with italic">'],
-
-                    //[replace google docs bolds with a span to be replaced once the html is inserted
-                    [new RegExp(/<span[^>]*font-weight:bold[^>]*>/gi), '<span class="replace-with bold">'],
-
-                     // replace manually entered b/i/a tags with real ones
-                    [new RegExp(/&lt;(\/?)(i|b|a)&gt;/gi), '<$1$2>'],
-
-                     // replace manually a tags with real ones, converting smart-quotes from google docs
-                    [new RegExp(/&lt;a\s+href=(&quot;|&rdquo;|&ldquo;|“|”)([^&]+)(&quot;|&rdquo;|&ldquo;|“|”)&gt;/gi), '<a href="$2">']
-
-                ];
-            /*jslint regexp: false*/
-
-            for (i = 0; i < replacements.length; i += 1) {
-                text = text.replace(replacements[i][0], replacements[i][1]);
-            }
-
-            if (multiline) {
-
-                // double br's aren't converted to p tags, but we want paragraphs.
-                elList = text.split('<br><br>');
-
-                this.pasteHTML('<p>' + elList.join('</p><p>') + '</p>');
-                document.execCommand('insertText', false, "\n");
-
-                // block element cleanup
-                elList = el.querySelectorAll('p,div,br');
-                for (i = 0; i < elList.length; i += 1) {
-
-                    workEl = elList[i];
-
-                    switch (workEl.tagName.toLowerCase()) {
-                    case 'p':
-                    case 'div':
-                        this.filterCommonBlocks(workEl);
-                        break;
-                    case 'br':
-                        this.filterLineBreak(workEl);
-                        break;
-                    }
-
-                }
-
-
-            } else {
-
-                this.pasteHTML(text);
-
-            }
-
+            this.getExtensionByName('paste').cleanPaste(text);
         },
 
-        pasteHTML: function (html) {
-            var elList, workEl, i, fragmentBody, pasteBlock = document.createDocumentFragment();
-
-            pasteBlock.appendChild(document.createElement('body'));
-
-            fragmentBody = pasteBlock.querySelector('body');
-            fragmentBody.innerHTML = html;
-
-            this.cleanupSpans(fragmentBody);
-
-            elList = fragmentBody.querySelectorAll('*');
-            for (i = 0; i < elList.length; i += 1) {
-
-                workEl = elList[i];
-
-                // delete ugly attributes
-                workEl.removeAttribute('class');
-                workEl.removeAttribute('style');
-                workEl.removeAttribute('dir');
-
-                if (workEl.tagName.toLowerCase() === 'meta') {
-                    workEl.parentNode.removeChild(workEl);
-                }
-
-            }
-            document.execCommand('insertHTML', false, fragmentBody.innerHTML.replace(/&nbsp;/g, ' '));
-        },
-        isCommonBlock: function (el) {
-            return (el && (el.tagName.toLowerCase() === 'p' || el.tagName.toLowerCase() === 'div'));
-        },
-        filterCommonBlocks: function (el) {
-            if (/^\s*$/.test(el.innerText)) {
-                el.parentNode.removeChild(el);
-            }
-        },
-        filterLineBreak: function (el) {
-            if (this.isCommonBlock(el.previousElementSibling)) {
-
-                // remove stray br's following common block elements
-                el.parentNode.removeChild(el);
-
-            } else if (this.isCommonBlock(el.parentNode) && (el.parentNode.firstChild === el || el.parentNode.lastChild === el)) {
-
-                // remove br's just inside open or close tags of a div/p
-                el.parentNode.removeChild(el);
-
-            } else if (el.parentNode.childElementCount === 1) {
-
-                // and br's that are the only child of a div/p
-                this.removeWithParent(el);
-
-            }
-
+        pasteHTML: function (html, options) {
+            this.getExtensionByName('paste').pasteHTML(html, options);
         },
 
-        // remove an element, including its parent, if it is the only element within its parent
-        removeWithParent: function (el) {
-            if (el && el.parentNode) {
-                if (el.parentNode.parentNode && el.parentNode.childElementCount === 1) {
-                    el.parentNode.parentNode.removeChild(el.parentNode);
-                } else {
-                    el.parentNode.removeChild(el.parentNode);
-                }
+        setContent: function (html, index) {
+            index = index || 0;
+
+            if (this.elements[index]) {
+                var target = this.elements[index];
+                target.innerHTML = html;
+                this.events.updateInput(target, { target: target, currentTarget: target });
             }
-        },
-
-        cleanupSpans: function (container_el) {
-
-            var i,
-                el,
-                new_el,
-                spans = container_el.querySelectorAll('.replace-with');
-
-            for (i = 0; i < spans.length; i += 1) {
-
-                el = spans[i];
-                new_el = document.createElement(el.classList.contains('bold') ? 'b' : 'i');
-
-                if (el.classList.contains('bold') && el.classList.contains('italic')) {
-
-                    // add an i tag as well if this has both italics and bold
-                    new_el.innerHTML = '<i>' + el.innerHTML + '</i>';
-
-                } else {
-
-                    new_el.innerHTML = el.innerHTML;
-
-                }
-                el.parentNode.replaceChild(new_el, el);
-
-            }
-
-            spans = container_el.querySelectorAll('span');
-            for (i = 0; i < spans.length; i += 1) {
-
-                el = spans[i];
-
-                // remove empty spans, replace others with their contents
-                if (/^\s*$/.test()) {
-                    el.parentNode.removeChild(el);
-                } else {
-                    el.parentNode.replaceChild(document.createTextNode(el.innerText), el);
-                }
-
-            }
-
         }
-
     };
+}());
 
-}(window, document));
+(function () {
+    // summary: The default options hash used by the Editor
+
+    MediumEditor.prototype.defaults = {
+        activeButtonClass: 'medium-editor-button-active',
+        buttonLabels: false,
+        delay: 0,
+        disableReturn: false,
+        disableDoubleReturn: false,
+        disableEditing: false,
+        autoLink: false,
+        elementsContainer: false,
+        contentWindow: window,
+        ownerDocument: document,
+        targetBlank: false,
+        extensions: {},
+        spellcheck: true
+    };
+})();
+
+MediumEditor.parseVersionString = function (release) {
+    var split = release.split('-'),
+        version = split[0].split('.'),
+        preRelease = (split.length > 1) ? split[1] : '';
+    return {
+        major: parseInt(version[0], 10),
+        minor: parseInt(version[1], 10),
+        revision: parseInt(version[2], 10),
+        preRelease: preRelease,
+        toString: function () {
+            return [version[0], version[1], version[2]].join('.') + (preRelease ? '-' + preRelease : '');
+        }
+    };
+};
+
+MediumEditor.version = MediumEditor.parseVersionString.call(this, ({
+    // grunt-bump looks for this:
+    'version': '5.8.2'
+}).version);
+
+    return MediumEditor;
+}()));
 
 
 $(document).ready(function($) {

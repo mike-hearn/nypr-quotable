@@ -10,7 +10,7 @@
     "private": true,
     "devDependencies": {
         "jquery": "latest",
-        "html2canvas": "master",
+        "html2canvas": "0.4.1",
         "medium-editor": "latest",
         "normalize-css": "latest",
         "bootstrap-sass": "latest"
