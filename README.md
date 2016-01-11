@@ -14,6 +14,6 @@ Once cloned/downloaded, you may upload anywhere that can serve HTTP.
 
 ### Usage
 
-The project is designed for NYPR, but can be used by other companies / brands. The git repository contains a branc, `wvpb-master`, that is modified for use by West Virginia Public Broadcasting.
+The project is designed for NYPR, but can be used by other companies / brands. The git repository contains a branch, `wvpb-master`, that is modified for use by West Virginia Public Broadcasting.
 
 Run `git diff master..wvpb-master` to see what files and code needs to be changed in order to modify the branding of the app.
