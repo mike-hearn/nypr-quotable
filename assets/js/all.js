@@ -19658,6 +19658,9 @@ $(document).ready(function($) {
             case 'gotham':
                 changeFont('Gotham-Web');
                 break;
+            case 'opensans':
+                changeFont('Open-Sans');
+                break;
             case 'din':
                 changeFont('DIN');
                 break;
@@ -19731,6 +19734,10 @@ $(document).ready(function($) {
                     changeTheme('#d9602d', '#fff', 'brand');
                 } else if (brand === "onthemedia") {
                     changeTheme('#ec5a24', '#fff', 'brand');
+                } else if (brand === "notetoself") {
+                      changeTheme('#FBF9D8', '#000', 'brand');
+                } else if (brand === "infomagical") {
+                      changeTheme('#C5E2D9', '#000', 'brand');
                 } else {
                     changeTheme('#fff', '#333', 'white');
                 }
