@@ -1,6 +1,6 @@
 # NYPR Quotable
 
-This tool is based upon [NPR Quotable][1].
+Inspired by [NPR Quotable][1] (though the two projects share no code).
 
 The tool is intended to allow users to quickly make JPEG quotes that can be shared on Facebook, Twitter, Instagram and other social networks where images are more "shareable" than just straight text.
 
